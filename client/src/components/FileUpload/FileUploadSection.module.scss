@@ -1,0 +1,290 @@
+.file-upload-section {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-2);
+
+    h4 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem 0;
+        color: var(--text-black);
+    }
+}
+
+.upload-area {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f8fafc;
+    margin-bottom: 1.5rem;
+
+    &:hover,
+    &.drag-over {
+        border-color: var(--text-active);
+        background: rgba(59, 130, 246, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 1rem;
+        transition: color 0.3s ease;
+    }
+
+    &:hover .upload-icon,
+    &.drag-over .upload-icon {
+        color: var(--text-active);
+    }
+
+    .upload-text {
+        p {
+            font-size: 1.4rem;
+            color: var(--text-black);
+            margin: 0 0 0.5rem 0;
+
+            span {
+                color: var(--text-active);
+                font-weight: 600;
+            }
+        }
+
+        small {
+            font-size: 1.2rem;
+            color: var(--text-label);
+            line-height: 1.4;
+        }
+    }
+
+    .file-input {
+        display: none;
+    }
+}
+
+.upload-progress {
+    margin-bottom: 1.5rem;
+
+    .progress-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, var(--text-active), #22c55e);
+                border-radius: 3px;
+                transition: width 0.3s ease;
+            }
+        }
+
+        .progress-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-active);
+            min-width: 40px;
+        }
+    }
+}
+
+.files-list {
+    .files-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+
+        span {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-black);
+        }
+    }
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f8fafc;
+        border-color: var(--text-active);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    .file-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        min-width: 0;
+
+        .file-icon {
+            font-size: 2rem;
+            color: var(--text-active);
+            flex-shrink: 0;
+        }
+
+        .file-details {
+            flex: 1;
+            min-width: 0;
+
+            .file-name {
+                font-size: 1.3rem;
+                font-weight: 600;
+                color: var(--text-black);
+                margin-bottom: 0.25rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .file-meta {
+                font-size: 1.1rem;
+                color: var(--text-label);
+            }
+        }
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .action-btn {
+        background: none;
+        border: 1px solid #e2e8f0;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-label);
+        transition: all 0.2s ease;
+        font-size: 1.2rem;
+
+        &:hover {
+            background: #f1f5f9;
+            border-color: var(--text-active);
+        }
+
+        &.preview:hover {
+            color: var(--text-active);
+        }
+
+        &.download:hover {
+            color: #22c55e;
+        }
+
+        &.delete:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+    }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-label);
+
+    p {
+        font-size: 1.3rem;
+        margin: 0;
+        font-style: italic;
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .file-upload-section {
+        padding: 1.5rem;
+    }
+
+    .upload-area {
+        padding: 1.5rem;
+
+        .upload-icon {
+            font-size: 2.5rem;
+        }
+
+        .upload-text {
+            p {
+                font-size: 1.3rem;
+            }
+
+            small {
+                font-size: 1.1rem;
+            }
+        }
+    }
+
+    .file-item {
+        padding: 0.75rem;
+
+        .file-info {
+            gap: 0.75rem;
+
+            .file-icon {
+                font-size: 1.8rem;
+            }
+
+            .file-details {
+                .file-name {
+                    font-size: 1.2rem;
+                }
+
+                .file-meta {
+                    font-size: 1rem;
+                }
+            }
+        }
+
+        .file-actions {
+            gap: 0.25rem;
+
+            .action-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 1.1rem;
+            }
+        }
+    }
+}
+
+.image-preview {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 10px;
+}

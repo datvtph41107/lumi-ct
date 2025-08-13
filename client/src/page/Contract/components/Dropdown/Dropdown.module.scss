@@ -1,0 +1,132 @@
+.dropdown {
+    position: relative;
+    width: 100%;
+
+    &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+}
+
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-2);
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 40px;
+
+    &.error {
+        border-color: #ff4742;
+    }
+
+    &:hover {
+        border-color: var(--text-active);
+    }
+
+    &.open {
+        border-color: var(--text-active);
+        box-shadow: 0 0 0 2px var(--bg-hover);
+    }
+
+    .selected-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+
+        .icon {
+            font-size: 16px;
+        }
+
+        .text {
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 500;
+        }
+    }
+
+    .chevron {
+        color: var(--text-main);
+        font-size: 12px;
+        transition: transform 0.2s ease;
+
+        &.rotated {
+            transform: rotate(180deg);
+        }
+    }
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--gray-2);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 4px;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--gray-1);
+
+    &:last-child {
+        border-bottom: none;
+    }
+
+    &:hover {
+        background: var(--bg-hover-gray);
+    }
+
+    &.selected {
+        background: var(--bg-hover);
+        color: var(--text-active);
+    }
+
+    .icon {
+        font-size: 16px;
+    }
+
+    .text {
+        flex: 1;
+        font-size: 14px;
+        color: var(--text-black);
+    }
+
+    .check-icon {
+        color: var(--text-active);
+        font-size: 12px;
+    }
+
+    &.selected .text {
+        color: var(--text-active);
+        font-weight: 500;
+    }
+}

@@ -1,0 +1,92 @@
+.editor-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    // Ensure proper event handling
+    pointer-events: auto;
+}
+
+.editor-content {
+    outline: none;
+    background-color: white;
+    caret-color: var(--text-active);
+    min-height: 1054px;
+    width: 816px;
+    padding-top: 3.5rem;
+    padding-right: 3.5rem;
+    padding-bottom: 2.5rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: text;
+    // Ensure proper event handling
+    pointer-events: auto;
+    user-select: text;
+
+    @media print {
+        border: 0;
+    }
+
+    :global(.ProseMirror) {
+        outline: none;
+        // Ensure proper event handling
+        pointer-events: auto;
+        user-select: text;
+
+        p {
+            margin: 0;
+            margin-bottom: 1.25rem;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        // Styling for other elements
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            margin: 1em 0 0.5em 0;
+            font-weight: 600;
+            line-height: 1.3;
+
+            &:first-child {
+                margin-top: 0;
+            }
+        }
+
+        ul,
+        ol {
+            margin: 0.75em 0;
+            padding-left: 1.5em;
+        }
+
+        blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1em;
+            margin: 1em 0;
+            font-style: italic;
+        }
+
+        code {
+            background-color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 1em;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1em 0;
+
+            code {
+                background: none;
+                padding: 0;
+            }
+        }
+    }
+}

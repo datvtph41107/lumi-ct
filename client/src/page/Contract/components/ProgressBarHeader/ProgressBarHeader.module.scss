@@ -1,0 +1,301 @@
+.wrapper {
+    background: white;
+    border-bottom: 1px solid var(--gray-2);
+    padding: 2rem 0;
+
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+
+    // When expanded (at top)
+    // &.expanded {
+    //     padding: 2rem 0;
+    //     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    //     transform: translateY(0);
+    // }
+
+    // // When collapsed (scrolled down but visible)
+    // &.collapsed {
+    //     padding: 1rem 0;
+    //     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    //     backdrop-filter: blur(10px);
+    //     background: rgba(255, 255, 255, 0.95);
+    //     transform: translateY(0);
+    // }
+
+    // When hidden (scrolled down)
+    &.hidden {
+        transform: translateY(-100%);
+        opacity: 0;
+        visibility: hidden;
+        box-shadow: none;
+    }
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.progress-line {
+    position: absolute;
+    top: 28px;
+    left: 2rem;
+    right: 2rem;
+    height: 3px;
+    background: var(--gray-2);
+    z-index: 1;
+    border-radius: 2px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    .collapsed & {
+        top: 20px;
+        height: 2px;
+    }
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--text-active), var(--text-active-hover));
+    transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border-radius: 2px;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    max-width: 250px;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    &.completed {
+        .step-marker {
+            background: var(--green-block);
+            border-color: var(--green-block);
+            color: white;
+            transform: scale(1);
+        }
+
+        .step-title {
+            color: var(--green-block);
+            font-weight: 600;
+        }
+    }
+
+    &.active {
+        .step-marker {
+            background: var(--text-active);
+            border-color: var(--text-active);
+            color: white;
+            box-shadow: 0 0 0 4px var(--bg-hover);
+            transform: scale(1.05);
+        }
+
+        .step-title {
+            color: var(--text-active);
+            font-weight: 600;
+        }
+
+        .step-description {
+            color: var(--text-active);
+        }
+    }
+
+    &.upcoming {
+        .step-marker {
+            background: white;
+            border-color: var(--gray-2);
+            color: var(--text-main);
+            transform: scale(0.95);
+        }
+
+        .step-title {
+            color: var(--text-op);
+        }
+
+        .step-description {
+            color: var(--text-main);
+        }
+    }
+}
+
+.step-marker {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 3px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    margin-bottom: 1rem;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    font-size: 20px;
+    will-change: transform, width, height;
+
+    .collapsed & {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+        margin-bottom: 0.75rem;
+    }
+
+    .hidden & {
+        transform: scale(0.8);
+    }
+}
+
+.step-number {
+    font-size: 18px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+
+    .collapsed & {
+        font-size: 14px;
+    }
+}
+
+.step-content {
+    max-width: 180px;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.step-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    color: var(--text-black);
+
+    .collapsed & {
+        font-size: 15px;
+        margin-bottom: 0.25rem;
+    }
+}
+
+.step-description {
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.4;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    opacity: 1;
+    max-height: 50px;
+    overflow: hidden;
+
+    .collapsed & {
+        font-size: 13px;
+        opacity: 0.8;
+        max-height: 30px;
+    }
+
+    .hidden & {
+        opacity: 0;
+        max-height: 0;
+    }
+}
+
+// Add space for fixed header
+:global(body) {
+    padding-top: 120px;
+
+    .collapsed & {
+        padding-top: 80px;
+    }
+}
+
+// Smooth reveal animation
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
+
+.wrapper:not(.hidden) {
+    animation: slideDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (max-width: 768px) {
+    .wrapper {
+        padding: 1rem 0;
+
+        &.collapsed {
+            padding: 0.75rem 0;
+        }
+    }
+
+    .container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+
+        .collapsed & {
+            gap: 0.5rem;
+        }
+    }
+
+    .progress-line {
+        display: none;
+    }
+
+    .step {
+        flex-direction: row;
+        text-align: left;
+        max-width: none;
+        width: 100%;
+
+        .step-marker {
+            margin-bottom: 0;
+            margin-right: 1rem;
+            flex-shrink: 0;
+
+            .collapsed & {
+                width: 36px;
+                height: 36px;
+                margin-bottom: 0;
+            }
+        }
+
+        .step-content {
+            max-width: none;
+            flex: 1;
+        }
+    }
+
+    :global(body) {
+        padding-top: 100px;
+
+        .collapsed & {
+            padding-top: 70px;
+        }
+    }
+}

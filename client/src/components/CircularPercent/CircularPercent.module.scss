@@ -1,0 +1,26 @@
+.circle-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.progress {
+    transition: stroke-dashoffset 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.green {
+    stroke: #10b981; // xanh lục (success)
+}
+
+.orange {
+    stroke: #f59e0b; // cam (warning)
+}
+
+.red {
+    stroke: #ef4444; // đỏ (fail)
+}
+
+.gray {
+    stroke: #9ca3af; // xám (inactive)
+}

@@ -1,0 +1,118 @@
+@use "sass:map";
+
+.wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    line-height: 1.4;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    user-select: none;
+    text-decoration: none;
+    min-height: 40px;
+
+    &.bolder {
+        font-weight: bolder;
+    }
+
+    &.fullWidth {
+        width: 100%;
+    }
+
+    &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    &.rounded {
+        border-radius: 999px;
+    }
+
+    &.small {
+        min-height: auto;
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    &.medium {
+        padding: 6px 16px;
+        font-size: 13px;
+    }
+
+    &.large {
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+
+    &.semiLarge {
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 1.6rem 3rem;
+        font-size: 1.6rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    // COLOR VARIANTS
+    &.primary {
+        background-color: var(--bg-active);
+        color: #fff;
+
+        &:hover {
+            background-color: var(--text-active-hover);
+        }
+    }
+
+    &.gray {
+        background-color: var(--bg-hover-gray);
+        color: var(--text-black);
+
+        &:hover {
+            background-color: var(--gray-3);
+        }
+    }
+
+    &.outline {
+        background-color: transparent;
+        border: 1px solid var(--text-active);
+        color: var(--text-active);
+
+        &:hover {
+            background-color: var(--bg-hover);
+        }
+    }
+
+    &.text {
+        background-color: transparent;
+        color: var(--text-active);
+
+        &:hover {
+            color: var(--text-active-hover);
+            background-color: var(--bg-hover);
+        }
+    }
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &.left {
+        margin-right: 8px;
+    }
+
+    &.right {
+        margin-left: 8px;
+    }
+}
+
+.content {
+    display: inline-block;
+}

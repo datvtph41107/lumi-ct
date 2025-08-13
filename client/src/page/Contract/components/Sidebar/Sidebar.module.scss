@@ -1,0 +1,164 @@
+.progress-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-2);
+
+    h4 {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin: 0 0 2rem 0;
+        color: var(--text-black);
+    }
+}
+
+.progress-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+
+    &.active {
+        background: var(--bg-hover);
+        border-left: 4px solid var(--text-active);
+
+        .step-number {
+            background: var(--text-active);
+            color: white;
+        }
+    }
+
+    .step-number {
+        width: 32px;
+        height: 32px;
+        background: var(--gray-2);
+        color: var(--text-op);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .step-content {
+        h5 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            color: var(--text-black);
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: var(--text-label);
+            margin: 0;
+            line-height: 1.4;
+        }
+    }
+}
+
+.contract-type-info {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--gray-2);
+
+    h4 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0 0 1.5rem 0;
+        color: var(--text-black);
+    }
+}
+
+.current-type {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .type-icon {
+        font-size: 2.5rem;
+        line-height: 1;
+    }
+
+    strong {
+        display: block;
+        font-size: 1.3rem;
+        color: var(--text-black);
+        margin-bottom: 0.5rem;
+    }
+
+    p {
+        font-size: 1.2rem;
+        color: var(--text-label);
+        margin: 0;
+        line-height: 1.4;
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .basic-form-container {
+        padding: 1rem;
+    }
+
+    .form-header {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+
+        h2 {
+            font-size: 2rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+    .section-card {
+        padding: 1.5rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .progress-steps {
+        gap: 1rem;
+    }
+
+    .step {
+        padding: 0.8rem;
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            font-size: 1.2rem;
+        }
+    }
+
+    .contract-content {
+        .content-header {
+            padding: 1rem;
+
+            h4 {
+                font-size: 1.4rem;
+            }
+
+            p {
+                font-size: 1.2rem;
+            }
+        }
+    }
+}

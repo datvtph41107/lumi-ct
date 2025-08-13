@@ -1,0 +1,23 @@
+.auto-resize-textarea {
+    width: 100%;
+    border: 1px solid var(--gray-2);
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-black);
+    resize: none;
+    overflow-y: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    line-height: 1.5;
+
+    &:focus {
+        outline: none;
+        border-color: var(--text-active);
+        box-shadow: 0 0 0 2px var(--bg-hover);
+    }
+
+    &::placeholder {
+        color: var(--text-main);
+    }
+}

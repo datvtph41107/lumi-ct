@@ -1,0 +1,677 @@
+.stage-preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8f9fa;
+  overflow: hidden;
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .back-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background: #5a6268;
+        }
+      }
+
+      .contract-info {
+        h2 {
+          margin: 0;
+          font-size: 1.5rem;
+          color: #333;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        p {
+          margin: 0.25rem 0 0 0;
+          color: #666;
+          font-size: 0.9rem;
+        }
+      }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .preview-controls {
+        display: flex;
+        gap: 0.5rem;
+
+        .control-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+          }
+
+          &:hover:not(.active) {
+            background: #e9ecef;
+          }
+        }
+      }
+
+      .zoom-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+
+        button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: 4px;
+
+          &:hover {
+            background: #e9ecef;
+          }
+        }
+
+        span {
+          font-size: 0.9rem;
+          color: #666;
+          min-width: 40px;
+          text-align: center;
+        }
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+
+        .action-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+
+          &.share {
+            background: #28a745;
+            color: white;
+
+            &:hover {
+              background: #218838;
+            }
+          }
+
+          &.download {
+            background: #17a2b8;
+            color: white;
+
+            &:hover {
+              background: #138496;
+            }
+          }
+
+          &.print {
+            background: #6c757d;
+            color: white;
+
+            &:hover {
+              background: #5a6268;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .validation-panel {
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    padding: 1rem 2rem;
+
+    .validation-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+
+      h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+
+        &:hover {
+          background: #f8f9fa;
+        }
+      }
+    }
+
+    .validation-content {
+      .validation-success {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #28a745;
+        font-weight: 500;
+      }
+
+      .validation-issues {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .issue-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem;
+          border-radius: 6px;
+          border-left: 4px solid;
+
+          &.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+          }
+
+          &.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+          }
+
+          .fix-btn {
+            margin-left: auto;
+            background: none;
+            border: 1px solid currentColor;
+            color: inherit;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+
+            &:hover {
+              background: rgba(255, 255, 255, 0.3);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .preview-content {
+    flex: 1;
+    overflow: auto;
+    padding: 2rem;
+    transform-origin: top left;
+
+    .contract-preview {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 3rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
+
+      .contract-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #333;
+
+        .contract-title {
+          h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+          }
+
+          .contract-code {
+            font-size: 1rem;
+            color: #666;
+            font-style: italic;
+          }
+        }
+
+        .contract-meta {
+          display: flex;
+          justify-content: center;
+          gap: 2rem;
+          margin-top: 1rem;
+
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+          }
+        }
+      }
+
+      .contract-parties {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+
+        .party-section {
+          h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+          }
+
+          .party-info {
+            p {
+              margin: 0.5rem 0;
+              font-size: 0.95rem;
+
+              strong {
+                color: #333;
+              }
+            }
+          }
+        }
+      }
+
+      .contract-content {
+        h2 {
+          margin: 2rem 0 1rem 0;
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #333;
+          text-align: center;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 0.5rem;
+        }
+
+        .content-section {
+          margin-bottom: 1.5rem;
+
+          h3 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+          }
+
+          p {
+            margin: 0;
+            text-align: justify;
+          }
+
+          .obligations {
+            h4 {
+              margin: 1rem 0 0.5rem 0;
+              font-size: 1rem;
+              font-weight: bold;
+              color: #333;
+            }
+
+            ul {
+              margin: 0.5rem 0;
+              padding-left: 1.5rem;
+
+              li {
+                margin: 0.25rem 0;
+              }
+            }
+          }
+        }
+      }
+
+      .signature-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid #ddd;
+
+        .signature-party {
+          text-align: center;
+
+          h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+          }
+
+          .signature-placeholder {
+            height: 80px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            color: #999;
+
+            svg {
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+            }
+          }
+
+          p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #666;
+          }
+        }
+      }
+    }
+  }
+
+  .preview-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: white;
+    border-top: 1px solid #e9ecef;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+
+    .footer-left {
+      display: flex;
+      gap: 1rem;
+
+      .toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background: #e9ecef;
+        }
+      }
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 1rem;
+
+      .secondary-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background: #5a6268;
+        }
+      }
+
+      .primary-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+
+        &:hover:not(:disabled) {
+          background: #0056b3;
+        }
+
+        &:disabled {
+          background: #6c757d;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  .comments-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 350px;
+    background: white;
+    border-left: 1px solid #e9ecef;
+    box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #e9ecef;
+
+      h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+
+        &:hover {
+          background: #f8f9fa;
+        }
+      }
+    }
+
+    .panel-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      .comment-input {
+        padding: 1rem;
+        border-bottom: 1px solid #e9ecef;
+
+        textarea {
+          width: 100%;
+          min-height: 80px;
+          padding: 0.75rem;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          resize: vertical;
+          font-family: inherit;
+          margin-bottom: 0.5rem;
+
+          &:focus {
+            outline: none;
+            border-color: #007bff;
+          }
+        }
+
+        button {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+
+          &:hover {
+            background: #0056b3;
+          }
+        }
+      }
+
+      .comments-list {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+
+        p {
+          text-align: center;
+          color: #666;
+          font-style: italic;
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .stage-preview-container {
+    .preview-header,
+    .validation-panel,
+    .preview-footer,
+    .comments-panel {
+      display: none !important;
+    }
+
+    .preview-content {
+      padding: 0;
+      transform: none !important;
+
+      .contract-preview {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 1rem;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .stage-preview-container {
+    .preview-header {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+
+      .header-left,
+      .header-right {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .header-right {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    }
+
+    .preview-content {
+      padding: 1rem;
+
+      .contract-preview {
+        padding: 1.5rem;
+
+        .contract-parties {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        .signature-section {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+      }
+    }
+
+    .preview-footer {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+
+      .footer-left,
+      .footer-right {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .comments-panel {
+      width: 100%;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      height: 80vh;
+      border-radius: 8px;
+    }
+  }
+}

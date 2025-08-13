@@ -1,0 +1,22 @@
+.dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 200px; /* Default fallback */
+    width: max-content; /* Allow content to determine width when auto */
+    background: white;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 4px 0;
+    margin-top: 4px;
+
+    /* Ensure dropdown doesn't overflow viewport */
+    max-width: 90vw;
+}

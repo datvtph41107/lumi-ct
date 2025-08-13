@@ -1,0 +1,149 @@
+// Contract Summary Styles
+.contract-summary {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+    h4 {
+        margin: 0 0 1.5rem 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+}
+
+.summary-section {
+    margin-bottom: 1.5rem;
+}
+
+.contract-type-display {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.type-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.type-info {
+    flex: 1;
+    min-width: 0;
+
+    strong {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+}
+
+.type-description {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.summary-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    span {
+        font-size: 14px;
+        color: #1e293b;
+        font-weight: 500;
+    }
+}
+
+.description-text {
+    font-size: 13px !important;
+    line-height: 1.4;
+    color: #64748b !important;
+    font-weight: 400 !important;
+}
+
+.contract-value {
+    color: #22c55e !important;
+    font-weight: 600 !important;
+}
+
+.summary-stats {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+.stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+.stat-number {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .form-content {
+        flex-direction: column;
+    }
+
+    .form-sidebar {
+        order: -1;
+    }
+
+    .progress-steps {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .step {
+        flex-shrink: 0;
+        min-width: 200px;
+    }
+
+    .summary-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

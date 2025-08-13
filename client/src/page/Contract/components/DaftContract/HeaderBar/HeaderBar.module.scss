@@ -1,0 +1,190 @@
+.header {
+    border-radius: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    flex-wrap: wrap; // hỗ trợ wrap nội dung khi co màn hình
+    row-gap: 1rem;
+
+    .header_wrapper {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        min-width: fit-content;
+
+        .breadcrumb_group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+
+            .breadcrumb_group-slash {
+                position: relative;
+                padding-left: 1.8rem;
+                padding-right: 1.2rem;
+
+                &:first-child {
+                    padding-left: 0;
+
+                    &::before {
+                        display: none;
+                    }
+                }
+
+                &::before {
+                    content: "/";
+                    position: absolute;
+                    left: 0;
+                    top: -4px;
+                    color: #999 !important;
+                    font-size: 2rem;
+                }
+            }
+
+            .active {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                font-weight: bold;
+                color: var(--dark-main);
+
+                .active_icon {
+                    font-size: 1.4rem;
+                    color: var(--text-blur);
+                }
+            }
+        }
+
+        .save_group {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin: 0 22px;
+            color: var(--dark-main);
+            min-width: fit-content;
+
+            .save_group-main {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 1.6rem;
+                cursor: pointer;
+
+                &:hover {
+                    color: #4b5668;
+                }
+            }
+        }
+    }
+
+    .resize_group {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        min-width: fit-content;
+
+        .back_group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+
+            .back_group-ic {
+                color: var(--dark-main);
+                font-size: 2rem;
+                cursor: pointer;
+
+                &:hover {
+                    color: #7a828f;
+                }
+            }
+        }
+
+        .resize_main {
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+
+            .resize_main-left,
+            .resize_main-right {
+                background-color: #f2f3f7;
+                padding: 0.4rem 0.8rem;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .resize_main-left {
+                border-top-left-radius: 8px;
+                border-bottom-left-radius: 8px;
+            }
+
+            .resize_main-right {
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+
+            .resize_main-left:hover,
+            .resize_main-right:hover {
+                background-color: #9292923c;
+                color: #4b5668;
+            }
+
+            .resize_main-middle {
+                background-color: #f2f3f7;
+                padding: 0.4rem 0.2rem;
+                color: var(--dark-main);
+            }
+
+            .resize_main-ic {
+                color: var(--dark-main);
+            }
+        }
+    }
+
+    .actions {
+        margin-left: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: fit-content;
+
+        .action-btn {
+            transition: background-color 0.2s ease;
+            background-color: #f2f3f7;
+            padding: 6px 14px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+
+            &:hover {
+                background-color: #d4d4d473;
+            }
+        }
+    }
+
+    // ✅ Responsive tối thiểu
+    @media (max-width: 768px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+
+        .header_wrapper,
+        .resize_group,
+        .actions {
+            width: 100%;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .save_group {
+            margin: 0;
+        }
+
+        .resize_group {
+            justify-content: space-between;
+        }
+    }
+}

@@ -1,0 +1,222 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(86, 86, 86, 0.4);
+    z-index: 1001;
+    display: flex;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding-left: 1rem;
+    cursor: default;
+
+    // Sidebar trái
+    &:not(.collapsed) {
+        margin-left: 27rem;
+    }
+
+    &.collapsed {
+        margin-left: 8.6rem;
+    }
+
+    // Mobile view
+    @media (max-width: 768px) {
+        margin-left: 0 !important;
+        padding-left: 0;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+.wrapper {
+    background: white;
+    border-radius: 10px;
+    width: 480px;
+    max-height: 98vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideFromSidebar 0.3s ease-out;
+    margin: 1rem 0;
+
+    @media (max-width: 1024px) {
+        width: 380px;
+    }
+
+    @media (max-width: 768px) {
+        width: 92vw;
+        height: 92vh;
+        border-radius: 12px;
+        margin: 0.5rem;
+    }
+
+    @media (max-width: 480px) {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+}
+
+@keyframes slideFromSidebar {
+    from {
+        transform: translateX(-40px); // trượt từ phía trái (gần sidebar)
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+
+    button {
+        background: none;
+        border: none;
+        font-size: 1.6rem;
+        cursor: pointer;
+    }
+
+    .header_left {
+        display: flex;
+        flex-direction: column;
+
+        p {
+            font-size: 1.2rem;
+            color: var(--text-blur);
+        }
+    }
+
+    .header_right {
+        display: flex;
+        align-items: center;
+        gap: 1.62rem;
+
+        .header_left-icon {
+            color: var(--text-blur);
+            font-size: 1.2rem;
+        }
+
+        .header_right-icon {
+            color: var(--text-blur);
+            font-size: 1.8rem;
+        }
+    }
+}
+
+.filters {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 8px;
+    background-color: #cdcdcd2c;
+
+    button {
+        border: none;
+        background: none;
+        font-size: 1.4rem;
+        cursor: pointer;
+        color: #555;
+    }
+
+    .active {
+        font-weight: bold;
+        color: black;
+    }
+
+    .mark-read {
+        margin-left: auto;
+        color: #059669;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        .mark-read_icon {
+            font-size: 2rem;
+        }
+    }
+}
+
+.day-label {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 1.2rem 0 0.4rem;
+}
+
+.list {
+    padding: 0 16px;
+    flex: 1;
+    overflow-y: auto;
+
+    .item {
+        display: flex;
+        align-items: flex-start;
+        padding: 14px 0;
+        border-bottom: 1px solid #eee;
+
+        .icon {
+            width: 36px;
+            height: 36px;
+            background-color: #ddd;
+            border-radius: 4px;
+            margin-right: 12px;
+        }
+
+        .info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+
+            p {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 1.4rem;
+                margin: 0;
+                line-height: 1.6rem;
+            }
+
+            span {
+                font-size: 1.2rem;
+                color: #6b7280;
+                margin-top: 2px;
+            }
+
+            @media (min-width: 480px) {
+                flex-direction: column;
+                gap: 3px;
+
+                p {
+                    margin-right: 1rem;
+                    flex-shrink: 1;
+                }
+
+                span {
+                    white-space: nowrap;
+                    flex-shrink: 0;
+                }
+            }
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: rgb(227, 24, 24);
+            border-radius: 50%;
+            margin-left: 6px;
+            margin-top: 6px;
+        }
+
+        .mark {
+            color: #059669;
+            margin-top: 6px;
+        }
+    }
+}

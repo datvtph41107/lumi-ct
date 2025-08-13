@@ -1,0 +1,350 @@
+.stage1-container {
+    min-height: 100vh;
+    background-color: var(--bg-hover-gray);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.fullscreen {
+        .layout {
+            height: 100vh;
+            padding: 0;
+        }
+
+        .main {
+            padding-top: 0;
+        }
+    }
+}
+
+.stage-navigation {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 100;
+
+    .next-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &:hover:not(.disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        &:active:not(.disabled) {
+            transform: translateY(-1px);
+        }
+
+        &.disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        svg {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+
+        &:hover:not(.disabled) svg {
+            transform: translateX(3px);
+        }
+    }
+
+    @media (max-width: 768px) {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+
+        .next-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+    }
+}
+
+.layout {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 56px);
+    background-color: var(--bg-hover-gray);
+    padding: 2rem 2.5rem;
+    width: 100%;
+    transition: all 0.3s ease;
+
+    @media (max-width: 1024px) {
+        padding: 1rem;
+    }
+}
+
+.layout-head {
+    margin-bottom: 2rem;
+
+    @media (max-width: 1024px) {
+        margin-bottom: 1rem;
+    }
+}
+
+.main {
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
+    gap: 2rem;
+    flex: 1;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.sidebar-collapsed {
+        grid-template-columns: 0 1fr 0;
+        gap: 0;
+    }
+
+    @media (max-width: 1400px) {
+        grid-template-columns: 280px 1fr 280px;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+}
+
+.sidebar-left,
+.sidebar-right {
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width: thin;
+    scrollbar-color: var(--gray-2) transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--gray-2);
+        border-radius: 3px;
+    }
+
+    &.collapsed {
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+    }
+
+    @media (max-width: 1024px) {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 320px;
+        background: white;
+        z-index: 200;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &:not(.collapsed) {
+            transform: translateX(0);
+        }
+    }
+}
+
+.sidebar-right {
+    @media (max-width: 1024px) {
+        right: 0;
+        transform: translateX(100%);
+
+        &:not(.collapsed) {
+            transform: translateX(0);
+        }
+    }
+}
+
+.editor {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+
+    @media (max-width: 1024px) {
+        padding: 0;
+    }
+}
+
+.editor-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 200px);
+    position: relative;
+
+    @media (max-width: 1024px) {
+        min-height: calc(100vh - 120px);
+    }
+}
+
+.sidebar-toggle {
+    position: fixed;
+    top: 50%;
+    left: 1rem;
+    transform: translateY(-50%);
+    z-index: 300;
+    background: white;
+    border: 1px solid var(--gray-2);
+    border-radius: 8px;
+    width: 44px;
+    height: 44px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: var(--bg-hover);
+        border-color: var(--text-active);
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    span {
+        width: 18px;
+        height: 2px;
+        background: var(--text-active);
+        border-radius: 1px;
+        transition: all 0.3s ease;
+    }
+
+    @media (max-width: 1024px) {
+        display: flex;
+    }
+}
+
+// Responsive breakpoints
+@media (max-width: 1400px) {
+    .layout {
+        padding: 1.5rem 2rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .layout {
+        padding: 1rem;
+    }
+
+    .main {
+        padding-top: 1rem;
+    }
+
+    .stage-navigation {
+        .next-btn {
+            font-size: 14px;
+            padding: 0.875rem 1.5rem;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .layout {
+        padding: 0.5rem;
+    }
+
+    .editor-wrapper {
+        min-height: calc(100vh - 100px);
+    }
+}
+
+// Print styles
+@media print {
+    .stage1-container {
+        background: white;
+    }
+
+    .sidebar-left,
+    .sidebar-right,
+    .stage-navigation,
+    .sidebar-toggle {
+        display: none !important;
+    }
+
+    .main {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+
+    .layout {
+        padding: 0;
+    }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+    .stage1-container {
+        background-color: #1a1a1a;
+    }
+
+    .sidebar-toggle {
+        background: #2d2d2d;
+        border-color: #404040;
+
+        span {
+            background: var(--text-active);
+        }
+
+        &:hover {
+            background: #3d3d3d;
+        }
+    }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+    .next-btn {
+        background: #000 !important;
+        color: #fff !important;
+        border: 2px solid #fff !important;
+    }
+
+    .sidebar-toggle {
+        border: 2px solid #000 !important;
+
+        span {
+            background: #000 !important;
+        }
+    }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+.simple-layout {
+    padding: 20px 0;
+}

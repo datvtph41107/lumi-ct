@@ -1,0 +1,154 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease-out;
+
+    &.small {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    &.medium {
+        width: 100%;
+        max-width: 600px;
+    }
+
+    &.large {
+        width: 100%;
+        max-width: 800px;
+    }
+
+    &.extra-large {
+        width: 100%;
+        max-width: 1000px;
+    }
+
+    &.full-screen {
+        width: 95vw;
+        max-width: 95vw;
+        height: 90vh;
+        max-height: 90vh;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--gray-1);
+    background: var(--bg-hover-gray);
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+
+        .modal-icon {
+            font-size: 20px;
+            color: var(--text-active);
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-black);
+        }
+    }
+
+    .close-button {
+        background: none;
+        border: none;
+        font-size: 16px;
+        color: var(--text-main);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background: var(--bg-hover);
+            color: var(--text-black);
+        }
+    }
+}
+
+.modal-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .modal-container {
+        &.small,
+        &.medium,
+        &.large,
+        &.extra-large {
+            width: 100%;
+            max-width: none;
+            max-height: 95vh;
+        }
+    }
+
+    .modal-header {
+        padding: 1rem 1.5rem;
+
+        .modal-title h2 {
+            font-size: 16px;
+        }
+    }
+
+    .modal-content {
+        padding: 1.5rem;
+    }
+}

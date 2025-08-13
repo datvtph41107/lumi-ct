@@ -1,0 +1,165 @@
+.page-wrapper {
+    position: relative; // 🆕 cần để định vị tag và control
+    margin-bottom: 3rem;
+    background: #ffffff;
+    flex-shrink: 0;
+    border-radius: 10px;
+    width: 816px;
+    min-width: 816px;
+    min-height: 1123px; // 🆕 giống khổ A4 dọc
+    box-shadow: 0 0 0 1px #eee;
+
+    @media (max-width: 1024px) {
+        width: 816px;
+        min-width: 816px;
+    }
+
+    @media (max-width: 768px) {
+        width: 816px;
+        min-width: 816px;
+    }
+
+    @media (max-width: 600px) {
+        width: 816px;
+        min-width: 816px;
+    }
+}
+
+.editor-control-group {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.page-tag {
+    // position: absolute;
+    background: var(--dark-main);
+    color: white;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 6px;
+
+    @media (max-width: 768px) {
+        font-size: 11px;
+        left: 1rem;
+    }
+}
+
+.page-control {
+    display: flex;
+    align-items: center;
+
+    .page-control_box {
+        background: var(--dark-main);
+        padding: 2px 6px;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+            // background-color: lighten(#364152, 10%);
+        }
+
+        &.box_left {
+            border-bottom-left-radius: 6px;
+            border-top-left-radius: 6px;
+            padding-left: 8px;
+        }
+
+        &.box_right {
+            border-bottom-right-radius: 6px;
+            border-top-right-radius: 6px;
+            padding-right: 8px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+}
+
+.document {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .header {
+        text-align: center;
+        margin-bottom: 2rem;
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            font-size: 14px;
+            color: #333;
+
+            strong {
+                font-weight: 600;
+            }
+        }
+    }
+
+    .section-box {
+        border: 1px solid #0073e6;
+        border-radius: 8px;
+        padding: 1rem;
+        position: relative;
+
+        .section-title {
+            background: #0073e6;
+            color: white;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 6px 6px 0 0;
+            position: absolute;
+            top: -18px;
+            left: 1rem;
+        }
+
+        .section-content {
+            padding-top: 1.25rem;
+
+            h3 {
+                font-size: 16px;
+                margin-bottom: 0.5rem;
+            }
+
+            p {
+                margin-bottom: 0.5rem;
+            }
+
+            ul {
+                margin-left: 1.5rem;
+
+                li {
+                    margin-bottom: 0.5rem;
+                }
+            }
+
+            .toolbar {
+                margin-top: 1rem;
+                background: #f1f3f5;
+                border-radius: 6px;
+                padding: 0.5rem;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+
+                button,
+                select {
+                    background: white;
+                    border: 1px solid #ccc;
+                    padding: 4px 6px;
+                    border-radius: 4px;
+                    font-size: 13px;
+                    cursor: pointer;
+                }
+            }
+        }
+    }
+}

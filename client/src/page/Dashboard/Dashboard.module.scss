@@ -1,0 +1,223 @@
+.wrapper {
+    padding: 2.4rem 0;
+    font-family: sans-serif;
+    color: #1e1e1e;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.card {
+    background: rgba(244, 243, 243, 0.802);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    .card-title {
+        padding: 0.6rem 1rem 1rem 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .card-title_icon {
+        color: var(--text-blur);
+    }
+    h4 {
+        font-size: 14px;
+        font-weight: 600;
+    }
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 0.8rem 1.6rem;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid rgba(201, 200, 200, 0.52);
+            .progress .card-content_group-icon {
+                color: var(--text-active) !important;
+            }
+            .progress {
+                color: var(--text-active);
+                font-weight: 500;
+            }
+
+            .progress_active {
+                color: var(--text-active);
+            }
+            .card-content_group {
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+
+                .card-content_group-icon {
+                    color: var(--text-op);
+                    width: 24px;
+                }
+            }
+
+            strong {
+                font-weight: 600;
+            }
+        }
+    }
+}
+
+/* Status styles */
+.status.attention span,
+.status.pentest span,
+.status.code span,
+.status.attack span {
+    color: #d72c0d;
+}
+
+.status.compliant span {
+    color: #1a7f37;
+}
+
+.status.dormant span {
+    color: #8a8a8a;
+}
+
+.status.onboarding span {
+    color: #4a4a4a;
+}
+
+// OVERVIEWWWWWWW
+.overview {
+    padding-top: 3rem;
+
+    .overview-line {
+        padding: 2.6rem 0 2.4rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+
+        .line {
+            flex: 1;
+            height: 1px;
+            background-color: #ccc;
+        }
+
+        .box-line {
+            font-weight: 600;
+            color: var(--text-blur);
+            white-space: nowrap;
+        }
+    }
+
+    .overview-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-bottom: 1.6rem;
+
+        h3 {
+            font-size: 1.6rem;
+        }
+
+        a {
+            font-size: 1.4rem;
+            color: var(--text-blur);
+            margin-top: 4px;
+
+            &:hover {
+                color: var(--text-active);
+            }
+        }
+    }
+
+    .overview-chart {
+        margin-bottom: 3rem;
+    }
+
+    .overview-activity {
+        // margin-top: 1.2rem;
+        background: rgba(244, 243, 243, 0.802);
+        padding: 0.4rem;
+        border-radius: 8px;
+    }
+}
+
+.overview-fade-wrapper {
+    position: relative;
+}
+
+.overview-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: none;
+    overflow: hidden;
+
+    &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 160px;
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    &.faded::after {
+        opacity: 1;
+    }
+
+    &:not(.faded)::after {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.see-more {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 1.4rem;
+    color: var(--text-op);
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s, border-color 0.2s;
+
+    &:hover {
+        color: var(--text-active);
+        border-color: var(--text-active);
+    }
+}
+
+.see-less-wrapper {
+    margin-top: 1rem;
+}
+
+.see-less {
+    background: transparent;
+    outline: none;
+    border: none;
+    font-size: 14px;
+    color: var(--text-op);
+    cursor: pointer;
+
+    &:hover {
+        color: var(--text-active);
+        border-color: var(--text-active);
+    }
+}
