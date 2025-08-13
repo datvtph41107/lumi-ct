@@ -1,83 +1,123 @@
-import { Routes, Route, BrowserRouter as Router } from "react-router-dom";
-import { Fragment } from "react";
-import DefaultLayout from "~/layouts/DefaultLayout";
-import ProtectedRoute from "~/components/Auth/ProtectedRoute";
-import PublicRoute from "~/components/Auth/PublicRoute";
-import SessionStatus from "~/components/Auth/SessionStatus";
-import { publicRoutes, privateRoutes } from "./routes/routes";
-import NotFound from "./page/404Page";
-import Unauthorized from "./page/Unauthorized";
-import type { PublicRoute as PublicRouteType, PrivateRoute as PrivateRouteType } from "./routes/routes";
-import SessionWarningModal from "./components/Auth/SessionWarningModal";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import './App.scss';
+
+// Layout components
+import Layout from './components/Layout/Layout';
+
+// Contract pages
+import CreateContract from './page/Contract/CreateContract/CreateContract';
+import ContractCollection from './page/Contract/ContractCollection/ContractCollection';
+import ContractDraft from './page/Contract/ContractDraft/ContractDraft';
+import TemplateManagement from './page/Contract/TemplateManagement/TemplateManagement';
+
+// Other pages (existing)
+import Dashboard from './page/Dashboard/Dashboard';
+import Login from './page/Auth/Login/Login';
+import Register from './page/Auth/Register/Register';
+import Profile from './page/Profile/Profile';
+import Settings from './page/Settings/Settings';
+
+// Auth context
+import { useAuth } from './contexts/AuthContext';
 
 function App() {
-    const renderRoute = (route: PublicRouteType | PrivateRouteType, index: number, isPrivate = false) => {
-        const Page = route.component;
-        const Layout = route.layout === null ? Fragment : route.layout || DefaultLayout;
-        const Wrapper = isPrivate ? ProtectedRoute : PublicRoute;
+  const { isAuthenticated } = useAuth();
 
-        const wrapperProps = isPrivate
-            ? {
-                  access: (route as PrivateRouteType).access,
-                  fallbackPath: route.path.includes("/admin") ? "/admin/login" : "/login",
-              }
-            : {
-                  redirectPath: (route as PublicRouteType).redirectPath,
-                  allowedWhenAuthenticated: (route as PublicRouteType).allowedWhenAuthenticated,
-              };
+  // Protected Route component
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  };
 
-        return (
-            <Route
-                key={`${isPrivate ? "private" : "public"}-${route.path}`}
-                path={route.path}
-                element={
-                    <Wrapper {...wrapperProps}>
-                        <Layout>
-                            <Page />
-                        </Layout>
-                    </Wrapper>
-                }
-            />
-        );
-    };
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-    return (
-        <Router>
-            <div className="App">
-                {/* Global Components */}
-                <SessionWarningModal />
-                <SessionStatus />
+          {/* Protected routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-                <Routes>
-                    {/* Public Routes */}
-                    {publicRoutes.map((route, index) => renderRoute(route, index))}
+          {/* Contract Management Routes */}
+          <Route path="/contracts" element={
+            <ProtectedRoute>
+              <Layout>
+                <CreateContract onMethodSelect={(method) => console.log('Method selected:', method)} />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-                    {/* Private Routes */}
-                    {privateRoutes.map((route, index) => renderRoute(route, index, true))}
+          <Route path="/contracts/collection" element={
+            <ProtectedRoute>
+              <Layout>
+                <ContractCollection onSelect={(type, data) => console.log('Selected:', type, data)} />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-                    {/* Unauthorized */}
-                    <Route
-                        path="/unauthorized"
-                        element={
-                            <DefaultLayout>
-                                <Unauthorized />
-                            </DefaultLayout>
-                        }
-                    />
+          <Route path="/contracts/draft" element={
+            <ProtectedRoute>
+              <Layout>
+                <ContractDraft />
+              </Layout>
+            </ProtectedRoute>
+          } />
 
-                    {/* 404 Page */}
-                    <Route
-                        path="*"
-                        element={
-                            <DefaultLayout>
-                                <NotFound />
-                            </DefaultLayout>
-                        }
-                    />
-                </Routes>
-            </div>
-        </Router>
-    );
+          <Route path="/contracts/draft/:id" element={
+            <ProtectedRoute>
+              <Layout>
+                <ContractDraft />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/contracts/templates" element={
+            <ProtectedRoute>
+              <Layout>
+                <TemplateManagement mode="basic" />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/contracts/templates/editor" element={
+            <ProtectedRoute>
+              <Layout>
+                <TemplateManagement mode="editor" />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          {/* Other protected routes */}
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Layout>
+                <Profile />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Layout>
+                <Settings />
+              </Layout>
+            </ProtectedRoute>
+          } />
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
+  );
 }
 
 export default App;
