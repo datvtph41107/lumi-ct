@@ -42,6 +42,7 @@ interface ContractDraftStoreState {
     stageValidations: Record<ContractCreationStage, StageValidation>;
     autoSaveEnabled: boolean;
     lastAutoSave: string | null;
+    hasUnsavedChanges: boolean;
 
     loadDrafts: () => Promise<void>;
     loadTemplates: () => Promise<void>;
@@ -56,6 +57,7 @@ interface ContractDraftStoreState {
     initializeFlow: (mode: ContractCreationMode, templateId?: string) => Promise<void>;
     setSelectedMode: (mode: ContractCreationMode) => void;
     setSelectedTemplate: (template: ContractTemplate | null) => void;
+    setDirty: (dirty: boolean) => void;
     navigateToStage: (stage: ContractCreationStage) => Promise<void>;
     updateCurrentDraftStage: (stage: ContractCreationStage) => void;
     validateCurrentStage: () => Promise<boolean>;
@@ -95,6 +97,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             stageValidations: createInitialStageValidations(),
             autoSaveEnabled: true,
             lastAutoSave: null,
+            hasUnsavedChanges: false,
 
             loadDrafts: async () => {
                 set({ loading: true, error: null });
@@ -130,6 +133,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         selectedMode: draft.flow.selectedMode,
                         selectedTemplate: draft.flow.selectedTemplate || null,
                         loading: false,
+                        hasUnsavedChanges: false,
                     });
                 } catch (error) {
                     logger.error("Failed to load draft:", error);
@@ -185,6 +189,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         selectedTemplate: template || null,
                         stageValidations: createInitialStageValidations(),
                         loading: false,
+                        hasUnsavedChanges: false,
                     }));
                     return response.data!;
                 } catch (error) {
@@ -208,6 +213,8 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         drafts: state.drafts.map((d) => (d.id === id ? response.data! : d)),
                         currentDraft: state.currentDraft?.id === id ? response.data! : state.currentDraft,
                         loading: false,
+                        hasUnsavedChanges: false,
+                        lastAutoSave: new Date().toISOString(),
                     }));
                 } catch (error) {
                     logger.error("Failed to update draft:", error);
@@ -227,9 +234,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         contractData: { ...state.currentDraft.contractData, ...data },
                         updatedAt: new Date().toISOString(),
                     };
-                    await get().updateDraft(state.currentDraft.id, updatedDraft);
-                    set({ lastAutoSave: new Date().toISOString() });
-                    logger.info("Draft data updated successfully", { stage });
+                    set({ currentDraft: updatedDraft, hasUnsavedChanges: true });
                 } catch (error) {
                     logger.error("Failed to update draft data:", error);
                     set({ error: getErrorMessage(error) });
@@ -264,7 +269,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
 
             initializeFlow: async (mode: ContractCreationMode, templateId?: string) => {
                 const template = templateId ? get().templates.find((t) => t.id === templateId) : null;
-                set({ selectedMode: mode, selectedTemplate: template || null, currentStage: "template_selection", stageValidations: createInitialStageValidations(), error: null });
+                set({ selectedMode: mode, selectedTemplate: template || null, currentStage: "template_selection", stageValidations: createInitialStageValidations(), error: null, hasUnsavedChanges: false });
             },
 
             setSelectedMode: (mode: ContractCreationMode) => {
@@ -276,6 +281,8 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                 set({ selectedTemplate: template });
                 if (template) logger.info("Template selected:", template.name);
             },
+
+            setDirty: (dirty: boolean) => set({ hasUnsavedChanges: dirty }),
 
             navigateToStage: async (stage: ContractCreationStage) => {
                 const state = get();
@@ -296,10 +303,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             updateCurrentDraftStage: (stage: ContractCreationStage) => {
                 set((state) => {
                     if (!state.currentDraft) return state;
-                    return {
-                        currentDraft: { ...state.currentDraft, flow: { ...state.currentDraft.flow, currentStage: stage, updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() },
-                        currentStage: stage,
-                    };
+                    return { currentDraft: { ...state.currentDraft, flow: { ...state.currentDraft.flow, currentStage: stage, updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() }, currentStage: stage };
                 });
             },
 
@@ -327,17 +331,20 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             },
 
             resetFlow: () => {
-                set({ currentStage: "template_selection", selectedMode: null, selectedTemplate: null, currentDraft: null, stageValidations: createInitialStageValidations() });
+                set({ currentStage: "template_selection", selectedMode: null, selectedTemplate: null, currentDraft: null, stageValidations: createInitialStageValidations(), hasUnsavedChanges: false });
             },
 
             nextStage: async () => {
-                const { currentStage, currentDraft } = get();
+                const { currentStage, currentDraft, hasUnsavedChanges } = get();
                 const stages: ContractCreationStage[] = ["template_selection", "basic_info", "content_draft", "milestones_tasks", "review_preview"];
                 const currentIndex = stages.indexOf(currentStage);
                 if (currentIndex < stages.length - 1) {
                     const nextStage = stages[currentIndex + 1];
                     if (currentDraft) {
                         try {
+                            if (hasUnsavedChanges) {
+                                await get().performAutoSave();
+                            }
                             await contractService.saveStage(currentDraft.id, currentStage, { data: currentDraft.contractData });
                             await contractService.transitionStage(currentDraft.id, currentStage, nextStage);
                         } catch (err) {
@@ -378,15 +385,15 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             updateContractContent: (content: ContractContent) => {
                 set((state) => {
                     if (!state.currentDraft) return state;
-                    return { currentDraft: { ...state.currentDraft, contractData: { ...state.currentDraft.contractData, structure: content, updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() } };
+                    return { currentDraft: { ...state.currentDraft, contractData: { ...state.currentDraft.contractData, structure: content, updatedAt: new Date().toISOString() }, updatedAt: new Date().toISOString() }, hasUnsavedChanges: true };
                 });
             },
 
             clearCurrentDraft: () => {
-                set({ currentDraft: null, currentStage: "template_selection", selectedMode: null, selectedTemplate: null });
+                set({ currentDraft: null, currentStage: "template_selection", selectedMode: null, selectedTemplate: null, hasUnsavedChanges: false });
             },
             resetCreationFlow: () => {
-                set({ currentStage: "template_selection", selectedMode: null, selectedTemplate: null, stageValidations: createInitialStageValidations() });
+                set({ currentStage: "template_selection", selectedMode: null, selectedTemplate: null, stageValidations: createInitialStageValidations(), hasUnsavedChanges: false });
             },
 
             enableAutoSave: () => set({ autoSaveEnabled: true }),
@@ -396,7 +403,6 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                 if (!autoSaveEnabled || !currentDraft) return;
                 try {
                     await get().updateDraft(currentDraft.id, currentDraft);
-                    set({ lastAutoSave: new Date().toISOString() });
                 } catch (error) {
                     logger.error("Auto-save failed:", error);
                 }

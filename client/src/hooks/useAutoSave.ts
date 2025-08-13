@@ -28,12 +28,12 @@ export const useAutoSave = (
 ): UseAutoSaveReturn => {
     const { enabled = true, onSave, onError } = options;
 
-    const { updateDraft, isAutoSaving, setAutoSaving, setLastAutoSave, setAutoSaveError } = useContractDraftStore();
+    const { updateDraft, performAutoSave, hasUnsavedChanges, setDirty } = useContractDraftStore();
 
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [saveCount, setSaveCount] = useState(0);
-    const [dirty, setDirty] = useState(false);
+    const [dirty, setLocalDirty] = useState(false);
 
     const isMountedRef = useRef(true);
 
@@ -43,82 +43,54 @@ export const useAutoSave = (
         };
     }, []);
 
-    // Hàm lưu thủ công
+    // Manual save (Ctrl+S / Cmd+S or save button)
     const saveNow = useCallback(async (): Promise<void> => {
-        if (!draftId || !formData || !enabled) {
-            return;
-        }
-
-        if (!dirty) {
-            // Nếu không có thay đổi thì không cần lưu
-            return;
-        }
-
+        if (!draftId || !formData || !enabled) return;
         try {
-            setAutoSaving(true);
-            setError(null);
-            setAutoSaveError(null);
-
-            const updates = {
-                formData: {
-                    ...formData,
-                    updatedAt: new Date().toISOString(),
-                },
-                lastAutoSave: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
-            await updateDraft(draftId, updates);
-
-            if (isMountedRef.current) {
-                const now = new Date();
-                setLastSaved(now);
-                setLastAutoSave(now.toISOString());
-                setSaveCount((prev) => prev + 1);
-                setDirty(false);
-
-                onSave?.(true);
-                logger.debug("Save successful", { draftId, saveCount: saveCount + 1 });
-            }
+            await performAutoSave();
+            const now = new Date();
+            setLastSaved(now);
+            setSaveCount((prev) => prev + 1);
+            setLocalDirty(false);
+            setDirty(false);
+            onSave?.(true);
+            logger.debug("Manual save successful", { draftId, saveCount: saveCount + 1 });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Save failed";
-
-            if (isMountedRef.current) {
-                setError(errorMessage);
-                setAutoSaveError(errorMessage);
-                onSave?.(false, errorMessage);
-                onError?.(errorMessage);
-                logger.error("Save failed", { draftId, error: errorMessage });
-            }
-        } finally {
-            if (isMountedRef.current) {
-                setAutoSaving(false);
-            }
+            setError(errorMessage);
+            onSave?.(false, errorMessage);
+            onError?.(errorMessage);
+            logger.error("Manual save failed", { draftId, error: errorMessage });
         }
-    }, [draftId, formData, enabled, updateDraft, setAutoSaving, setLastAutoSave, setAutoSaveError, onSave, onError, saveCount, dirty]);
+    }, [draftId, formData, enabled, performAutoSave, onSave, onError, saveCount, setDirty]);
 
-    // Hiển thị cảnh báo khi đóng tab/refresh nếu còn dữ liệu chưa lưu
+    // Before unload prompt if dirty
     useEffect(() => {
         const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-            if (dirty) {
+            if (dirty || hasUnsavedChanges) {
                 const message = "Bạn có dữ liệu chưa lưu. Bạn có chắc chắn muốn rời trang?";
-                event.returnValue = message; // Chuẩn cho một số trình duyệt
+                event.returnValue = message;
                 return message;
             }
             return undefined;
         };
-
         window.addEventListener("beforeunload", handleBeforeUnload);
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-    }, [dirty]);
+    }, [dirty, hasUnsavedChanges]);
 
-    return {
-        isSaving: isAutoSaving,
-        lastSaved,
-        saveNow,
-        error,
-        saveCount,
-        setDirty,
-        dirty,
-    };
+    // Keyboard shortcut: Ctrl+S / Cmd+S
+    useEffect(() => {
+        const onKeyDown = async (e: KeyboardEvent) => {
+            const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+            const isSave = (isMac && e.metaKey && e.key.toLowerCase() === "s") || (!isMac && e.ctrlKey && e.key.toLowerCase() === "s");
+            if (isSave) {
+                e.preventDefault();
+                await saveNow();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [saveNow]);
+
+    return { isSaving: false, lastSaved, saveNow, error, saveCount, setDirty: (d) => { setLocalDirty(d); setDirty(d); }, dirty };
 };

@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileContract } from "@fortawesome/free-solid-svg-icons";
+import { faFileContract, faSave } from "@fortawesome/free-solid-svg-icons";
 import Form from "~/components/Form/Form";
 import { ContractManagementSection } from "./form-section/contract-management-section";
 import { GeneralInfoSection } from "./form-section/general-info-section";
@@ -14,54 +14,39 @@ import styles from "./BasicContractForm.module.scss";
 import classNames from "classnames/bind";
 import type { FieldErrors } from "react-hook-form";
 import { convertDateRange } from "~/utils/contract";
+import { useAutoSave } from "~/hooks/useAutoSave";
+import { useContractDraftStore } from "~/store/contract-draft-store";
 
 const cx = classNames.bind(styles);
 
 const BasicContractForm = () => {
-    const { formData, setStep1Data, nextStep, validateStep, currentStep } = useContractForm();
+    const { formData, updateFormData } = useContractForm();
+    const { currentDraft } = useContractDraftStore();
+
+    const { saveNow, setDirty } = useAutoSave(currentDraft?.id || null, formData || null, { enabled: !!currentDraft });
 
     useEffect(() => {
         console.log("BasicContractForm mounted, current formData:", formData);
     }, [formData]);
 
     const defaultValues: Partial<ContractFormData> = {
-        name: formData.name || "",
-        contractCode: formData.contractCode || "",
-        contractType: formData.contractType || "employment",
-        drafter: formData.drafter || "",
-        manager: formData.manager || "",
-        mode: formData.mode || "basic",
-        dateRange: formData.dateRange || { startDate: null, endDate: null },
-        details: formData.details || { description: "" },
-        structuredData: formData.structuredData || {},
-        milestones: formData.milestones || [],
-        notificationSettings: formData.notificationSettings || {
-            contractNotifications: [],
-            milestoneNotifications: [],
-            taskNotifications: [],
-            globalSettings: {
-                enableEmailNotifications: true,
-                enableSMSNotifications: false,
-                enableInAppNotifications: true,
-                enablePushNotifications: true,
-                defaultRecipients: [],
-                workingHours: {
-                    start: "09:00",
-                    end: "17:00",
-                    timezone: "Asia/Ho_Chi_Minh",
-                },
-            },
-        },
+        name: formData?.name || "",
+        contractCode: formData?.contractCode || "",
+        contractType: formData?.contractType || "employment",
+        drafter: formData?.drafter || "",
+        manager: formData?.manager || "",
+        mode: formData?.mode || "basic",
+        dateRange: formData?.dateRange || { startDate: null, endDate: null },
+        milestones: formData?.milestones || [],
+        attachments: formData?.attachments || [],
+        tags: formData?.tags || [],
+        priority: formData?.priority || "medium",
     };
 
-    const handleFormSubmit = (data: ContractFormData) => {
-        console.log("Form submitted with data:", data);
-        const processedData: ContractFormData = {
-            ...data,
-            dateRange: data.dateRange ? convertDateRange(data.dateRange) : { startDate: null, endDate: null },
-        };
-        // setStep1Data(processedData);
-        // nextStep();
+    const handleFormSubmit = async (data: ContractFormData) => {
+        const processedData: ContractFormData = { ...data, dateRange: data.dateRange ? convertDateRange(data.dateRange) : { startDate: null, endDate: null } };
+        updateFormData(processedData);
+        await saveNow();
     };
 
     const handleError = (errors: FieldErrors) => {
@@ -70,12 +55,14 @@ const BasicContractForm = () => {
 
     return (
         <div className={cx("basic-form-container")}>
-            <div className={cx("form-header")}>
+            <div className={cx("form-header")}> 
                 <h2>
                     <FontAwesomeIcon icon={faFileContract} />
-                    Tạo hợp đồng mới - Giai đoạn {currentStep}
+                    Soạn thảo nội dung
                 </h2>
-                <p>Điền thông tin cơ bản của hợp đồng để bắt đầu quá trình quản lý</p>
+                <button type="button" className={cx("save-button")} onClick={saveNow}>
+                    <FontAwesomeIcon icon={faSave} /> Lưu
+                </button>
             </div>
             <div className={cx("form-content")}>
                 <div className={cx("form-section")}>
@@ -85,21 +72,22 @@ const BasicContractForm = () => {
                         defaultValues={defaultValues}
                         onSubmit={handleFormSubmit}
                         onError={handleError}
+                        onChange={() => setDirty(true)}
                     >
                         <ContractManagementSection />
                         <GeneralInfoSection />
-                        <ContractContentSection selectedType={formData.contractType} />
-                        <div className={cx("form-actions")}>
+                        <ContractContentSection selectedType={formData?.contractType || "service"} />
+                        <div className={cx("form-actions")}> 
                             <button type="submit" className={cx("submit-button")}>
                                 <FontAwesomeIcon icon={faFileContract} />
-                                Lưu và tiếp tục đến giai đoạn 2
+                                Lưu và tiếp tục
                             </button>
                         </div>
                     </Form>
                 </div>
                 <div className={cx("form-sidebar")}>
                     <ProgressSidebar />
-                    <ContractTypeInfo selectedType={formData.contractType} />
+                    <ContractTypeInfo selectedType={formData?.contractType || "service"} />
                 </div>
             </div>
         </div>
