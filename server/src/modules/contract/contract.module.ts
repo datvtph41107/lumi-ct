@@ -6,6 +6,7 @@ import { ContractController } from './contract.controller';
 import { ContractService } from './contract.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
+import { PermissionService } from './permission.service';
 import { AuditInterceptor } from '@/core/shared/filters/audit.interceptor';
 
 // Entities
@@ -36,8 +37,9 @@ import { ContractVersions } from '@/core/domain/contract/contract-versions.entit
         ContractService,
         AuditLogService,
         CollaboratorService,
+        PermissionService,
         { provide: APP_INTERCEPTOR, useClass: AuditInterceptor }, // global audit for module
     ],
-    exports: [ContractService, CollaboratorService],
+    exports: [ContractService, CollaboratorService, PermissionService],
 })
 export class ContractsModule {}
