@@ -25,6 +25,7 @@ import { CreateNotificationDto, CreateReminderDto } from '@/core/dto/contract/no
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class ContractService {
@@ -43,6 +44,7 @@ export class ContractService {
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         private readonly auditService: AuditLogService,
         private readonly collabService: CollaboratorService,
+        private readonly notificationService: NotificationService,
     ) {
         this.contractRepo = this.db.getRepository(Contract);
         this.versionRepo = this.db.getRepository(ContractVersion);
@@ -489,46 +491,338 @@ export class ContractService {
         const contract = await this.contractRepo.findOne({ where: { id: contractId } });
         if (!contract) throw new NotFoundException('Contract not found');
 
-        const ent = this.milestoneRepo.create({
-            contract_id: contractId,
-            name: (dto as any).name,
-            description: (dto as any).description,
-            assignee_id: userId.toString(),
-            assignee_name: 'Self',
-            status: MilestoneStatus.PENDING,
-            priority: (dto as any).priority || 'medium',
-        } as any);
-        const saved = await this.milestoneRepo.save(ent);
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'CREATE_MILESTONE',
-            meta: { id: (saved as any).id },
-        });
-        return saved;
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            const ent = this.milestoneRepo.create({
+                contract_id: contractId,
+                name: (dto as any).name,
+                description: (dto as any).description,
+                date_range: (dto as any).date_range,
+                assignee_id: (dto as any).assignee_id || userId.toString(),
+                assignee_name: (dto as any).assignee_name || 'Self',
+                status: MilestoneStatus.PENDING,
+                priority: (dto as any).priority || 'medium',
+                progress: 0,
+                deliverables: (dto as any).deliverables || [],
+                updated_by: userId.toString(),
+            } as any);
+
+            const saved = await qr.manager.save(ent);
+
+            // Create reminder for milestone due date
+            if ((dto as any).date_range?.end_date) {
+                const endDate = new Date((dto as any).date_range.end_date);
+                const reminderDate = new Date(endDate);
+                reminderDate.setDate(reminderDate.getDate() - 1); // 1 day before
+
+                await this.notificationService.createReminder({
+                    contract_id: contractId,
+                    milestone_id: (saved as any).id,
+                    user_id: parseInt((dto as any).assignee_id || userId.toString()),
+                    type: 'milestone_due' as any,
+                    frequency: 'once' as any,
+                    title: `Milestone Due: ${(dto as any).name}`,
+                    message: `The milestone "${(dto as any).name}" is due tomorrow. Please review and update the progress.`,
+                    trigger_date: reminderDate,
+                    notification_channels: ['email', 'in_app'],
+                    metadata: {
+                        milestone_name: (dto as any).name,
+                        contract_name: contract.name,
+                    },
+                });
+            }
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: contractId,
+                user_id: userId,
+                action: 'CREATE_MILESTONE',
+                meta: { id: (saved as any).id, name: (dto as any).name },
+                description: `Created milestone: ${(dto as any).name}`,
+            });
+
+            return saved;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('createMilestone error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
     }
 
-    async createTask(mid: string, dto: CreateTaskDto, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: mid } });
+    async updateMilestone(milestoneId: string, dto: Partial<CreateMilestoneDto>, userId: number) {
+        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
         if (!milestone) throw new NotFoundException('Milestone not found');
 
-        const ent = this.taskRepo.create({
-            milestone_id: mid,
-            name: (dto as any).name,
-            description: (dto as any).description,
-            assignee_id: userId.toString(),
-            assignee_name: 'Self',
-            status: TaskStatus.PENDING,
-            priority: (dto as any).priority || 'medium',
-        } as any);
-        const saved = await this.taskRepo.save(ent);
-        await this.auditService.create({
-            contract_id: milestone.contract_id,
-            user_id: userId,
-            action: 'CREATE_TASK',
-            meta: { id: (saved as any).id },
-        });
-        return saved;
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            const oldData = { ...milestone };
+            Object.assign(milestone, dto, { updated_by: userId.toString() });
+            const updated = await qr.manager.save(milestone);
+
+            // Update reminder if due date changed
+            if ((dto as any).date_range?.end_date && 
+                (dto as any).date_range.end_date !== oldData.date_range?.end_date) {
+                
+                // Cancel old reminders
+                await this.notificationService.cancelRemindersByMilestone(milestoneId);
+
+                // Create new reminder
+                const endDate = new Date((dto as any).date_range.end_date);
+                const reminderDate = new Date(endDate);
+                reminderDate.setDate(reminderDate.getDate() - 1);
+
+                await this.notificationService.createReminder({
+                    contract_id: milestone.contract_id,
+                    milestone_id: milestoneId,
+                    user_id: parseInt(milestone.assignee_id),
+                    type: 'milestone_due' as any,
+                    frequency: 'once' as any,
+                    title: `Milestone Due: ${milestone.name}`,
+                    message: `The milestone "${milestone.name}" is due tomorrow. Please review and update the progress.`,
+                    trigger_date: reminderDate,
+                    notification_channels: ['email', 'in_app'],
+                    metadata: {
+                        milestone_name: milestone.name,
+                    },
+                });
+            }
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: milestone.contract_id,
+                user_id: userId,
+                action: 'UPDATE_MILESTONE',
+                meta: { id: milestoneId, changes: dto },
+                description: `Updated milestone: ${milestone.name}`,
+            });
+
+            return updated;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('updateMilestone error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
+    }
+
+    async deleteMilestone(milestoneId: string, userId: number) {
+        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
+        if (!milestone) throw new NotFoundException('Milestone not found');
+
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            // Cancel all reminders for this milestone
+            await this.notificationService.cancelRemindersByMilestone(milestoneId);
+
+            // Delete associated tasks
+            await qr.manager.delete(Task, { milestone_id: milestoneId });
+
+            // Delete milestone
+            await qr.manager.remove(milestone);
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: milestone.contract_id,
+                user_id: userId,
+                action: 'DELETE_MILESTONE',
+                meta: { id: milestoneId, name: milestone.name },
+                description: `Deleted milestone: ${milestone.name}`,
+            });
+
+            return { ok: true } as any;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('deleteMilestone error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
+    }
+
+    async createTask(milestoneId: string, dto: CreateTaskDto, userId: number) {
+        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
+        if (!milestone) throw new NotFoundException('Milestone not found');
+
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            const ent = this.taskRepo.create({
+                milestone_id: milestoneId,
+                name: (dto as any).name,
+                description: (dto as any).description,
+                assignee_id: (dto as any).assignee_id || userId.toString(),
+                assignee_name: (dto as any).assignee_name || 'Self',
+                time_range: (dto as any).time_range,
+                due_date: (dto as any).due_date ? new Date((dto as any).due_date) : null,
+                status: TaskStatus.PENDING,
+                priority: (dto as any).priority || 'medium',
+                dependencies: (dto as any).dependencies || [],
+                attachments: (dto as any).attachments || [],
+                comments: (dto as any).comments || [],
+                updated_by: userId.toString(),
+            } as any);
+
+            const saved = await qr.manager.save(ent);
+
+            // Create reminder for task due date
+            if ((dto as any).due_date) {
+                const dueDate = new Date((dto as any).due_date);
+                const reminderDate = new Date(dueDate);
+                reminderDate.setDate(reminderDate.getDate() - 1); // 1 day before
+
+                await this.notificationService.createReminder({
+                    contract_id: milestone.contract_id,
+                    task_id: (saved as any).id,
+                    user_id: parseInt((dto as any).assignee_id || userId.toString()),
+                    type: 'task_due' as any,
+                    frequency: 'once' as any,
+                    title: `Task Due: ${(dto as any).name}`,
+                    message: `The task "${(dto as any).name}" is due tomorrow. Please complete it on time.`,
+                    trigger_date: reminderDate,
+                    notification_channels: ['email', 'in_app'],
+                    metadata: {
+                        task_name: (dto as any).name,
+                        milestone_name: milestone.name,
+                    },
+                });
+            }
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: milestone.contract_id,
+                user_id: userId,
+                action: 'CREATE_TASK',
+                meta: { id: (saved as any).id, name: (dto as any).name, milestone_id: milestoneId },
+                description: `Created task: ${(dto as any).name}`,
+            });
+
+            return saved;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('createTask error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
+    }
+
+    async updateTask(taskId: string, dto: Partial<CreateTaskDto>, userId: number) {
+        const task = await this.taskRepo.findOne({ where: { id: taskId } });
+        if (!task) throw new NotFoundException('Task not found');
+
+        const milestone = await this.milestoneRepo.findOne({ where: { id: task.milestone_id } });
+        if (!milestone) throw new NotFoundException('Milestone not found');
+
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            const oldDueDate = task.due_date;
+            Object.assign(task, dto, { updated_by: userId.toString() });
+            const updated = await qr.manager.save(task);
+
+            // Update reminder if due date changed
+            if ((dto as any).due_date && (dto as any).due_date !== oldDueDate) {
+                // Cancel old reminders
+                await this.notificationService.cancelRemindersByTask(taskId);
+
+                // Create new reminder
+                const dueDate = new Date((dto as any).due_date);
+                const reminderDate = new Date(dueDate);
+                reminderDate.setDate(reminderDate.getDate() - 1);
+
+                await this.notificationService.createReminder({
+                    contract_id: milestone.contract_id,
+                    task_id: taskId,
+                    user_id: parseInt(task.assignee_id),
+                    type: 'task_due' as any,
+                    frequency: 'once' as any,
+                    title: `Task Due: ${task.name}`,
+                    message: `The task "${task.name}" is due tomorrow. Please complete it on time.`,
+                    trigger_date: reminderDate,
+                    notification_channels: ['email', 'in_app'],
+                    metadata: {
+                        task_name: task.name,
+                        milestone_name: milestone.name,
+                    },
+                });
+            }
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: milestone.contract_id,
+                user_id: userId,
+                action: 'UPDATE_TASK',
+                meta: { id: taskId, changes: dto },
+                description: `Updated task: ${task.name}`,
+            });
+
+            return updated;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('updateTask error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
+    }
+
+    async deleteTask(taskId: string, userId: number) {
+        const task = await this.taskRepo.findOne({ where: { id: taskId } });
+        if (!task) throw new NotFoundException('Task not found');
+
+        const milestone = await this.milestoneRepo.findOne({ where: { id: task.milestone_id } });
+        if (!milestone) throw new NotFoundException('Milestone not found');
+
+        const qr = this.db.createQueryRunner();
+        await qr.connect();
+        await qr.startTransaction();
+
+        try {
+            // Cancel all reminders for this task
+            await this.notificationService.cancelRemindersByTask(taskId);
+
+            // Delete task
+            await qr.manager.remove(task);
+
+            await qr.commitTransaction();
+
+            await this.auditService.create({
+                contract_id: milestone.contract_id,
+                user_id: userId,
+                action: 'DELETE_TASK',
+                meta: { id: taskId, name: task.name },
+                description: `Deleted task: ${task.name}`,
+            });
+
+            return { ok: true } as any;
+        } catch (err) {
+            await qr.rollbackTransaction();
+            this.logger.APP.error('deleteTask error', err);
+            throw err;
+        } finally {
+            await qr.release();
+        }
     }
 
     // ===== FILE MANAGEMENT =====
