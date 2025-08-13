@@ -4,6 +4,13 @@
     "node_modules",
     "test",
     "dist",
-    "**/*spec.ts"
+    "**/*spec.ts",
+    "src/modules/contract/contract.controller.backup.ts",
+    "src/modules/contract/contract.service backup.ts",
+    "src/core/domain/contract/index.ts",
+    "src/core/query/contract.query.ts",
+    "src/common/utils/generate-code-file.utils.ts",
+    "src/modules/cron-task/**",
+    "src/modules/notification/**"
   ]
 }

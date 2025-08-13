@@ -11,6 +11,7 @@ import type {
 } from "~/types/contract/contract.types";
 import { contractDraftService } from "~/services/api/contract-draft.service";
 import { contractTemplateService } from "~/services/api/contract-template.service";
+import { contractService } from "~/services/api/contract.service";
 import { v4 as uuidv4 } from "uuid";
 import { Logger } from "~/core/Logger";
 import { getErrorMessage } from "~/utils/error-handler";
@@ -139,7 +140,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadDrafts: async () => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.getAllDrafts();
+                    const response = await contractDraftService.getAllDrafts<ContractDraft>();
                     if (response.success && response.data) {
                         set({ drafts: response.data, loading: false });
                     } else {
@@ -155,7 +156,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadTemplates: async () => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractTemplateService.getAllTemplates();
+                    const response = await contractTemplateService.getContractTemplates();
                     if (response.success && response.data) {
                         set({ templates: response.data, loading: false });
                     } else {
@@ -171,7 +172,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadDraft: async (id: string) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.getDraftById(id);
+                    const response = await contractDraftService.getDraftById<ContractDraft>(id);
                     if (response.success && response.data) {
                         const draft = response.data;
                         set({
@@ -272,7 +273,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         createdBy: "current-user", // TODO: Get from auth context
                     };
 
-                    const response = await contractDraftService.createContractDraft(newDraft);
+                    const response = await contractDraftService.createContractDraft<ContractDraft>(newDraft as unknown as Record<string, unknown>);
                     if (response.success && response.data) {
                         set((state) => ({
                             drafts: [...state.drafts, response.data!],
@@ -308,7 +309,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             updateDraft: async (id: string, updates: Partial<ContractDraft>) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.updateDraft(id, updates);
+                    const response = await contractDraftService.updateDraft<ContractDraft>(id, updates as unknown as Record<string, unknown>);
                     if (response.success && response.data) {
                         set((state) => ({
                             drafts: state.drafts.map((d) => (d.id === id ? response.data! : d)),
@@ -378,43 +379,28 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
 
             // Duplicate draft
             duplicateDraft: async (id: string) => {
-                const draftToDuplicate = get().drafts.find((d) => d.id === id);
-                if (!draftToDuplicate) {
-                    throw new Error("Draft not found");
-                }
+                const state = get();
+                const draft = state.drafts.find((d) => d.id === id);
+                if (!draft) throw new Error("Draft not found");
 
-                const duplicatedDraft: ContractDraft = {
-                    ...draftToDuplicate,
+                const newDraft: ContractDraft = {
+                    ...draft,
                     id: uuidv4(),
-                    contractData: {
-                        ...draftToDuplicate.contractData,
-                        name: `${draftToDuplicate.contractData.name} (Copy)`,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    },
-                    flow: {
-                        ...draftToDuplicate.flow,
-                        id: uuidv4(),
-                        currentStage: "template_selection",
-                        stageValidations: createInitialStageValidations(),
-                        canProceedToNext: false,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    },
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
-                    createdBy: "current-user",
                 };
 
-                return get().createDraft(duplicatedDraft.flow.selectedMode, duplicatedDraft.flow.selectedTemplate?.id);
+                const response = await contractDraftService.createContractDraft<ContractDraft>(newDraft as unknown as Record<string, unknown>);
+                if (response.success && response.data) {
+                    set((s) => ({ drafts: [...s.drafts, response.data!] }));
+                    return response.data!;
+                }
+                throw new Error(response.message || "Failed to duplicate draft");
             },
 
-            // Flow management methods
+            // Flow management
             initializeFlow: async (mode: ContractCreationMode, templateId?: string) => {
-                logger.info("Initializing contract creation flow", { mode, templateId });
-
-                const template = templateId ? get().templates.find((t) => t.id === templateId) : undefined;
-
+                const template = templateId ? get().templates.find((t) => t.id === templateId) : null;
                 set({
                     selectedMode: mode,
                     selectedTemplate: template || null,
@@ -526,7 +512,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             },
 
             nextStage: async () => {
-                const { currentStage } = get();
+                const { currentStage, currentDraft } = get();
                 const stages: ContractCreationStage[] = [
                     "template_selection",
                     "basic_info",
@@ -538,6 +524,15 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
 
                 if (currentIndex < stages.length - 1) {
                     const nextStage = stages[currentIndex + 1];
+                    // Persist current stage to server and transition
+                    if (currentDraft) {
+                        try {
+                            await contractService.saveStage(currentDraft.id, currentStage, { data: currentDraft.contractData });
+                            await contractService.transitionStage(currentDraft.id, currentStage, nextStage);
+                        } catch (err) {
+                            logger.error("Failed to save/transition stage", err);
+                        }
+                    }
                     await get().navigateToStage(nextStage);
                 }
             },
@@ -605,32 +600,19 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
 
             // Reset methods
             clearCurrentDraft: () => {
-                set({
-                    currentDraft: null,
-                    currentStage: "template_selection",
-                    stageValidations: createInitialStageValidations(),
-                });
+                set({ currentDraft: null, currentStage: "template_selection", selectedMode: null, selectedTemplate: null });
             },
-
             resetCreationFlow: () => {
-                set({
-                    currentStage: "template_selection",
-                    selectedMode: null,
-                    selectedTemplate: null,
-                    stageValidations: createInitialStageValidations(),
-                    lastAutoSave: null,
-                });
+                set({ currentStage: "template_selection", selectedMode: null, selectedTemplate: null, stageValidations: createInitialStageValidations() });
             },
 
-            // Auto-save methods
+            // Auto-save
             enableAutoSave: () => {
                 set({ autoSaveEnabled: true });
             },
-
             disableAutoSave: () => {
                 set({ autoSaveEnabled: false });
             },
-
             performAutoSave: async () => {
                 const { currentDraft, autoSaveEnabled } = get();
                 if (!autoSaveEnabled || !currentDraft) return;
@@ -645,13 +627,6 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
         }),
         {
             name: "contract-draft-store",
-            partialize: (state) => ({
-                currentStage: state.currentStage,
-                selectedMode: state.selectedMode,
-                selectedTemplate: state.selectedTemplate,
-                stageValidations: state.stageValidations,
-                autoSaveEnabled: state.autoSaveEnabled,
-            }),
         },
     ),
 );

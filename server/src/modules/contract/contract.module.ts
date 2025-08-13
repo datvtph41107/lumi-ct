@@ -7,31 +7,32 @@ import { ContractService } from './contract.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
 import { AuditInterceptor } from '@/core/shared/filters/audit.interceptor';
+import { ContractDraftController } from './contract-draft.controller';
 
 // Entities
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
-import { ContractMilestones } from '@/core/domain/contract/contract-milestones.entity';
-import { ContractTasks } from '@/core/domain/contract/contract-taks.entity';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { ContractFile } from '@/core/domain/contract/contract-file.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
 import { ContractContent } from '@/core/domain/contract/contract-content.entity';
-import { ContractVersions } from '@/core/domain/contract/contract-versions.entity';
+import { ContractVersion } from '@/core/domain/contract/contract-versions.entity';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             Contract,
             ContractDraft,
-            ContractMilestones,
-            ContractTasks,
+            Milestone,
+            Task,
             ContractFile,
             ContractTemplate,
             ContractContent,
-            ContractVersions,
+            ContractVersion,
         ]),
     ],
-    controllers: [ContractController],
+    controllers: [ContractController, ContractDraftController],
     providers: [
         ContractService,
         AuditLogService,

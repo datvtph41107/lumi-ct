@@ -1,30 +1,27 @@
 import { BaseService } from "./base.service";
-import type { ContractDraft } from "~/types/contract/contract.types"; // Corrected import path
 import type { ApiResponse } from "~/core/types/api.types";
 
 export class ContractDraftService extends BaseService {
-    constructor() {
-        super();
+    private readonly baseUrl = "/contract-drafts";
+
+    async getAllDrafts<TDraft>(): Promise<ApiResponse<TDraft[]>> {
+        return this.request.private.get<TDraft[]>(`${this.baseUrl}`);
     }
 
-    async getContractDrafts(): Promise<ApiResponse<ContractDraft[]>> {
-        return this.request.private.get<ContractDraft[]>("contract-drafts");
+    async getDraftById<TDraft>(id: string): Promise<ApiResponse<TDraft>> {
+        return this.request.private.get<TDraft>(`${this.baseUrl}/${id}`);
     }
 
-    async getContractDraftById(id: string): Promise<ApiResponse<ContractDraft>> {
-        return this.request.private.get<ContractDraft>(`contract-drafts/${id}`);
+    async createContractDraft<TDraft>(draft: Record<string, unknown>): Promise<ApiResponse<TDraft>> {
+        return this.request.private.post<TDraft, Record<string, unknown>>(`${this.baseUrl}`, draft);
     }
 
-    async createContractDraft(draft: Omit<ContractDraft, "id" | "createdAt" | "updatedAt">): Promise<ApiResponse<ContractDraft>> {
-        return this.request.private.post<ContractDraft, Omit<ContractDraft, "id" | "createdAt" | "updatedAt">>("contract-drafts", draft);
+    async updateDraft<TDraft>(id: string, updates: Record<string, unknown>): Promise<ApiResponse<TDraft>> {
+        return this.request.private.patch<TDraft, Record<string, unknown>>(`${this.baseUrl}/${id}`, updates);
     }
 
-    async updateContractDraft(id: string, updates: Partial<ContractDraft>): Promise<ApiResponse<ContractDraft>> {
-        return this.request.private.patch<ContractDraft, Partial<ContractDraft>>(`contract-drafts/${id}`, updates);
-    }
-
-    async deleteContractDraft(id: string): Promise<ApiResponse<void>> {
-        return this.request.private.delete<void>(`contract-drafts/${id}`);
+    async deleteDraft(id: string): Promise<ApiResponse<{ ok: boolean }>> {
+        return this.request.private.delete<{ ok: boolean }>(`${this.baseUrl}/${id}`);
     }
 }
 

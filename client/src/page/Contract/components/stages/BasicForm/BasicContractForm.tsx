@@ -20,12 +20,10 @@ const cx = classNames.bind(styles);
 const BasicContractForm = () => {
     const { formData, setStep1Data, nextStep, validateStep, currentStep } = useContractForm();
 
-    // Ensure we're on step 1
     useEffect(() => {
         console.log("BasicContractForm mounted, current formData:", formData);
     }, [formData]);
 
-    Create defaultValues from current formData
     const defaultValues: Partial<ContractFormData> = {
         name: formData.name || "",
         contractCode: formData.contractCode || "",
@@ -58,17 +56,11 @@ const BasicContractForm = () => {
 
     const handleFormSubmit = (data: ContractFormData) => {
         console.log("Form submitted with data:", data);
-
-        // Process date range if needed
         const processedData: ContractFormData = {
             ...data,
             dateRange: data.dateRange ? convertDateRange(data.dateRange) : { startDate: null, endDate: null },
         };
-
-        // Save data to store
         // setStep1Data(processedData);
-
-        // // Move to next step
         // nextStep();
     };
 
