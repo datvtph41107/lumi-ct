@@ -556,11 +556,167 @@ export class ContractService {
 
     // ===== COLLABORATOR MANAGEMENT =====
     async addCollaborator(contractId: string, dto: CreateCollaboratorDto, userId: number) {
-        return this.collabService.add(contractId, (dto as any).user_id, (dto as any).role as any);
+        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
+        if (!contract) {
+            throw new NotFoundException('Contract not found');
+        }
+
+        // Check if user has permission to add collaborators
+        const canManage = await this.collabService.canEdit(contractId, userId);
+        if (!canManage) {
+            throw new ForbiddenException('You do not have permission to manage collaborators');
+        }
+
+        const collaborator = await this.collabService.add(
+            contractId, 
+            (dto as any).user_id, 
+            (dto as any).role as any,
+            userId
+        );
+
+        await this.auditService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'ADD_COLLABORATOR',
+            meta: { 
+                collaborator_user_id: (dto as any).user_id,
+                role: (dto as any).role 
+            },
+            description: `Added collaborator with role: ${(dto as any).role}`
+        });
+
+        return collaborator;
     }
 
     async listCollaborators(contractId: string) {
+        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
+        if (!contract) {
+            throw new NotFoundException('Contract not found');
+        }
+
         return this.collabService.list(contractId);
+    }
+
+    async updateCollaborator(cid: string, dto: Partial<CreateCollaboratorDto>, userId: number) {
+        // Parse collaborator ID to get contract_id and user_id
+        const [contractId, collaboratorUserId] = cid.split('_');
+        if (!contractId || !collaboratorUserId) {
+            throw new BadRequestException('Invalid collaborator ID format');
+        }
+
+        // Check if user has permission to update collaborators
+        const canManage = await this.collabService.canEdit(contractId, userId);
+        if (!canManage) {
+            throw new ForbiddenException('You do not have permission to manage collaborators');
+        }
+
+        const collaborator = await this.collabService.updateRole(
+            contractId,
+            parseInt(collaboratorUserId),
+            (dto as any).role as any,
+            userId
+        );
+
+        await this.auditService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'UPDATE_COLLABORATOR_ROLE',
+            meta: { 
+                collaborator_user_id: parseInt(collaboratorUserId),
+                new_role: (dto as any).role 
+            },
+            description: `Updated collaborator role to: ${(dto as any).role}`
+        });
+
+        return collaborator;
+    }
+
+    async removeCollaborator(cid: string, userId: number) {
+        // Parse collaborator ID to get contract_id and user_id
+        const [contractId, collaboratorUserId] = cid.split('_');
+        if (!contractId || !collaboratorUserId) {
+            throw new BadRequestException('Invalid collaborator ID format');
+        }
+
+        // Check if user has permission to remove collaborators
+        const canManage = await this.collabService.canEdit(contractId, userId);
+        if (!canManage) {
+            throw new ForbiddenException('You do not have permission to manage collaborators');
+        }
+
+        // Prevent removing yourself if you're the only owner
+        if (parseInt(collaboratorUserId) === userId) {
+            const isOwner = await this.collabService.isOwner(contractId, userId);
+            if (isOwner) {
+                const owners = await this.collabService.getContractOwners(contractId);
+                if (owners.length <= 1) {
+                    throw new BadRequestException('Cannot remove yourself as the only owner');
+                }
+            }
+        }
+
+        const collaborator = await this.collabService.remove(
+            contractId,
+            parseInt(collaboratorUserId),
+            userId
+        );
+
+        await this.auditService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'REMOVE_COLLABORATOR',
+            meta: { 
+                collaborator_user_id: parseInt(collaboratorUserId)
+            },
+            description: `Removed collaborator from contract`
+        });
+
+        return collaborator;
+    }
+
+    async transferOwnership(contractId: string, toUserId: number, userId: number) {
+        // Check if user is owner
+        const isOwner = await this.collabService.isOwner(contractId, userId);
+        if (!isOwner) {
+            throw new ForbiddenException('Only owners can transfer ownership');
+        }
+
+        await this.collabService.transferOwnership(contractId, userId, toUserId, userId);
+
+        await this.auditService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'TRANSFER_OWNERSHIP',
+            meta: { 
+                from_user_id: userId,
+                to_user_id: toUserId 
+            },
+            description: `Transferred contract ownership`
+        });
+
+        return { success: true, message: 'Ownership transferred successfully' };
+    }
+
+    async getCollaboratorPermissions(contractId: string, userId: number) {
+        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
+        if (!contract) {
+            throw new NotFoundException('Contract not found');
+        }
+
+        const role = await this.collabService.getRole(contractId, userId);
+        if (!role) {
+            throw new ForbiddenException('You do not have access to this contract');
+        }
+
+        return {
+            role,
+            permissions: {
+                can_view: await this.collabService.canView(contractId, userId),
+                can_edit: await this.collabService.canEdit(contractId, userId),
+                can_review: await this.collabService.canReview(contractId, userId),
+                is_owner: await this.collabService.isOwner(contractId, userId),
+            }
+        };
     }
 
     // ===== EXPORT & PRINT =====
@@ -651,9 +807,31 @@ export class ContractService {
         return [];
     }
 
-    // ===== AUDIT & UTILITIES =====
-    async getAuditLogs(contractId: string) {
-        return this.auditService.findByContract(contractId, 200);
+    // ===== AUDIT & ANALYTICS =====
+    async getAuditLogs(contractId: string, filters?: any, pagination?: any) {
+        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
+        if (!contract) {
+            throw new NotFoundException('Contract not found');
+        }
+
+        return this.auditService.findByContract(contractId, filters, pagination);
+    }
+
+    async getAuditSummary(contractId: string) {
+        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
+        if (!contract) {
+            throw new NotFoundException('Contract not found');
+        }
+
+        return this.auditService.getAuditSummary(contractId);
+    }
+
+    async getUserAuditLogs(userId: number, filters?: any, pagination?: any) {
+        return this.auditService.findByUser(userId, filters, pagination);
+    }
+
+    async getSystemAuditLogs(filters?: any, pagination?: any) {
+        return this.auditService.getSystemAuditLogs(filters, pagination);
     }
 
     async softDelete(contractId: string, userId: number) {
@@ -727,17 +905,6 @@ export class ContractService {
     }
 
     // ===== COLLABORATOR MANAGEMENT =====
-    async updateCollaborator(cid: string, dto: Partial<CreateCollaboratorDto>, userId: number) {
-        // Service does not support update by collab id; emulate by removing and adding
-        return this.collabService.add(cid, (dto as any).user_id, (dto as any).role as any);
-    }
-
-    async removeCollaborator(cid: string, userId: number) {
-        // Service expects contractId and userId
-        return this.collabService.remove(cid as any, userId);
-    }
-
-    // ===== APPROVAL WORKFLOW =====
     async approveContract(contractId: string, userId: number) {
         // TODO: Implement approval logic
         return { ok: false, message: 'Approval not implemented yet' };
