@@ -1,34 +1,100 @@
-import { BaseService } from "./base.service";
-import type { LoginRequest, LoginResponse, User, RefreshTokenResponse } from "~/types/auth.types";
-import type { ApiResponse } from "~/core/types/api.types";
+import { BaseService } from './base.service';
+import type { 
+    LoginCredentials, 
+    RegisterData, 
+    AuthResponse, 
+    RefreshTokenResponse, 
+    LogoutResponse,
+    User,
+    ChangePasswordData,
+    UpdateProfileData,
+    ForgotPasswordData,
+    ResetPasswordData
+} from '~/types/auth/auth.types';
 
-export class AuthService extends BaseService {
+class AuthService extends BaseService {
     constructor() {
-        super();
+        super('/auth');
     }
 
-    async login(body: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-        return this.request.public.post<LoginResponse, LoginRequest>("auth/login", body);
+    async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
+        const response = await this.post<AuthResponse>('/login', credentials, {
+            withCredentials: true // Important for httpOnly cookies
+        });
+        return response;
     }
 
-    async getCurrentUser(): Promise<ApiResponse<User>> {
-        return this.request.private.get<User>("auth/me");
+    async register(data: RegisterData): Promise<{ data: AuthResponse }> {
+        const response = await this.post<AuthResponse>('/register', data, {
+            withCredentials: true
+        });
+        return response;
     }
 
-    async logout(): Promise<ApiResponse<void>> {
-        return this.request.private.post<void>("auth/logout");
+    async logout(): Promise<{ data: LogoutResponse }> {
+        const response = await this.post<LogoutResponse>('/logout', {}, {
+            withCredentials: true
+        });
+        return response;
     }
 
-    async verifySession(): Promise<ApiResponse<User>> {
-        return this.request.private.get<User>("auth/verify-session");
+    async refreshToken(): Promise<{ data: RefreshTokenResponse }> {
+        const response = await this.post<RefreshTokenResponse>('/refresh', {}, {
+            withCredentials: true
+        });
+        return response;
     }
 
-    async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
-        return this.request.private.post<RefreshTokenResponse>("auth/refresh-token");
+    async getCurrentUser(): Promise<{ data: User }> {
+        const response = await this.get<User>('/me', {
+            withCredentials: true
+        });
+        return response;
     }
 
-    async updateActivity(): Promise<ApiResponse<void>> {
-        return this.request.private.post<void>("auth/update-activity");
+    async changePassword(data: ChangePasswordData): Promise<{ data: { message: string } }> {
+        const response = await this.post<{ message: string }>('/change-password', data, {
+            withCredentials: true
+        });
+        return response;
+    }
+
+    async updateProfile(data: UpdateProfileData): Promise<{ data: User }> {
+        const formData = new FormData();
+        
+        if (data.full_name) formData.append('full_name', data.full_name);
+        if (data.email) formData.append('email', data.email);
+        if (data.avatar) formData.append('avatar', data.avatar);
+
+        const response = await this.put<User>('/profile', formData, {
+            withCredentials: true,
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response;
+    }
+
+    async forgotPassword(data: ForgotPasswordData): Promise<{ data: { message: string } }> {
+        const response = await this.post<{ message: string }>('/forgot-password', data);
+        return response;
+    }
+
+    async resetPassword(data: ResetPasswordData): Promise<{ data: { message: string } }> {
+        const response = await this.post<{ message: string }>('/reset-password', data);
+        return response;
+    }
+
+    async verifyEmail(token: string): Promise<{ data: { message: string } }> {
+        const response = await this.post<{ message: string }>('/verify-email', { token });
+        return response;
+    }
+
+    async resendVerificationEmail(): Promise<{ data: { message: string } }> {
+        const response = await this.post<{ message: string }>('/resend-verification', {}, {
+            withCredentials: true
+        });
+        return response;
     }
 }
 
