@@ -3,6 +3,42 @@ import { authService } from '~/services/api/auth.service';
 import type { User, LoginCredentials, RegisterData } from '~/types/auth/auth.types';
 
 // Types
+export interface Permission {
+  id: string;
+  resource: string;
+  action: string;
+  display_name: string;
+  conditions_schema?: Record<string, any>;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  is_system: boolean;
+  priority: number;
+  permissions: Permission[];
+}
+
+export interface UserRole {
+  id: string;
+  role_id: string;
+  scope: 'global' | 'department' | 'project' | 'contract';
+  scope_id?: number;
+  granted_by?: number;
+  granted_at: string;
+  expires_at?: string;
+  role: Role;
+}
+
+export interface UserPermissions {
+  userId: number;
+  permissions: Permission[];
+  roles: Role[];
+  scopes: Record<string, any>;
+}
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -15,18 +51,28 @@ interface AuthState {
   idleTimeout: number;
   isIdleWarningShown: boolean;
   redirectPath: string | null;
+  
+  // Permission management
+  userPermissions: UserPermissions | null;
+  userRoles: UserRole[];
+  permissionCache: Map<string, boolean>;
+  isPermissionsLoaded: boolean;
 }
 
 interface LoginResponse {
   user: User;
   access_token: string;
   expires_in: number;
+  permissions: UserPermissions;
+  roles: UserRole[];
 }
 
 interface RefreshResponse {
   user: User;
   access_token: string;
   expires_in: number;
+  permissions: UserPermissions;
+  roles: UserRole[];
 }
 
 // Initial state
@@ -42,6 +88,12 @@ const initialState: AuthState = {
   idleTimeout: 15 * 60 * 1000, // 15 minutes in milliseconds
   isIdleWarningShown: false,
   redirectPath: null,
+  
+  // Permission management
+  userPermissions: null,
+  userRoles: [],
+  permissionCache: new Map(),
+  isPermissionsLoaded: false,
 };
 
 // Async thunks
@@ -71,7 +123,7 @@ export const register = createAsyncThunk(
 
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await authService.refreshToken();
       return response.data;
@@ -89,6 +141,18 @@ export const getCurrentUser = createAsyncThunk(
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Không thể lấy thông tin người dùng');
+    }
+  }
+);
+
+export const getUserPermissions = createAsyncThunk(
+  'auth/getUserPermissions',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await authService.getUserPermissions();
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Không thể lấy quyền hạn');
     }
   }
 );
@@ -135,6 +199,10 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.isIdleWarningShown = false;
+      state.userPermissions = null;
+      state.userRoles = [];
+      state.permissionCache.clear();
+      state.isPermissionsLoaded = false;
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
@@ -158,6 +226,21 @@ const authSlice = createSlice({
     setIdleTimeout: (state, action: PayloadAction<number>) => {
       state.idleTimeout = action.payload;
     },
+    
+    // Permission management
+    setUserPermissions: (state, action: PayloadAction<UserPermissions>) => {
+      state.userPermissions = action.payload;
+      state.isPermissionsLoaded = true;
+    },
+    setUserRoles: (state, action: PayloadAction<UserRole[]>) => {
+      state.userRoles = action.payload;
+    },
+    clearPermissionCache: (state) => {
+      state.permissionCache.clear();
+    },
+    setPermissionCache: (state, action: PayloadAction<{ key: string; value: boolean }>) => {
+      state.permissionCache.set(action.payload.key, action.payload.value);
+    },
   },
   extraReducers: (builder) => {
     // Login
@@ -173,6 +256,10 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token;
         state.lastActivity = Date.now();
         state.isIdleWarningShown = false;
+        state.userPermissions = action.payload.permissions;
+        state.userRoles = action.payload.roles;
+        state.isPermissionsLoaded = true;
+        state.permissionCache.clear();
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -192,6 +279,10 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token;
         state.lastActivity = Date.now();
         state.isIdleWarningShown = false;
+        state.userPermissions = action.payload.permissions;
+        state.userRoles = action.payload.roles;
+        state.isPermissionsLoaded = true;
+        state.permissionCache.clear();
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
@@ -211,6 +302,10 @@ const authSlice = createSlice({
         state.accessToken = action.payload.access_token;
         state.lastActivity = Date.now();
         state.isIdleWarningShown = false;
+        state.userPermissions = action.payload.permissions;
+        state.userRoles = action.payload.roles;
+        state.isPermissionsLoaded = true;
+        state.permissionCache.clear();
       })
       .addCase(refreshToken.rejected, (state, action) => {
         state.isRefreshing = false;
@@ -220,6 +315,10 @@ const authSlice = createSlice({
         state.accessToken = null;
         state.sessionId = null;
         state.isAuthenticated = false;
+        state.userPermissions = null;
+        state.userRoles = [];
+        state.permissionCache.clear();
+        state.isPermissionsLoaded = false;
       });
 
     // Get Current User
@@ -243,6 +342,29 @@ const authSlice = createSlice({
         state.accessToken = null;
         state.sessionId = null;
         state.isAuthenticated = false;
+        state.userPermissions = null;
+        state.userRoles = [];
+        state.permissionCache.clear();
+        state.isPermissionsLoaded = false;
+      });
+
+    // Get User Permissions
+    builder
+      .addCase(getUserPermissions.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getUserPermissions.fulfilled, (state, action: PayloadAction<{ permissions: UserPermissions; roles: UserRole[] }>) => {
+        state.isLoading = false;
+        state.userPermissions = action.payload.permissions;
+        state.userRoles = action.payload.roles;
+        state.isPermissionsLoaded = true;
+        state.permissionCache.clear();
+      })
+      .addCase(getUserPermissions.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+        state.isPermissionsLoaded = false;
       });
 
     // Logout
@@ -254,6 +376,10 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.error = null;
         state.isIdleWarningShown = false;
+        state.userPermissions = null;
+        state.userRoles = [];
+        state.permissionCache.clear();
+        state.isPermissionsLoaded = false;
       });
 
     // Update Activity
@@ -277,6 +403,10 @@ export const {
   setRedirectPath,
   clearRedirectPath,
   setIdleTimeout,
+  setUserPermissions,
+  setUserRoles,
+  clearPermissionCache,
+  setPermissionCache,
 } = authSlice.actions;
 
 // Export selectors
@@ -292,6 +422,12 @@ export const selectLastActivity = (state: { auth: AuthState }) => state.auth.las
 export const selectIdleTimeout = (state: { auth: AuthState }) => state.auth.idleTimeout;
 export const selectIsIdleWarningShown = (state: { auth: AuthState }) => state.auth.isIdleWarningShown;
 export const selectRedirectPath = (state: { auth: AuthState }) => state.auth.redirectPath;
+
+// Permission selectors
+export const selectUserPermissions = (state: { auth: AuthState }) => state.auth.userPermissions;
+export const selectUserRoles = (state: { auth: AuthState }) => state.auth.userRoles;
+export const selectIsPermissionsLoaded = (state: { auth: AuthState }) => state.auth.isPermissionsLoaded;
+export const selectPermissionCache = (state: { auth: AuthState }) => state.auth.permissionCache;
 
 // Export reducer
 export default authSlice.reducer;
