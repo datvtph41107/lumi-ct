@@ -47,6 +47,7 @@ const ContractCollection: React.FC = () => {
         deleteDraft,
         duplicateDraft,
         createFromTemplate,
+        createDraft,
         // setSelectedMode - removed unused variable
     } = useContractDraftStore();
 
@@ -455,12 +456,9 @@ const ContractCollection: React.FC = () => {
         }
 
         try {
-            // Create new draft with selected mode
-            const draft = await createFromTemplate(""); // Empty template means new blank draft
-
-            // Navigate to appropriate stage based on mode
-            const targetStage = selectedMode === "basic" ? "basic_info" : "content_draft";
-            navigate(`/contract/draft?draftId=${draft.id}&stage=${targetStage}`);
+            const draft = await createDraft(selectedMode);
+            const targetStage = selectedMode === "basic" ? "1" : "2";
+            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}&mode=${selectedMode}`);
 
             logger.info("Created new draft", { mode: selectedMode, draftId: draft.id });
         } catch (error) {
@@ -479,8 +477,8 @@ const ContractCollection: React.FC = () => {
             const draft = await createFromTemplate(template.id);
 
             // Navigate to appropriate stage based on mode and template
-            const targetStage = selectedMode === "basic" ? "basic_info" : "content_draft";
-            navigate(`/contract/draft?draftId=${draft.id}&stage=${targetStage}`);
+            const targetStage = selectedMode === "basic" ? "1" : "2";
+            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}&mode=${selectedMode}`);
 
             logger.info("Created draft from template", {
                 templateId: template.id,
@@ -496,7 +494,16 @@ const ContractCollection: React.FC = () => {
     const handleEditDraft = (draft: ContractDraft) => {
         // Navigate to the current stage of the draft
         const currentStage = draft.flow?.currentStage || "basic_info";
-        navigate(`/contract/draft?draftId=${draft.id}&stage=${currentStage}`);
+        const stageMap: Record<string, string> = {
+            template_selection: "0",
+            basic_info: "1",
+            content_draft: "2",
+            milestones_tasks: "3",
+            review_preview: "4",
+        };
+        const stageParam = stageMap[currentStage] || "1";
+        const mode = draft.flow?.selectedMode || draft.contractData.content.mode;
+        navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${stageParam}&mode=${mode}`);
         logger.info("Editing existing draft", { draftId: draft.id, stage: currentStage });
     };
 

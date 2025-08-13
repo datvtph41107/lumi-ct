@@ -1,5 +1,5 @@
 import { BaseService } from "./base.service";
-import type { ContractDraft } from "~/types/contract/contract.types"; // Corrected import path
+import type { ContractDraft } from "~/types/contract/contract.types";
 import type { ApiResponse } from "~/core/types/api.types";
 
 export class ContractDraftService extends BaseService {

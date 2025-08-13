@@ -65,6 +65,9 @@ interface ContractDraftStoreState {
     currentDraft: ContractDraft | null;
     loading: boolean;
     error: string | null;
+    // Autosave UI state
+    isAutoSaving: boolean;
+    autoSaveError: string | null;
 
     // Current creation flow state
     currentStage: ContractCreationStage;
@@ -115,6 +118,9 @@ interface ContractDraftStoreState {
     enableAutoSave: () => void;
     disableAutoSave: () => void;
     performAutoSave: () => Promise<void>;
+    setAutoSaving: (saving: boolean) => void;
+    setLastAutoSave: (iso: string | null) => void;
+    setAutoSaveError: (message: string | null) => void;
 }
 
 export const useContractDraftStore = create<ContractDraftStoreState>()(
@@ -126,6 +132,8 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             currentDraft: null,
             loading: false,
             error: null,
+            isAutoSaving: false,
+            autoSaveError: null,
 
             // Flow state
             currentStage: "template_selection",
@@ -139,7 +147,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadDrafts: async () => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.getAllDrafts();
+                    const response = await contractDraftService.getContractDrafts();
                     if (response.success && response.data) {
                         set({ drafts: response.data, loading: false });
                     } else {
@@ -155,7 +163,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadTemplates: async () => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractTemplateService.getAllTemplates();
+                    const response = await contractTemplateService.getContractTemplates();
                     if (response.success && response.data) {
                         set({ templates: response.data, loading: false });
                     } else {
@@ -171,7 +179,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             loadDraft: async (id: string) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.getDraftById(id);
+                    const response = await contractDraftService.getContractDraftById(id);
                     if (response.success && response.data) {
                         const draft = response.data;
                         set({
@@ -201,6 +209,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         id: uuidv4(),
                         contractData: {
                             name: "",
+                            contractCode: undefined,
                             contractType: "service",
                             category: "business",
                             priority: "medium",
@@ -251,6 +260,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                             milestones: [],
                             tags: [],
                             attachments: [],
+                            notes: undefined,
                             status: "draft",
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
@@ -259,17 +269,18 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                             id: uuidv4(),
                             currentStage: "template_selection",
                             selectedMode: mode,
-                            selectedTemplate: template,
+                            selectedTemplate: template || null,
                             stageValidations: createInitialStageValidations(),
                             canProceedToNext: false,
                             autoSaveEnabled: true,
+                            lastAutoSave: undefined,
                             createdAt: new Date().toISOString(),
                             updatedAt: new Date().toISOString(),
                         },
                         isDraft: true,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        createdBy: "current-user", // TODO: Get from auth context
+                        createdBy: "current-user",
                     };
 
                     const response = await contractDraftService.createContractDraft(newDraft);
@@ -308,7 +319,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             updateDraft: async (id: string, updates: Partial<ContractDraft>) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.updateDraft(id, updates);
+                    const response = await contractDraftService.updateContractDraft(id, updates);
                     if (response.success && response.data) {
                         set((state) => ({
                             drafts: state.drafts.map((d) => (d.id === id ? response.data! : d)),
@@ -333,7 +344,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                 }
 
                 try {
-                    const updatedDraft = {
+                    const updatedDraft: ContractDraft = {
                         ...state.currentDraft,
                         contractData: {
                             ...state.currentDraft.contractData,
@@ -360,7 +371,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
             deleteDraft: async (id: string) => {
                 set({ loading: true, error: null });
                 try {
-                    const response = await contractDraftService.deleteDraft(id);
+                    const response = await contractDraftService.deleteContractDraft(id);
                     if (response.success) {
                         set((state) => ({
                             drafts: state.drafts.filter((d) => d.id !== id),
@@ -398,7 +409,6 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                         currentStage: "template_selection",
                         stageValidations: createInitialStageValidations(),
                         canProceedToNext: false,
-                        createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                     },
                     createdAt: new Date().toISOString(),
@@ -459,7 +469,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
 
             updateCurrentDraftStage: (stage: ContractCreationStage) => {
                 set((state) => {
-                    if (!state.currentDraft) return state;
+                    if (!state.currentDraft) return state as any;
 
                     return {
                         currentDraft: {
@@ -472,7 +482,7 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                             updatedAt: new Date().toISOString(),
                         },
                         currentStage: stage,
-                    };
+                    } as any;
                 });
             },
 
@@ -642,6 +652,10 @@ export const useContractDraftStore = create<ContractDraftStoreState>()(
                     logger.error("Auto-save failed:", error);
                 }
             },
+
+            setAutoSaving: (saving: boolean) => set({ isAutoSaving: saving }),
+            setLastAutoSave: (iso: string | null) => set({ lastAutoSave: iso ?? null }),
+            setAutoSaveError: (message: string | null) => set({ autoSaveError: message }),
         }),
         {
             name: "contract-draft-store",

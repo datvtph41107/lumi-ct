@@ -17,6 +17,8 @@ import EditorPage from "../DaftContract/EditorPage";
 import BasicContractForm from "./BasicForm/BasicContractForm";
 import FileUploadForm from "./FileUploadForm";
 import { routes } from "~/config/routes.config";
+import { useContractDraft } from "~/hooks/useContractDraft";
+import { useAutoSave } from "~/hooks/useAutoSave";
 
 const cx = classNames.bind(styles);
 
@@ -38,6 +40,8 @@ const StageDraft: React.FC<Stage1DraftProps> = ({ contractType, draftId }) => {
         }
     }, [currentContractType, currentDraftId]);
     const { isFullscreen, sidebarCollapsed, toggleSidebar } = useContractEditorStore();
+    const { goNext, currentStage, currentDraft } = useContractDraft();
+    const { saveNow, setDirty } = useAutoSave(currentDraft?.id || null, currentDraft?.contractData || null, { enabled: !!currentDraft });
 
     // Auto collapse sidebar on mobile
     useEffect(() => {
@@ -116,6 +120,21 @@ const StageDraft: React.FC<Stage1DraftProps> = ({ contractType, draftId }) => {
                     <span />
                 </button>
             )}
+
+            {/* Floating next button for progression */}
+            <div className={cx("stage-navigation")}> 
+                <button
+                    className={cx("next-btn")}
+                    onClick={async () => {
+                        setDirty(true);
+                        await saveNow();
+                        await goNext();
+                    }}
+                    title="Lưu và tiếp tục"
+                >
+                    Tiếp tục <FontAwesomeIcon icon={faArrowRight} />
+                </button>
+            </div>
         </div>
     );
 };

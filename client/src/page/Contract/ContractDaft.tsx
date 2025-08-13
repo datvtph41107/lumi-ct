@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import ProgressBarHeader from "./components/ProgressBarHeader/ProgressBarHeader";
 import Stage1Draft from "./components/stages/StageDraft";
 import Stage2Milestones from "./components/stages/Milestones/StageMilestones";
+import StageNotifications from "./components/stages/Notification/StageNotifications";
+import StagePreview from "./components/stages/Preview/StagePreview";
 // import Stage4Preview from "./components/stages/PreviewContract/StagePreview";
 import { useContractStore } from "~/store/contract-store";
 // import { useContractForm } from "~/hooks/useContractForm";
@@ -83,7 +85,7 @@ const ContractDraft = () => {
     useEffect(() => {
         if (currentStep < 1 || currentStep > 3) {
             goToStep(1);
-            navigate(`/${routePrivate.createContract}`);
+            navigate(routePrivate.createContract);
         }
     }, [currentStep, goToStep, navigate]);
 
@@ -106,7 +108,9 @@ const ContractDraft = () => {
             case 2:
                 return <Stage2Milestones />;
             case 3:
-                return <Stage1Draft contractType={mode} draftId={draftId} />;
+                return <StageNotifications />;
+            case 4:
+                return <StagePreview />;
 
             // return <Stage4Preview />;
             default:
