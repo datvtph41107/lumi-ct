@@ -1,4 +1,4 @@
-import type { BasicTemplateStructure, EditorTemplateStructure, UploadedFile } from "./contract-template.types";
+import type { BasicTemplateStructure, EditorTemplateStructure, UploadedFile, TemplateField } from "./contract-template.types";
 
 export type ContractCreationMode = "basic" | "editor" | "upload";
 export type ContractType = "service" | "purchase" | "employment" | "nda" | "partnership" | "rental" | "custom";
@@ -114,104 +114,101 @@ export interface ContractTask {
 
 export type ContractFormData = BasicFormContractData | EditorContractData | UploadContractData;
 
-export type ContractCreationMode = "basic" | "editor" | "upload";
-// ====== TEMPLATE STRUCTURE BASE ======
-export interface BaseTemplateStructure {
-    templateid: string; // Template ID
-    name: string; // Template name
-    description?: string; // Optional description
-    version?: number; // Template version
+// ====== CONTRACT CONTENT (MODE-SPECIFIC) ======
+export type ContractContent =
+    | {
+          mode: "basic";
+          templateId?: string;
+          fieldValues?: Record<string, unknown>;
+          description?: string;
+          terms?: string;
+          conditions?: string;
+      }
+    | {
+          mode: "editor";
+          templateId?: string;
+          editorContent: EditorContent;
+      }
+    | {
+          mode: "upload";
+          templateId?: string;
+          uploadedFile: UploadedFile;
+          editorContent?: EditorContent;
+      };
+
+// ====== CONTRACT DATA (DRAFT PAYLOAD) ======
+export interface ContractData {
+    name: string;
+    contractCode?: string;
+    contractType: ContractType;
+    category?: ContractCategory;
+    priority?: Priority;
+    drafterId?: string;
+    drafterName?: string;
+    managerId?: string;
+    managerName?: string;
+    content: ContractContent;
+    dateRange: DateRange;
+    milestones: ContractMilestone[];
+    tags?: string[];
+    attachments?: UploadedFile[];
+    notes?: string;
+    status: ContractStatus;
+    createdAt: string;
+    updatedAt: string;
 }
 
-// ====== BASIC MODE TEMPLATE STRUCTURE ======
-export interface BasicTemplateStructure extends BaseTemplateStructure {
-    sections: TemplateSection[]; // Form sections
-    fields: TemplateField[]; // Form fields
-}
-
-export interface TemplateSection {
+// ====== TEMPLATE MODEL ======
+export interface ContractTemplate {
     id: string;
     name: string;
-    title: string;
     description?: string;
-    order: number;
-    collapsible?: boolean;
-    defaultCollapsed?: boolean;
-    conditional?: ConditionalLogic;
+    contractType: ContractType;
+    category?: string;
+    mode: ContractCreationMode;
+    thumbnail?: string;
+    // For basic templates
+    fields?: TemplateField[];
+    // For editor templates
+    editorContent?: string | EditorContent | EditorTemplateStructure;
+    isActive: boolean;
+    isPublic?: boolean;
+    version?: string;
+    tags?: string[];
+    createdAt: string;
+    updatedAt: string;
+    createdBy?: string;
 }
 
-export interface TemplateField {
+export type CustomTemplate = ContractTemplate;
+
+// ====== CREATION FLOW WITH SELECTION CONTEXT ======
+export interface ContractCreationFlow {
     id: string;
-    name: string;
-    label: string;
-    type: FieldType;
-    placeholder?: string;
-    defaultValue?: unknown;
-    validation?: FieldValidation;
-    options?: FieldOption[];
-    conditional?: ConditionalLogic[];
-    layout?: FieldLayout;
-    helpText?: string;
-    metadata?: Record<string, unknown>;
+    currentStage: ContractCreationStage;
+    stageValidations: Record<ContractCreationStage, StageValidation>;
+    canProceedToNext: boolean; // Điều kiện cho next bước
+    autoSaveEnabled: boolean;
+    lastAutoSave?: string; // timestamp auto-save
+    // Selection context
+    selectedMode: ContractCreationMode;
+    selectedTemplate?: ContractTemplate | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
-export type FieldType =
-    | "text"
-    | "textarea"
-    | "number"
-    | "date"
-    | "dateRange"
-    | "select"
-    | "multiselect"
-    | "checkbox"
-    | "radio"
-    | "file"
-    | "currency"
-    | "email"
-    | "phone"
-    | "url";
-
-export interface FieldOption {
-    value: string;
-    label: string;
-    description?: string;
-    disabled?: boolean;
+// ====== DRAFT MODEL ======
+export interface ContractDraft {
+    id: string;
+    contractData: ContractData;
+    flow: ContractCreationFlow;
+    isDraft: boolean;
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
 }
 
-export interface FieldValidation {
-    required?: boolean;
-    min?: number;
-    max?: number;
-    minLength?: number;
-    maxLength?: number;
-    pattern?: string;
-    customValidator?: string;
-    errorMessage?: string;
-}
-
-export interface FieldLayout {
-    width: "full" | "half" | "third" | "quarter";
-    order: number;
-    section: string;
-    column?: 1 | 2 | 3;
-    breakAfter?: boolean;
-}
-
-export interface ConditionalLogic {
-    dependsOn: string;
-    value: unknown;
-    operator: "equals" | "not_equals" | "contains" | "greater_than" | "less_than" | "in" | "not_in";
-    action: "show" | "hide" | "enable" | "disable" | "require";
-}
-
-// ====== EDITOR MODE TEMPLATE STRUCTURE ======
-export interface EditorTemplateStructure extends BaseTemplateStructure {
-    document: unknown; // TipTap JSON document
-    variables: EditorContent;
-    styles?: Record<string, unknown>;
-    uploadedFile?: UploadedFile;
-}
-
+// ====== VIEW/EDITOR STRUCTS ======
 export interface EditorContent {
     content: string; // This can be a rich text object, HTML, or any other format
     plainText: string;
@@ -221,45 +218,4 @@ export interface EditorContent {
         lastEditedAt: string;
         version: number;
     };
-}
-
-export interface UploadedFile {
-    fileId: string;
-    fileName: string;
-    fileUrl: string;
-    fileSize: number;
-    mimeType: string;
-    extractedContent?: {
-        text: string;
-        metadata: Record<string, unknown>;
-    };
-    uploadedAt: string;
-}
-
-// ====== UNIFIED TEMPLATE STRUCTURE ======
-export type TemplateStructure = BasicTemplateStructure | EditorTemplateStructure;
-
-export type ContractCreationStage = "template_selection" | "basic_info" | "content_draft" | "milestones_tasks" | "review_preview";
-
-export type StageStatus = "locked" | "incomplete" | "valid" | "invalid";
-
-export interface StageValidation {
-    stage: ContractCreationStage;
-    status: StageStatus;
-    errors: string[]; // Mảng lỗi validate cụ thể từng stage
-    warnings: string[]; // Cảnh báo, không chặn bước
-    isAccessible: boolean; // Quyền truy cập stage này
-    completedAt?: string; // Thời gian hoàn thành stage (có thể dùng để log)
-    validatedData?: Record<string, unknown>; // Dữ liệu đã validate hoặc summary
-}
-
-export interface ContractCreationFlow {
-    id: string;
-    currentStage: ContractCreationStage;
-    stageValidations: Record<ContractCreationStage, StageValidation>;
-    canProceedToNext: boolean; // Điều kiện cho next bước
-    autoSaveEnabled: boolean;
-    lastAutoSave?: string; // timestamp auto-save
-    createdAt: string;
-    updatedAt: string;
 }

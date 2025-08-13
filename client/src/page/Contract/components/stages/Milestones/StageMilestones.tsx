@@ -25,12 +25,13 @@ import ControlledDateRangeField from "~/components/Form/ControllerValid/Controll
 import ControlledDropdownField from "~/components/Form/ControllerValid/ControllerDropdown";
 import TaskManager from "./TaskManager";
 import Button from "~/components/Button";
-import type { MilestoneFormData, Milestone, Task } from "~/types/contract/contract.types";
+import type { MilestoneFormData } from "~/types/contract/stageForm.types";
+import type { ContractMilestone as Milestone, ContractTask as Task } from "~/types/contract/contract.types";
 // import { useContractForm } from "~/hooks/useContractForm";
 import Badge from "~/components/Badge";
 import { convertDateRange, convertTimeRange, formatDateForDisplay, validateDateRange } from "~/utils/contract";
-import { useNavigate } from "react-router-dom";
 import { useContractStore } from "~/store/contract-store";
+import { useContractForm } from "~/hooks/useContractForm";
 
 const cx = classNames.bind(styles);
 
@@ -42,8 +43,7 @@ const StageMilestones: React.FC = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     const { currentStep, goToStep } = useContractStore();
-    const { setMilestones, validateStep, nextStep } = useContractForm();
-    const navigate = useNavigate();
+    const { setMilestones, validateCurrentStep } = useContractForm();
 
     const employees = [
         { value: "nguyen-van-a", label: "Nguyễn Văn A" },
@@ -153,12 +153,9 @@ const StageMilestones: React.FC = () => {
 
         setMilestones(milestones);
 
-        if (validateStep(2)) {
-            console.log("Step 2 validation passed, moving to step 3");
-            nextStep();
-            navigate("/page/create/daft?stage=3");
-        } else {
-            console.log("Step 2 validation failed");
+        const ok = validateCurrentStep();
+        if (ok) {
+            goToStep(currentStep + 1);
         }
     };
 

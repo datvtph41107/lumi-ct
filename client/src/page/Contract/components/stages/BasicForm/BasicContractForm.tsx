@@ -14,18 +14,22 @@ import styles from "./BasicContractForm.module.scss";
 import classNames from "classnames/bind";
 import type { FieldErrors } from "react-hook-form";
 import { convertDateRange } from "~/utils/contract";
+import { useAutoSave } from "~/hooks/useAutoSave";
+import { useContractDraftStore } from "~/store/contract-draft-store";
 
 const cx = classNames.bind(styles);
 
 const BasicContractForm = () => {
-    const { formData, setStep1Data, nextStep, validateStep, currentStep } = useContractForm();
+    const { formData, nextStep } = useContractForm();
+    const { currentDraft } = useContractDraftStore();
+    const { setDirty, saveNow } = useAutoSave(currentDraft?.id || null, currentDraft?.contractData || null, { enabled: !!currentDraft });
 
     // Ensure we're on step 1
     useEffect(() => {
         console.log("BasicContractForm mounted, current formData:", formData);
     }, [formData]);
 
-    Create defaultValues from current formData
+    // Create defaultValues from current formData
     const defaultValues: Partial<ContractFormData> = {
         name: formData.name || "",
         contractCode: formData.contractCode || "",
@@ -64,12 +68,10 @@ const BasicContractForm = () => {
             ...data,
             dateRange: data.dateRange ? convertDateRange(data.dateRange) : { startDate: null, endDate: null },
         };
-
-        // Save data to store
-        // setStep1Data(processedData);
-
-        // // Move to next step
-        // nextStep();
+        // Trigger autosave and advance stage
+        setDirty(true);
+        void saveNow();
+        nextStep();
     };
 
     const handleError = (errors: FieldErrors) => {
@@ -81,7 +83,7 @@ const BasicContractForm = () => {
             <div className={cx("form-header")}>
                 <h2>
                     <FontAwesomeIcon icon={faFileContract} />
-                    Tạo hợp đồng mới - Giai đoạn {currentStep}
+                    Tạo hợp đồng mới - Giai đoạn 1
                 </h2>
                 <p>Điền thông tin cơ bản của hợp đồng để bắt đầu quá trình quản lý</p>
             </div>
@@ -93,6 +95,7 @@ const BasicContractForm = () => {
                         defaultValues={defaultValues}
                         onSubmit={handleFormSubmit}
                         onError={handleError}
+                        onChange={() => setDirty(true)}
                     >
                         <ContractManagementSection />
                         <GeneralInfoSection />

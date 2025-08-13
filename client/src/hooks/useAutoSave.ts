@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useContractDraftStore } from "~/store/contract-draft-store";
-import type { ContractFormData } from "~/types/contract/contract.types";
+import type { ContractData } from "~/types/contract/contract.types";
 import { Logger } from "~/core/Logger";
 
 const logger = Logger.getInstance();
@@ -23,7 +23,7 @@ interface UseAutoSaveReturn {
 
 export const useAutoSave = (
     draftId: string | null,
-    formData: ContractFormData | null,
+    formData: ContractData | null,
     options: UseAutoSaveOptions = {},
 ): UseAutoSaveReturn => {
     const { enabled = true, onSave, onError } = options;
@@ -59,14 +59,14 @@ export const useAutoSave = (
             setError(null);
             setAutoSaveError(null);
 
+            const nowIso = new Date().toISOString();
             const updates = {
-                formData: {
+                contractData: {
                     ...formData,
-                    updatedAt: new Date().toISOString(),
+                    updatedAt: nowIso,
                 },
-                lastAutoSave: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
+                updatedAt: nowIso,
+            } as const;
 
             await updateDraft(draftId, updates);
 
