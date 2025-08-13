@@ -1,52 +1,146 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '~/contexts/AuthContext';
+import { 
+  selectIsAuthenticated, 
+  selectIsLoading, 
+  selectIsRefreshing,
+  selectUser,
+  selectRedirectPath,
+  clearRedirectPath,
+  getCurrentUser,
+  refreshToken
+} from '~/redux/slices/auth.slice';
+import { useIdleTimeout } from '~/hooks/useIdleTimeout';
+import IdleWarningModal from './IdleWarningModal';
+import LoadingSpinner from '../UI/LoadingSpinner';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
-    requiredRole?: string[];
-    fallbackPath?: string;
+  children: React.ReactNode;
+  requiredRole?: string[];
+  fallbackPath?: string;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-    children, 
-    requiredRole = [], 
-    fallbackPath = '/login' 
+  children, 
+  requiredRole = [], 
+  fallbackPath = '/login' 
 }) => {
-    const { isAuthenticated, isLoading, user, refreshToken } = useAuth();
-    const location = useLocation();
+  const dispatch = useDispatch();
+  const location = useLocation();
+  
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isLoading = useSelector(selectIsLoading);
+  const isRefreshing = useSelector(selectIsRefreshing);
+  const user = useSelector(selectUser);
+  const redirectPath = useSelector(selectRedirectPath);
 
-    useEffect(() => {
-        // Try to refresh token if not authenticated but we have a session
-        if (!isAuthenticated && !isLoading) {
-            refreshToken();
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
+
+  // Idle timeout hook
+  const { 
+    isIdleWarningShown, 
+    timeUntilWarning, 
+    timeUntilLogout,
+    updateActivity 
+  } = useIdleTimeout({
+    warningTime: 10 * 60 * 1000, // 10 minutes
+    logoutTime: 15 * 60 * 1000, // 15 minutes
+    onWarning: () => setShowIdleWarning(true),
+    onLogout: () => {
+      setShowIdleWarning(false);
+    }
+  });
+
+  // Initialize authentication
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Try to get current user first
+        await dispatch(getCurrentUser()).unwrap();
+      } catch (error) {
+        // If getCurrentUser fails, try to refresh token
+        try {
+          await dispatch(refreshToken()).unwrap();
+        } catch (refreshError) {
+          // Both failed, user needs to login
+          console.log('Authentication failed, redirecting to login');
         }
-    }, [isAuthenticated, isLoading, refreshToken]);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
 
-    // Show loading spinner while checking authentication
-    if (isLoading) {
-        return (
-            <div className="auth-loading">
-                <div className="loading-spinner"></div>
-                <p>Đang kiểm tra xác thực...</p>
-            </div>
-        );
+    if (!isAuthenticated && !isLoading) {
+      initializeAuth();
+    } else {
+      setIsInitializing(false);
     }
+  }, [dispatch, isAuthenticated, isLoading]);
 
-    // Redirect to login if not authenticated
-    if (!isAuthenticated) {
-        return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+  // Handle idle warning
+  const handleIdleWarningContinue = () => {
+    updateActivity();
+    setShowIdleWarning(false);
+  };
+
+  const handleIdleWarningLogout = () => {
+    setShowIdleWarning(false);
+    // Logout will be handled by useIdleTimeout
+  };
+
+  // Show loading spinner while initializing or refreshing
+  if (isInitializing || isLoading || isRefreshing) {
+    return (
+      <div className="auth-loading">
+        <LoadingSpinner />
+        <p>Đang kiểm tra xác thực...</p>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    // Save current path for redirect after login
+    if (location.pathname !== '/login') {
+      dispatch(clearRedirectPath());
     }
+    
+    return (
+      <Navigate 
+        to={fallbackPath} 
+        state={{ 
+          from: location.pathname,
+          message: redirectPath ? 'Phiên đăng nhập đã hết hạn' : undefined
+        }} 
+        replace 
+      />
+    );
+  }
 
-    // Check role-based access if required
-    if (requiredRole.length > 0 && user) {
-        const hasRequiredRole = requiredRole.includes(user.role);
-        if (!hasRequiredRole) {
-            return <Navigate to="/unauthorized" replace />;
-        }
+  // Check role-based access if required
+  if (requiredRole.length > 0 && user) {
+    const hasRequiredRole = requiredRole.includes(user.role);
+    if (!hasRequiredRole) {
+      return <Navigate to="/unauthorized" replace />;
     }
+  }
 
-    return <>{children}</>;
+  return (
+    <>
+      {children}
+      
+      {/* Idle Warning Modal */}
+      {showIdleWarning && (
+        <IdleWarningModal
+          timeUntilLogout={timeUntilLogout}
+          onContinue={handleIdleWarningContinue}
+          onLogout={handleIdleWarningLogout}
+        />
+      )}
+    </>
+  );
 };
 
 export default ProtectedRoute;
