@@ -10,6 +10,7 @@ import { ContractFile } from '@/core/domain/contract/contract-file.entity';
 import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
 import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
@@ -17,7 +18,7 @@ import { StageSaveDto } from '@/core/dto/contract/stage-save.dto';
 import { CreateVersionDto } from '@/core/dto/contract/create-version.dto';
 import { CreateMilestoneDto } from '@/core/dto/contract/create-milestone.dto';
 import { CreateTaskDto } from '@/core/dto/contract/create-task.dto';
-import { CreateCollaboratorDto } from '@/core/dto/contract/collaborator.dto';
+import { CreateCollaboratorDto, UpdateCollaboratorDto } from '@/core/dto/contract/collaborator.dto';
 import { ContractQueryDto } from '@/core/dto/contract/contract-query.dto';
 import { CreateTemplateDto, UpdateTemplateDto, TemplateQueryDto } from '@/core/dto/contract/template.dto';
 import { UploadFileDto, UpdateFileDto } from '@/core/dto/contract/file.dto';
@@ -562,21 +563,35 @@ export class ContractService {
     // ===== COLLABORATOR MANAGEMENT =====
     async addCollaborator(contractId: string, dto: CreateCollaboratorDto, userId: number) {
         // only owners can add collaborator: check
-        const isOwner = await this.collabService.hasRole(contractId, userId, ['owner']);
-        if (!isOwner) throw new ForbiddenException('Only owner can add collaborator');
+        const isOwner = await this.collabService.hasRole(contractId, userId, [CollaboratorRole.OWNER]);
+        if (!isOwner) throw new ForbiddenException('Chỉ owner mới có thể thêm collaborator');
 
-        const saved = await this.collabService.add(contractId, dto.user_id, dto.role as any, userId);
+        // Check if user is already a collaborator
+        const existing = await this.collabService.hasRole(contractId, dto.user_id, [CollaboratorRole.OWNER, CollaboratorRole.EDITOR, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER]);
+        if (existing) {
+            throw new BadRequestException('User đã là collaborator của contract này');
+        }
+
+        const saved = await this.collabService.add(contractId, dto.user_id, dto.role as any);
+        
+        // Create audit log
         await this.auditService.create({
             contract_id: contractId,
             user_id: userId,
             action: 'ADD_COLLABORATOR',
-            meta: { collaboratorId: saved.id },
+            meta: { 
+                collaboratorId: `${contractId}:${dto.user_id}`,
+                addedUserId: dto.user_id,
+                role: dto.role
+            },
+            description: `Thêm collaborator mới với role ${dto.role}`
         });
+        
         return saved;
     }
 
     async listCollaborators(contractId: string) {
-        return this.collabService.list(contractId);
+        return this.collabService.getCollaboratorsWithDetails(contractId);
     }
 
     // ===== EXPORT & PRINT =====
@@ -724,7 +739,15 @@ export class ContractService {
 
     // ===== AUDIT & UTILITIES =====
     async getAuditLogs(contractId: string) {
-        return this.auditService.findByContract(contractId, 200);
+        return this.auditService.getAuditLogsWithUserDetails(contractId, 200);
+    }
+
+    async getAuditLogsSummary(contractId: string) {
+        return this.auditService.getContractActivitySummary(contractId);
+    }
+
+    async searchAuditLogs(query: any) {
+        return this.auditService.search(query);
     }
 
     async softDelete(contractId: string, userId: number) {
@@ -805,14 +828,57 @@ export class ContractService {
     }
 
     // ===== COLLABORATOR MANAGEMENT =====
-    async updateCollaborator(collabId: string, dto: Partial<any>, userId: number) {
-        // TODO: Validate permission, update collaborator
-        return this.collabService.update(collabId, dto, userId);
+    async updateCollaborator(collabId: string, dto: UpdateCollaboratorDto, userId: number) {
+        // Get collaborator details for audit log
+        const collaborator = await this.collabService.getCollaboratorById(collabId);
+        if (!collaborator) {
+            throw new NotFoundException('Collaborator không tồn tại');
+        }
+
+        // Update collaborator
+        const updated = await this.collabService.update(collabId, dto, userId);
+
+        // Create audit log
+        await this.auditService.create({
+            contract_id: collaborator.contract_id,
+            user_id: userId,
+            action: 'UPDATE_COLLABORATOR',
+            meta: {
+                collaboratorId: collabId,
+                oldRole: collaborator.role,
+                newRole: updated.role,
+                targetUserId: collaborator.user_id
+            },
+            description: `Cập nhật collaborator từ role ${collaborator.role} thành ${updated.role}`
+        });
+
+        return updated;
     }
 
     async removeCollaborator(collabId: string, userId: number) {
-        // TODO: Validate permission, remove collaborator
-        return this.collabService.removeById(collabId, userId);
+        // Get collaborator details for audit log
+        const collaborator = await this.collabService.getCollaboratorById(collabId);
+        if (!collaborator) {
+            throw new NotFoundException('Collaborator không tồn tại');
+        }
+
+        // Remove collaborator
+        const removed = await this.collabService.removeById(collabId, userId);
+
+        // Create audit log
+        await this.auditService.create({
+            contract_id: collaborator.contract_id,
+            user_id: userId,
+            action: 'REMOVE_COLLABORATOR',
+            meta: {
+                collaboratorId: collabId,
+                removedRole: collaborator.role,
+                targetUserId: collaborator.user_id
+            },
+            description: `Xóa collaborator với role ${collaborator.role}`
+        });
+
+        return removed;
     }
 
     // ===== APPROVAL WORKFLOW =====

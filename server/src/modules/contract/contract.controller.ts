@@ -18,14 +18,14 @@ import { ContractService } from './contract.service';
 
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
+import { CollaboratorGuard, OwnerGuard, EditorGuard, RequireRoles } from '../auth/guards/collaborator.guard';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { StageSaveDto } from '@/core/dto/contract/stage-save.dto';
 import { CreateVersionDto } from '@/core/dto/contract/create-version.dto';
 import { CreateMilestoneDto } from '@/core/dto/contract/create-milestone.dto';
 import { CreateTaskDto } from '@/core/dto/contract/create-task.dto';
-import { CreateCollaboratorDto } from '@/core/dto/contract/collaborator.dto';
+import { CreateCollaboratorDto, UpdateCollaboratorDto } from '@/core/dto/contract/collaborator.dto';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 @Controller('contracts')
@@ -199,7 +199,7 @@ export class ContractController {
 
     // ===== COLLABORATOR MANAGEMENT =====
     @Post(':id/collaborators')
-    @UseGuards(CollaboratorGuard)
+    @UseGuards(OwnerGuard)
     async addCollaborator(
         @Param('id') id: string,
         @Body() dto: CreateCollaboratorDto,
@@ -214,17 +214,17 @@ export class ContractController {
     }
 
     @Patch('collaborators/:cid')
-    @UseGuards(CollaboratorGuard)
+    @UseGuards(EditorGuard)
     async updateCollaborator(
         @Param('cid') cid: string,
-        @Body() dto: Partial<CreateCollaboratorDto>,
+        @Body() dto: UpdateCollaboratorDto,
         @CurrentUser() user: HeaderUserPayload,
     ) {
         return this.contractService.updateCollaborator(cid, dto, Number(user.sub));
     }
 
     @Delete('collaborators/:cid')
-    @UseGuards(CollaboratorGuard)
+    @UseGuards(EditorGuard)
     async removeCollaborator(@Param('cid') cid: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.removeCollaborator(cid, Number(user.sub));
     }
@@ -294,6 +294,16 @@ export class ContractController {
     @Get(':id/audit')
     async audit(@Param('id') id: string) {
         return this.contractService.getAuditLogs(id);
+    }
+
+    @Get(':id/audit/summary')
+    async auditSummary(@Param('id') id: string) {
+        return this.contractService.getAuditLogsSummary(id);
+    }
+
+    @Get('audit/search')
+    async searchAuditLogs(@Query() query: any) {
+        return this.contractService.searchAuditLogs(query);
     }
 
     @Get(':id/analytics')
