@@ -1,20 +1,25 @@
-import { configureStore } from "@reduxjs/toolkit";
-import authSlice from "./slices/auth.slice";
-// import contractSlice from "./slices/contract.slice";
-// import dashboardReducer from "./slices/dashboard.slice";
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './slices/auth.slice';
+// Optional auth middleware (if later enabled)
+// import { authMiddleware } from './middleware/auth.middleware';
 
 export const store = configureStore({
-    reducer: {
-        auth: authSlice,
-        // contract: contractSlice,
-        // users: userSlice,
-    },
-    middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware({
-            serializableCheck: {
-                ignoredActions: ["persist/PERSIST"],
-            },
-        }),
+  reducer: {
+    auth: authReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        // Ignore these action types
+        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+        // Ignore these field paths in all actions
+        ignoredActionPaths: ['meta.arg', 'payload.timestamp'],
+        // Ignore these paths in the state
+        ignoredPaths: ['auth.lastActivity'],
+      },
+    })
+    // .concat(authMiddleware)
 });
+
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

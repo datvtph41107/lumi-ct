@@ -1,315 +1,569 @@
-import classNames from "classnames/bind";
-import styles from "./SidebarRight.module.scss";
-// import { useContractForm } from "~/hooks/useContractForm";
-// import { useModalManager } from "~/hooks/useModalManager";
-// import DatePicker from "../../../../../components/DateRangePicker/DatePicker/DatePicker";
-// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// import { faProjectDiagram, faBell, faChevronRight } from "@fortawesome/free-solid-svg-icons";
-
-// // Import lại các section components để hiển thị trực tiếp
-// import GeneralInfoSection from "./sections/GeneralInfoSection";
-// import PartiesSection from "./sections/PartiesSection";
-// import ContentSection from "./sections/ContentSection";
-// import AttachmentsSection from "./sections/AttachmentSection";
-// import SecuritySection from "./sections/NoteSection";
-
-// // Chỉ import 2 modals cần thiết
-// import MilestonesTasksModal from "./Modal/MilestonesTasksModal";
-// import NotificationsModal from "./Modal/NotificationsModal";
+import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+    faInfoCircle, 
+    faCog, 
+    faUsers, 
+    faHistory,
+    faPlus,
+    faSave,
+    faEye,
+    faPrint,
+    faDownload,
+    faEdit,
+    faTrash,
+    faUser,
+    faCalendarAlt,
+    faFileAlt,
+    faCheckCircle,
+    faExclamationTriangle,
+    faClock
+} from '@fortawesome/free-solid-svg-icons';
+import styles from './SidebarRight.module.scss';
+import classNames from 'classnames/bind';
 
 const cx = classNames.bind(styles);
 
-const SidebarRight = () => {
-    // const {
-    //     contractCode,
-    //     contractName,
-    //     setContractName,
-    //     contractType,
-    //     setContractType,
-    //     currentUser,
-    //     manager,
-    //     setManager,
-    //     showDatePicker,
-    //     setShowDatePicker,
-    //     projectDescription,
-    //     setProjectDescription,
-    //     contractValue,
-    //     handleContractValueChange,
-    //     startDate,
-    //     endDate,
-    //     paymentMethod,
-    //     setPaymentMethod,
-    //     paymentSchedule,
-    //     setPaymentSchedule,
-    //     acceptanceConditions,
-    //     setAcceptanceConditions,
-    //     partyA,
-    //     setPartyA,
-    //     partyB,
-    //     setPartyB,
-    //     deliverables,
-    //     setDeliverables,
-    //     attachedFiles,
-    //     handleFileUpload,
-    //     removeFile,
-    //     milestones,
-    //     tasks,
-    //     notifications,
-    //     addMilestone,
-    //     updateMilestone,
-    //     removeMilestone,
-    //     addTask,
-    //     updateTask,
-    //     removeTask,
-    //     markNotificationAsRead,
-    //     getTasksForMilestone,
-    //     version,
-    //     setVersion,
-    //     internalNotes,
-    //     setInternalNotes,
-    //     handleDateChange,
-    //     expandedSections,
-    //     toggleSection,
-    // } = useContractForm();
+interface SidebarRightProps {
+    contractId?: string;
+    userId?: number;
+    editor?: any;
+}
 
-    // const { openModal, closeModal, isModalOpen } = useModalManager();
+interface ContractInfo {
+    id: string;
+    name: string;
+    status: string;
+    type: string;
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    wordCount: number;
+    characterCount: number;
+    collaborators: number;
+    milestones: number;
+    tasks: number;
+}
 
-    // const unreadNotifications = notifications.filter((n) => !n.isRead).length;
-    // const pendingMilestones = milestones.filter((m) => m.status === "pending").length;
-    // const pendingTasks = tasks.filter((t) => t.status === "pending").length;
-    // const overdueMilestones = milestones.filter((m) => {
-    //     const now = new Date();
-    //     return m.dueDate < now && m.status !== "completed";
-    // }).length;
-    // const overdueTasks = tasks.filter((t) => {
-    //     const now = new Date();
-    //     return t.dueDate < now && t.status !== "completed";
-    // }).length;
+interface Collaborator {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    avatar?: string;
+    joinedAt: string;
+}
+
+interface ActivityItem {
+    id: string;
+    action: string;
+    description: string;
+    timestamp: string;
+    user: string;
+    type: 'edit' | 'save' | 'share' | 'comment';
+}
+
+const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor }) => {
+    const [activeTab, setActiveTab] = useState<'info' | 'settings' | 'collaborators' | 'activity'>('info');
+    const [contractInfo, setContractInfo] = useState<ContractInfo | null>(null);
+    const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+    const [activity, setActivity] = useState<ActivityItem[]>([]);
+    const [settings, setSettings] = useState({
+        autoSave: true,
+        spellCheck: true,
+        suggestions: true,
+        notifications: true,
+        darkMode: false
+    });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, [activeTab]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Simulate API calls
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            switch (activeTab) {
+                case 'info':
+                    setContractInfo({
+                        id: 'contract-001',
+                        name: 'Hợp đồng lao động - Nguyễn Văn A',
+                        status: 'draft',
+                        type: 'employment',
+                        createdAt: '2024-01-15 10:30',
+                        updatedAt: '2024-01-15 14:20',
+                        createdBy: 'Nguyễn Văn A',
+                        wordCount: 1250,
+                        characterCount: 8500,
+                        collaborators: 3,
+                        milestones: 5,
+                        tasks: 12
+                    });
+                    break;
+                case 'collaborators':
+                    setCollaborators([
+                        {
+                            id: '1',
+                            name: 'Nguyễn Văn A',
+                            email: 'nguyenvana@example.com',
+                            role: 'owner',
+                            joinedAt: '2024-01-15 10:30'
+                        },
+                        {
+                            id: '2',
+                            name: 'Nguyễn Thị B',
+                            email: 'nguyenthib@example.com',
+                            role: 'editor',
+                            joinedAt: '2024-01-15 11:45'
+                        },
+                        {
+                            id: '3',
+                            name: 'Trần Văn C',
+                            email: 'tranvanc@example.com',
+                            role: 'viewer',
+                            joinedAt: '2024-01-15 12:15'
+                        }
+                    ]);
+                    break;
+                case 'activity':
+                    setActivity([
+                        {
+                            id: '1',
+                            action: 'Chỉnh sửa nội dung',
+                            description: 'Cập nhật điều khoản lương',
+                            timestamp: '2024-01-15 14:20',
+                            user: 'Nguyễn Văn A',
+                            type: 'edit'
+                        },
+                        {
+                            id: '2',
+                            action: 'Lưu bản nháp',
+                            description: 'Tự động lưu',
+                            timestamp: '2024-01-15 14:15',
+                            user: 'Hệ thống',
+                            type: 'save'
+                        },
+                        {
+                            id: '3',
+                            action: 'Thêm collaborator',
+                            description: 'Đã thêm Trần Văn C',
+                            timestamp: '2024-01-15 12:15',
+                            user: 'Nguyễn Văn A',
+                            type: 'share'
+                        },
+                        {
+                            id: '4',
+                            action: 'Bình luận',
+                            description: 'Cần bổ sung điều khoản bảo mật',
+                            timestamp: '2024-01-15 11:45',
+                            user: 'Nguyễn Thị B',
+                            type: 'comment'
+                        }
+                    ]);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSettingChange = (key: string, value: boolean) => {
+        setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleQuickAction = (action: string) => {
+        switch (action) {
+            case 'save':
+                if (editor) {
+                    // Trigger save
+                    console.log('Saving...');
+                }
+                break;
+            case 'preview':
+                // Open preview
+                console.log('Opening preview...');
+                break;
+            case 'print':
+                window.print();
+                break;
+            case 'export':
+                // Export functionality
+                console.log('Exporting...');
+                break;
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'draft': return '#ffc107';
+            case 'in_progress': return '#007bff';
+            case 'completed': return '#28a745';
+            case 'archived': return '#6c757d';
+            default: return '#6c757d';
+        }
+    };
+
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'draft': return 'Bản nháp';
+            case 'in_progress': return 'Đang soạn thảo';
+            case 'completed': return 'Hoàn thành';
+            case 'archived': return 'Đã lưu trữ';
+            default: return status;
+        }
+    };
+
+    const getRoleColor = (role: string) => {
+        switch (role) {
+            case 'owner': return '#e74c3c';
+            case 'editor': return '#3498db';
+            case 'viewer': return '#27ae60';
+            default: return '#6c757d';
+        }
+    };
+
+    const getRoleText = (role: string) => {
+        switch (role) {
+            case 'owner': return 'Chủ sở hữu';
+            case 'editor': return 'Chỉnh sửa';
+            case 'viewer': return 'Xem';
+            default: return role;
+        }
+    };
+
+    const getActivityIcon = (type: string) => {
+        switch (type) {
+            case 'edit': return faEdit;
+            case 'save': return faSave;
+            case 'share': return faUsers;
+            case 'comment': return faFileAlt;
+            default: return faHistory;
+        }
+    };
+
+    const getActivityColor = (type: string) => {
+        switch (type) {
+            case 'edit': return '#3498db';
+            case 'save': return '#27ae60';
+            case 'share': return '#f39c12';
+            case 'comment': return '#9b59b6';
+            default: return '#6c757d';
+        }
+    };
 
     return (
-        <h1>Right</h1>
-        // <div className={cx("wrapper")}>
-        //     {/* Header thông tin hợp đồng */}
-        //     <div className={cx("sidebar-header")}>
-        //         <h3>Quản lý hợp đồng</h3>
-        //         <p>
-        //             Mã hợp đồng: <strong>{contractCode}</strong>
-        //         </p>
-        //         <div className={cx("header-stats")}>
-        //             <span className={cx("stat")}>📅 {milestones.length} mốc thời gian</span>
-        //             <span className={cx("stat")}>✅ {tasks.length} công việc</span>
-        //             <span className={cx("stat", { urgent: unreadNotifications > 0 })}>🔔 {unreadNotifications} thông báo mới</span>
-        //         </div>
-        //     </div>
+        <div className={cx('sidebar-right')}>
+            <div className={cx('tab-navigation')}>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'info' })}
+                    onClick={() => setActiveTab('info')}
+                >
+                    <FontAwesomeIcon icon={faInfoCircle} />
+                    Thông tin
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'settings' })}
+                    onClick={() => setActiveTab('settings')}
+                >
+                    <FontAwesomeIcon icon={faCog} />
+                    Cài đặt
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'collaborators' })}
+                    onClick={() => setActiveTab('collaborators')}
+                >
+                    <FontAwesomeIcon icon={faUsers} />
+                    Cộng tác
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'activity' })}
+                    onClick={() => setActiveTab('activity')}
+                >
+                    <FontAwesomeIcon icon={faHistory} />
+                    Hoạt động
+                </button>
+            </div>
 
-        //     {/* Thông tin chung */}
-        //     <GeneralInfoSection
-        //         isExpanded={expandedSections.general}
-        //         onToggle={() => toggleSection("general")}
-        //         contractCode={contractCode}
-        //         contractName={contractName}
-        //         setContractName={setContractName}
-        //         contractType={contractType}
-        //         setContractType={setContractType}
-        //         currentUser={currentUser}
-        //         manager={manager}
-        //         setManager={setManager}
-        //     />
+            <div className={cx('tab-content')}>
+                <div className={cx('tab-header')}>
+                    <h3>
+                        {activeTab === 'info' && <FontAwesomeIcon icon={faInfoCircle} />}
+                        {activeTab === 'settings' && <FontAwesomeIcon icon={faCog} />}
+                        {activeTab === 'collaborators' && <FontAwesomeIcon icon={faUsers} />}
+                        {activeTab === 'activity' && <FontAwesomeIcon icon={faHistory} />}
+                        {activeTab === 'info' && 'Thông tin hợp đồng'}
+                        {activeTab === 'settings' && 'Cài đặt'}
+                        {activeTab === 'collaborators' && 'Cộng tác viên'}
+                        {activeTab === 'activity' && 'Hoạt động gần đây'}
+                    </h3>
+                    {activeTab === 'collaborators' && (
+                        <button className={cx('add-collaborator-btn')}>
+                            <FontAwesomeIcon icon={faPlus} />
+                        </button>
+                    )}
+                </div>
 
-        //     {/* Thông tin các bên */}
-        //     {/* <PartiesSection
-        //         isExpanded={expandedSections.parties}
-        //         onToggle={() => toggleSection("parties")}
-        //         partyA={partyA}
-        //         setPartyA={setPartyA}
-        //         partyB={partyB}
-        //         setPartyB={setPartyB}
-        //     /> */}
+                {loading ? (
+                    <div className={cx('loading')}>Đang tải...</div>
+                ) : (
+                    <>
+                        {/* Info Tab */}
+                        {activeTab === 'info' && contractInfo && (
+                            <div className={cx('info-tab')}>
+                                <div className={cx('contract-info')}>
+                                    <div className={cx('info-section')}>
+                                        <h4>Tên hợp đồng</h4>
+                                        <p>{contractInfo.name}</p>
+                                    </div>
 
-        //     {/* Nội dung hợp đồng */}
-        //     <ContentSection
-        //         isExpanded={expandedSections.content}
-        //         onToggle={() => toggleSection("content")}
-        //         projectDescription={projectDescription}
-        //         setProjectDescription={setProjectDescription}
-        //         contractValue={contractValue}
-        //         handleContractValueChange={handleContractValueChange}
-        //         startDate={startDate}
-        //         endDate={endDate}
-        //         setShowDatePicker={setShowDatePicker}
-        //         paymentMethod={paymentMethod}
-        //         setPaymentMethod={setPaymentMethod}
-        //         paymentSchedule={paymentSchedule}
-        //         setPaymentSchedule={setPaymentSchedule}
-        //         acceptanceConditions={acceptanceConditions}
-        //         setAcceptanceConditions={setAcceptanceConditions}
-        //         deliverables={deliverables}
-        //         setDeliverables={setDeliverables}
-        //     />
+                                    <div className={cx('info-section')}>
+                                        <h4>Trạng thái</h4>
+                                        <span 
+                                            className={cx('status-badge')}
+                                            style={{ backgroundColor: getStatusColor(contractInfo.status) }}
+                                        >
+                                            {getStatusText(contractInfo.status)}
+                                        </span>
+                                    </div>
 
-        //     {/* Tài liệu đính kèm */}
-        //     <AttachmentsSection
-        //         isExpanded={expandedSections.attachments}
-        //         onToggle={() => toggleSection("attachments")}
-        //         attachedFiles={attachedFiles}
-        //         handleFileUpload={handleFileUpload}
-        //         removeFile={removeFile}
-        //     />
+                                    <div className={cx('info-section')}>
+                                        <h4>Thống kê</h4>
+                                        <div className={cx('stats-grid')}>
+                                            <div className={cx('stat-item')}>
+                                                <span className={cx('stat-label')}>Từ</span>
+                                                <span className={cx('stat-value')}>{contractInfo.wordCount.toLocaleString()}</span>
+                                            </div>
+                                            <div className={cx('stat-item')}>
+                                                <span className={cx('stat-label')}>Ký tự</span>
+                                                <span className={cx('stat-value')}>{contractInfo.characterCount.toLocaleString()}</span>
+                                            </div>
+                                            <div className={cx('stat-item')}>
+                                                <span className={cx('stat-label')}>Cộng tác</span>
+                                                <span className={cx('stat-value')}>{contractInfo.collaborators}</span>
+                                            </div>
+                                            <div className={cx('stat-item')}>
+                                                <span className={cx('stat-label')}>Mốc thời gian</span>
+                                                <span className={cx('stat-value')}>{contractInfo.milestones}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-        //     {/* Menu items cho modal sections */}
-        //     {/* <div className={cx("modal-menu-section")}>
-        //         <h4>Quản lý tiến độ & Thông báo</h4>
+                                    <div className={cx('info-section')}>
+                                        <h4>Thông tin thời gian</h4>
+                                        <div className={cx('time-info')}>
+                                            <p><strong>Tạo lúc:</strong> {contractInfo.createdAt}</p>
+                                            <p><strong>Cập nhật:</strong> {contractInfo.updatedAt}</p>
+                                            <p><strong>Người tạo:</strong> {contractInfo.createdBy}</p>
+                                        </div>
+                                    </div>
+                                </div>
 
-        //         <div
-        //             className={cx("menu-item", { urgent: overdueMilestones + overdueTasks > 0 })}
-        //             onClick={() => openModal("milestones-tasks")}
-        //         >
-        //             <div className={cx("menu-icon")} style={{ backgroundColor: "#9b59b6" }}>
-        //                 <FontAwesomeIcon icon={faProjectDiagram} />
-        //             </div>
-        //             <div className={cx("menu-content")}>
-        //                 <div className={cx("menu-title")}>
-        //                     <div className={cx("menu-title-label")}>Mốc thời gian & Công việc</div>
-        //                     {pendingMilestones + pendingTasks > 0 && (
-        //                         <span className={cx("menu-badge")} style={{ backgroundColor: "#9b59b6" }}>
-        //                             {pendingMilestones + pendingTasks}
-        //                         </span>
-        //                     )}
-        //                     {overdueMilestones + overdueTasks > 0 && <span className={cx("overdue-indicator")}>⚠️ Quá hạn</span>}
-        //                 </div>
-        //                 <div className={cx("menu-description")}>Quản lý các giai đoạn và công việc trong hợp đồng</div>
-        //             </div>
-        //             <div className={cx("menu-arrow")}>
-        //                 <FontAwesomeIcon icon={faChevronRight} />
-        //             </div>
-        //         </div>
+                                <div className={cx('quick-actions')}>
+                                    <button 
+                                        className={cx('action-btn', 'save')}
+                                        onClick={() => handleQuickAction('save')}
+                                    >
+                                        <FontAwesomeIcon icon={faSave} />
+                                        Lưu
+                                    </button>
+                                    <button 
+                                        className={cx('action-btn', 'preview')}
+                                        onClick={() => handleQuickAction('preview')}
+                                    >
+                                        <FontAwesomeIcon icon={faEye} />
+                                        Xem trước
+                                    </button>
+                                    <button 
+                                        className={cx('action-btn', 'print')}
+                                        onClick={() => handleQuickAction('print')}
+                                    >
+                                        <FontAwesomeIcon icon={faPrint} />
+                                        In
+                                    </button>
+                                    <button 
+                                        className={cx('action-btn', 'export')}
+                                        onClick={() => handleQuickAction('export')}
+                                    >
+                                        <FontAwesomeIcon icon={faDownload} />
+                                        Xuất
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
-        //         <div className={cx("menu-item", { urgent: unreadNotifications > 5 })} onClick={() => openModal("notifications")}>
-        //             <div className={cx("menu-icon")} style={{ backgroundColor: "#e74c3c" }}>
-        //                 <FontAwesomeIcon icon={faBell} />
-        //             </div>
-        //             <div className={cx("menu-content")}>
-        //                 <div className={cx("menu-title")}>
-        //                     <div className={cx("menu-title-label")}>Thông báo</div>
-        //                     {unreadNotifications > 0 && (
-        //                         <span className={cx("menu-badge")} style={{ backgroundColor: "#e74c3c" }}>
-        //                             {unreadNotifications}
-        //                         </span>
-        //                     )}
-        //                 </div>
-        //                 <div className={cx("menu-description")}>Nhắc nhở về mốc thời gian và công việc sắp đến hạn</div>
-        //             </div>
-        //             <div className={cx("menu-arrow")}>
-        //                 <FontAwesomeIcon icon={faChevronRight} />
-        //             </div>
-        //         </div>
-        //     </div> */}
+                        {/* Settings Tab */}
+                        {activeTab === 'settings' && (
+                            <div className={cx('settings-tab')}>
+                                <div className={cx('settings-list')}>
+                                    <div className={cx('setting-item')}>
+                                        <div className={cx('setting-info')}>
+                                            <h4>Tự động lưu</h4>
+                                            <p>Lưu tự động khi có thay đổi</p>
+                                        </div>
+                                        <label className={cx('toggle-switch')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.autoSave}
+                                                onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
+                                            />
+                                            <span className={cx('slider')}></span>
+                                        </label>
+                                    </div>
 
-        //     {/* Bảo mật & Lưu vết */}
-        //     <SecuritySection
-        //         isExpanded={expandedSections.security}
-        //         onToggle={() => toggleSection("security")}
-        //         version={version}
-        //         setVersion={setVersion}
-        //         internalNotes={internalNotes}
-        //         setInternalNotes={setInternalNotes}
-        //         currentUser={currentUser}
-        //     />
+                                    <div className={cx('setting-item')}>
+                                        <div className={cx('setting-info')}>
+                                            <h4>Kiểm tra chính tả</h4>
+                                            <p>Hiển thị lỗi chính tả khi soạn thảo</p>
+                                        </div>
+                                        <label className={cx('toggle-switch')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.spellCheck}
+                                                onChange={(e) => handleSettingChange('spellCheck', e.target.checked)}
+                                            />
+                                            <span className={cx('slider')}></span>
+                                        </label>
+                                    </div>
 
-        //     {/* Progress Overview */}
-        //     {/* <div className={cx("progress-overview")}>
-        //         <h4>Tổng quan tiến độ</h4>
-        //         <div className={cx("progress-stats")}>
-        //             <div className={cx("progress-item")}>
-        //                 <div className={cx("progress-header")}>
-        //                     <span className={cx("progress-label")}>Mốc thời gian</span>
-        //                     <span className={cx("progress-value")}>
-        //                         {milestones.filter((m) => m.status === "completed").length}/{milestones.length}
-        //                     </span>
-        //                 </div>
-        //                 <div className={cx("progress-bar")}>
-        //                     <div
-        //                         className={cx("progress-fill", "milestone-progress")}
-        //                         style={{
-        //                             width:
-        //                                 milestones.length > 0
-        //                                     ? `${(milestones.filter((m) => m.status === "completed").length / milestones.length) * 100}%`
-        //                                     : "0%",
-        //                         }}
-        //                     />
-        //                 </div>
-        //             </div>
+                                    <div className={cx('setting-item')}>
+                                        <div className={cx('setting-info')}>
+                                            <h4>Gợi ý thông minh</h4>
+                                            <p>Hiển thị gợi ý khi soạn thảo</p>
+                                        </div>
+                                        <label className={cx('toggle-switch')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.suggestions}
+                                                onChange={(e) => handleSettingChange('suggestions', e.target.checked)}
+                                            />
+                                            <span className={cx('slider')}></span>
+                                        </label>
+                                    </div>
 
-        //             <div className={cx("progress-item")}>
-        //                 <div className={cx("progress-header")}>
-        //                     <span className={cx("progress-label")}>Công việc</span>
-        //                     <span className={cx("progress-value")}>
-        //                         {tasks.filter((t) => t.status === "completed").length}/{tasks.length}
-        //                     </span>
-        //                 </div>
-        //                 <div className={cx("progress-bar")}>
-        //                     <div
-        //                         className={cx("progress-fill", "task-progress")}
-        //                         style={{
-        //                             width:
-        //                                 tasks.length > 0
-        //                                     ? `${(tasks.filter((t) => t.status === "completed").length / tasks.length) * 100}%`
-        //                                     : "0%",
-        //                         }}
-        //                     />
-        //                 </div>
-        //             </div>
-        //         </div>
+                                    <div className={cx('setting-item')}>
+                                        <div className={cx('setting-info')}>
+                                            <h4>Thông báo</h4>
+                                            <p>Nhận thông báo về thay đổi</p>
+                                        </div>
+                                        <label className={cx('toggle-switch')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.notifications}
+                                                onChange={(e) => handleSettingChange('notifications', e.target.checked)}
+                                            />
+                                            <span className={cx('slider')}></span>
+                                        </label>
+                                    </div>
 
-        //         {(overdueMilestones > 0 || overdueTasks > 0) && (
-        //             <div className={cx("urgent-alerts")}>
-        //                 <h5>⚠️ Cần chú ý</h5>
-        //                 {overdueMilestones > 0 && (
-        //                     <div className={cx("alert-item")}>
-        //                         <span>{overdueMilestones} mốc thời gian quá hạn</span>
-        //                     </div>
-        //                 )}
-        //                 {overdueTasks > 0 && (
-        //                     <div className={cx("alert-item")}>
-        //                         <span>{overdueTasks} công việc quá hạn</span>
-        //                     </div>
-        //                 )}
-        //             </div>
-        //         )}
-        //     </div> */}
+                                    <div className={cx('setting-item')}>
+                                        <div className={cx('setting-info')}>
+                                            <h4>Chế độ tối</h4>
+                                            <p>Sử dụng giao diện tối</p>
+                                        </div>
+                                        <label className={cx('toggle-switch')}>
+                                            <input
+                                                type="checkbox"
+                                                checked={settings.darkMode}
+                                                onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
+                                            />
+                                            <span className={cx('slider')}></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-        //     {/* Chỉ 2 modals */}
-        //     {/* <MilestonesTasksModal
-        //         isOpen={isModalOpen("milestones-tasks")}
-        //         onClose={() => closeModal("milestones-tasks")}
-        //         milestones={milestones}
-        //         tasks={tasks}
-        //         addMilestone={addMilestone}
-        //         updateMilestone={updateMilestone}
-        //         removeMilestone={removeMilestone}
-        //         addTask={addTask}
-        //         updateTask={updateTask}
-        //         removeTask={removeTask}
-        //         getTasksForMilestone={getTasksForMilestone}
-        //         currentUser={currentUser}
-        //     />
+                        {/* Collaborators Tab */}
+                        {activeTab === 'collaborators' && (
+                            <div className={cx('collaborators-tab')}>
+                                <div className={cx('collaborators-list')}>
+                                    {collaborators.map((collaborator) => (
+                                        <div key={collaborator.id} className={cx('collaborator-item')}>
+                                            <div className={cx('collaborator-avatar')}>
+                                                {collaborator.avatar ? (
+                                                    <img src={collaborator.avatar} alt={collaborator.name} />
+                                                ) : (
+                                                    <div className={cx('avatar-placeholder')}>
+                                                        {collaborator.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className={cx('collaborator-info')}>
+                                                <h4>{collaborator.name}</h4>
+                                                <p>{collaborator.email}</p>
+                                                <span 
+                                                    className={cx('role-badge')}
+                                                    style={{ backgroundColor: getRoleColor(collaborator.role) }}
+                                                >
+                                                    {getRoleText(collaborator.role)}
+                                                </span>
+                                                <small>Tham gia: {collaborator.joinedAt}</small>
+                                            </div>
+                                            <div className={cx('collaborator-actions')}>
+                                                <button className={cx('action-btn', 'edit')}>
+                                                    <FontAwesomeIcon icon={faEdit} />
+                                                </button>
+                                                <button className={cx('action-btn', 'remove')}>
+                                                    <FontAwesomeIcon icon={faTrash} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
 
-        //     <NotificationsModal
-        //         isOpen={isModalOpen("notifications")}
-        //         onClose={() => closeModal("notifications")}
-        //         notifications={notifications}
-        //         markNotificationAsRead={markNotificationAsRead}
-        //     /> */}
+                                <div className={cx('collaborator-tips')}>
+                                    <h4>Về cộng tác viên</h4>
+                                    <ul>
+                                        <li>Chủ sở hữu có quyền cao nhất</li>
+                                        <li>Editor có thể chỉnh sửa nội dung</li>
+                                        <li>Viewer chỉ có thể xem</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
 
-        //     {showDatePicker && (
-        //         <DatePicker
-        //             startDate={startDate}
-        //             endDate={endDate}
-        //             onDateChange={handleDateChange}
-        //             onClose={() => setShowDatePicker(false)}
-        //         />
-        //     )}
-        // </div>
+                        {/* Activity Tab */}
+                        {activeTab === 'activity' && (
+                            <div className={cx('activity-tab')}>
+                                <div className={cx('activity-list')}>
+                                    {activity.map((item) => (
+                                        <div key={item.id} className={cx('activity-item')}>
+                                            <div 
+                                                className={cx('activity-icon')}
+                                                style={{ backgroundColor: getActivityColor(item.type) + '20', color: getActivityColor(item.type) }}
+                                            >
+                                                <FontAwesomeIcon icon={getActivityIcon(item.type)} />
+                                            </div>
+                                            <div className={cx('activity-content')}>
+                                                <p>
+                                                    <strong>{item.action}</strong>: {item.description}
+                                                </p>
+                                                <small>{item.timestamp} - {item.user}</small>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className={cx('activity-tips')}>
+                                    <h4>Về hoạt động</h4>
+                                    <ul>
+                                        <li>Ghi lại mọi thay đổi</li>
+                                        <li>Dễ dàng theo dõi</li>
+                                        <li>Đảm bảo minh bạch</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
     );
 };
 

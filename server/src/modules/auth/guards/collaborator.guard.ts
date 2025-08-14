@@ -1,7 +1,8 @@
 // src/modules/contracts/guards/collaborator.guard.ts
 import { CollaboratorService } from '@/modules/contract/collaborator.service';
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException, Inject } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
 import type { Request } from 'express';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 
 @Injectable()
 export class CollaboratorGuard implements CanActivate {
@@ -14,7 +15,11 @@ export class CollaboratorGuard implements CanActivate {
 
         // allow if user is system admin? implement as needed
         // else check collaborator role
-        const allowed = await this.collab.hasRole(contractId, Number(user.sub), ['owner', 'editor', 'reviewer']);
+        const allowed = await this.collab.hasRole(contractId, Number(user.sub), [
+            CollaboratorRole.OWNER,
+            CollaboratorRole.EDITOR,
+            CollaboratorRole.VIEWER,
+        ]);
         if (!allowed) throw new ForbiddenException('You do not have permission');
         return true;
     }

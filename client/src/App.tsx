@@ -1,83 +1,126 @@
-import { Routes, Route, BrowserRouter as Router } from "react-router-dom";
-import { Fragment } from "react";
-import DefaultLayout from "~/layouts/DefaultLayout";
-import ProtectedRoute from "~/components/Auth/ProtectedRoute";
-import PublicRoute from "~/components/Auth/PublicRoute";
-import SessionStatus from "~/components/Auth/SessionStatus";
-import { publicRoutes, privateRoutes } from "./routes/routes";
-import NotFound from "./page/404Page";
-import Unauthorized from "./page/Unauthorized";
-import type { PublicRoute as PublicRouteType, PrivateRoute as PrivateRouteType } from "./routes/routes";
-import SessionWarningModal from "./components/Auth/SessionWarningModal";
+import React, { Fragment } from 'react';
+import { BrowserRouter as Router, useRoutes } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './redux/store';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+import PublicRoute from './components/Auth/PublicRoute';
+import SessionStatus from './components/Auth/SessionStatus';
+import SessionWarningModal from './components/Auth/SessionWarningModal';
+import './App.scss';
 
-function App() {
-    const renderRoute = (route: PublicRouteType | PrivateRouteType, index: number, isPrivate = false) => {
-        const Page = route.component;
-        const Layout = route.layout === null ? Fragment : route.layout || DefaultLayout;
-        const Wrapper = isPrivate ? ProtectedRoute : PublicRoute;
+// Route configs
+import { publicRoutes, privateRoutes } from './routes/routes';
+import type { PublicRoute as PublicRouteType, PrivateRoute as PrivateRouteType } from './routes/routes';
 
-        const wrapperProps = isPrivate
-            ? {
-                  access: (route as PrivateRouteType).access,
-                  fallbackPath: route.path.includes("/admin") ? "/admin/login" : "/login",
-              }
-            : {
-                  redirectPath: (route as PublicRouteType).redirectPath,
-                  allowedWhenAuthenticated: (route as PublicRouteType).allowedWhenAuthenticated,
-              };
+// Pages
+import Unauthorized from './page/Unauthorized/Unauthorized';
+import NotFound from './page/NotFound/NotFound';
 
-        return (
-            <Route
-                key={`${isPrivate ? "private" : "public"}-${route.path}`}
-                path={route.path}
-                element={
-                    <Wrapper {...wrapperProps}>
-                        <Layout>
-                            <Page />
-                        </Layout>
-                    </Wrapper>
-                }
-            />
-        );
-    };
+// Optional: fallback layout for special pages
+import Layout from './components/Layout/Layout';
+
+// Build route element per config
+const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: boolean) => {
+  const Page = route.component;
+  const LayoutComp = route.layout === null ? Fragment : (route.layout || Layout);
+
+  if (isPrivate) {
+    const privateRoute = route as PrivateRouteType;
+    const fallbackPath = route.path.includes('/admin') ? '/admin/login' : '/login';
+    const requiredRole = privateRoute.access?.roles || [];
 
     return (
-        <Router>
-            <div className="App">
-                {/* Global Components */}
-                <SessionWarningModal />
-                <SessionStatus />
-
-                <Routes>
-                    {/* Public Routes */}
-                    {publicRoutes.map((route, index) => renderRoute(route, index))}
-
-                    {/* Private Routes */}
-                    {privateRoutes.map((route, index) => renderRoute(route, index, true))}
-
-                    {/* Unauthorized */}
-                    <Route
-                        path="/unauthorized"
-                        element={
-                            <DefaultLayout>
-                                <Unauthorized />
-                            </DefaultLayout>
-                        }
-                    />
-
-                    {/* 404 Page */}
-                    <Route
-                        path="*"
-                        element={
-                            <DefaultLayout>
-                                <NotFound />
-                            </DefaultLayout>
-                        }
-                    />
-                </Routes>
-            </div>
-        </Router>
+      <ProtectedRoute fallbackPath={fallbackPath} requiredRole={requiredRole}>
+        <LayoutComp>
+          <Page />
+        </LayoutComp>
+      </ProtectedRoute>
     );
+  }
+
+  const publicRoute = route as PublicRouteType;
+  return (
+    <PublicRoute
+      redirectPath={publicRoute.redirectPath}
+      allowedWhenAuthenticated={publicRoute.allowedWhenAuthenticated}
+    >
+      <LayoutComp>
+        <Page />
+      </LayoutComp>
+    </PublicRoute>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  // Global idle timeout for the entire app
+  useIdleTimeout({
+    warningTime: 10 * 60 * 1000, // 10 minutes
+    logoutTime: 15 * 60 * 1000, // 15 minutes
+    onWarning: () => {
+      // Global warning handling
+      console.log('Idle warning triggered');
+    },
+    onLogout: () => {
+      // Global logout handling
+      console.log('Auto logout triggered');
+    },
+  });
+
+  const elements = useRoutes([
+    // Public routes
+    ...publicRoutes.map((route) => ({
+      path: route.path,
+      element: buildElement(route, false),
+    })),
+
+    // Private routes
+    ...privateRoutes.map((route) => ({
+      path: route.path,
+      element: buildElement(route, true),
+    })),
+
+    // Unauthorized
+    {
+      path: '/unauthorized',
+      element: (
+        <Layout>
+          <Unauthorized />
+        </Layout>
+      ),
+    },
+
+    // 404
+    {
+      path: '*',
+      element: (
+        <Layout>
+          <NotFound />
+        </Layout>
+      ),
+    },
+  ]);
+
+  return (
+    <>
+      {/* Global Components */}
+      <SessionWarningModal />
+      <SessionStatus />
+      {elements}
+    </>
+  );
+};
+
+function App() {
+  return (
+    <Provider store={store}>
+      <Router>
+        <div className="App">
+          <AppRoutes />
+        </div>
+      </Router>
+    </Provider>
+  );
 }
 
 export default App;

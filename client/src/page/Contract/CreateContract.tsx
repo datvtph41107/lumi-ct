@@ -15,11 +15,10 @@ const logger = Logger.getInstance();
 
 const CreateContract: React.FC = () => {
     const navigate = useNavigate();
-    const { setSelectedMode, resetFlow } = useContractDraftStore();
+    const { initializeFlow, resetFlow } = useContractDraftStore();
     const [selectedOption, setSelectedOption] = useState<ContractCreationMode | null>(null);
 
     useEffect(() => {
-        // Reset flow when component mounts
         resetFlow();
     }, [resetFlow]);
 
@@ -28,45 +27,9 @@ const CreateContract: React.FC = () => {
     };
 
     const contractOptions = [
-        {
-            id: "basic" as ContractCreationMode,
-            title: "Tạo hợp đồng quản lý cơ bản",
-            description: "Điền thông tin cơ bản của hợp đồng và quản lý theo giai đoạn",
-            icon: faFileContract,
-            features: [
-                "Điền thông tin hợp đồng cơ bản",
-                "Quản lý theo giai đoạn và mốc thời gian",
-                "Theo dõi tiến độ thực hiện",
-                "Quản lý đối tác và công việc",
-            ],
-            color: "var(--text-active)",
-        },
-        {
-            id: "editor" as ContractCreationMode,
-            title: "Soạn thảo hợp đồng mới",
-            description: "Sử dụng trình soạn thảo để tạo nội dung hợp đồng chi tiết",
-            icon: faEdit,
-            features: [
-                "Trình soạn thảo văn bản chuyên nghiệp",
-                "Template hợp đồng có sẵn",
-                "Định dạng và chỉnh sửa linh hoạt",
-                "Xuất file PDF/Word",
-            ],
-            color: "var(--green-block)",
-        },
-        {
-            id: "upload" as ContractCreationMode,
-            title: "Tải file lên",
-            description: "Upload file hợp đồng có sẵn và chỉnh sửa nếu cần",
-            icon: faCloudUploadAlt,
-            features: [
-                "Hỗ trợ nhiều định dạng file",
-                "Tự động nhận diện nội dung",
-                "Chuyển đổi sang trình soạn thảo",
-                "Bổ sung thông tin quản lý",
-            ],
-            color: "#bf8700",
-        },
+        { id: "basic" as ContractCreationMode, title: "Tạo hợp đồng quản lý cơ bản", description: "Điền thông tin cơ bản của hợp đồng và quản lý theo giai đoạn", icon: faFileContract, features: ["Điền thông tin hợp đồng cơ bản", "Quản lý theo giai đoạn và mốc thời gian", "Theo dõi tiến độ thực hiện", "Quản lý đối tác và công việc"], color: "var(--text-active)" },
+        { id: "editor" as ContractCreationMode, title: "Soạn thảo hợp đồng mới", description: "Sử dụng trình soạn thảo để tạo nội dung hợp đồng chi tiết", icon: faEdit, features: ["Trình soạn thảo văn bản chuyên nghiệp", "Template hợp đồng có sẵn", "Định dạng và chỉnh sửa linh hoạt", "Xuất file PDF/Word"], color: "var(--green-block)" },
+        { id: "upload" as ContractCreationMode, title: "Tải file lên", description: "Upload file hợp đồng có sẵn và chỉnh sửa nếu cần", icon: faCloudUploadAlt, features: ["Hỗ trợ nhiều định dạng file", "Tự động nhận diện nội dung", "Chuyển đổi sang trình soạn thảo", "Bổ sung thông tin quản lý"], color: "#bf8700" },
     ];
 
     const handleOptionSelect = (option: ContractCreationMode) => {
@@ -74,12 +37,9 @@ const CreateContract: React.FC = () => {
         logger.info("Selected contract option:", option);
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (selectedOption) {
-            // Set the selected mode in store
-            setSelectedMode(selectedOption);
-
-            // Navigate directly to contract collection for template/draft selection
+            await initializeFlow(selectedOption);
             navigate(routePrivate.ContractCollection);
             logger.info("Navigating to contract collection", { mode: selectedOption });
         }
@@ -147,15 +107,7 @@ const CreateContract: React.FC = () => {
                 </div>
 
                 <div className={cx("action-section")}>
-                    <Button
-                        semiLarge
-                        type="button"
-                        primary
-                        // className={cx("btn", "btn-primary", { disabled: !selectedOption })}
-                        onClick={handleContinue}
-                        disabled={!selectedOption}
-                        rightIcon={<FontAwesomeIcon icon={faArrowRight} />}
-                    >
+                    <Button semiLarge type="button" primary onClick={handleContinue} disabled={!selectedOption} rightIcon={<FontAwesomeIcon icon={faArrowRight} />}>
                         Tiếp tục
                     </Button>
                 </div>

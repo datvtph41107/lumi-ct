@@ -11,33 +11,38 @@ import { AuditInterceptor } from '@/core/shared/filters/audit.interceptor';
 // Entities
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
-import { ContractMilestones } from '@/core/domain/contract/contract-milestones.entity';
-import { ContractTasks } from '@/core/domain/contract/contract-taks.entity';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { ContractFile } from '@/core/domain/contract/contract-file.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
 import { ContractContent } from '@/core/domain/contract/contract-content.entity';
-import { ContractVersions } from '@/core/domain/contract/contract-versions.entity';
+import { ContractVersion } from '@/core/domain/contract/contract-versions.entity';
+import { ContractDraftController } from './contract-draft.controller';
+import { Collaborator } from '@/core/domain/permission/collaborator.entity';
+import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             Contract,
             ContractDraft,
-            ContractMilestones,
-            ContractTasks,
+            Milestone,
+            Task,
             ContractFile,
             ContractTemplate,
             ContractContent,
-            ContractVersions,
+            ContractVersion,
+            Collaborator,
+            AuditLog,
         ]),
     ],
-    controllers: [ContractController],
+    controllers: [ContractController, ContractDraftController],
     providers: [
         ContractService,
         AuditLogService,
         CollaboratorService,
-        { provide: APP_INTERCEPTOR, useClass: AuditInterceptor }, // global audit for module
+        { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     ],
-    exports: [ContractService, CollaboratorService],
+    exports: [ContractService, CollaboratorService, AuditLogService],
 })
 export class ContractsModule {}

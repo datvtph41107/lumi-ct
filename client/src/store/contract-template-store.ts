@@ -25,12 +25,7 @@ export const useContractTemplateStore = create<ContractTemplateStoreState>((set,
         set({ loading: true, error: null });
         try {
             const response = await contractTemplateService.getContractTemplates();
-            if (response.success) {
-                set({ templates: response.data || [], loading: false });
-            } else {
-                set({ error: response.message || "Failed to fetch templates", loading: false });
-                logger.error("Failed to fetch templates:", response.message);
-            }
+            set({ templates: response.data || [], loading: false });
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err);
             set({ error: errorMessage, loading: false });
@@ -43,19 +38,14 @@ export const useContractTemplateStore = create<ContractTemplateStoreState>((set,
         try {
             const newTemplate: Omit<ContractTemplate, "id" | "createdAt" | "updatedAt"> = {
                 ...templateData,
-                isActive: true, // New templates are active by default
+                isActive: true,
             };
             const response = await contractTemplateService.createContractTemplate(newTemplate);
-            if (response.success) {
-                const createdTemplate = response.data!;
-                set((state) => ({
-                    templates: [...state.templates, createdTemplate],
-                    loading: false,
-                }));
-            } else {
-                set({ error: response.message || "Failed to create template", loading: false });
-                logger.error("Failed to create template:", response.message);
-            }
+            const createdTemplate = response.data!;
+            set((state) => ({
+                templates: [...state.templates, createdTemplate],
+                loading: false,
+            }));
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err);
             set({ error: errorMessage, loading: false });
@@ -67,16 +57,11 @@ export const useContractTemplateStore = create<ContractTemplateStoreState>((set,
         set({ loading: true, error: null });
         try {
             const response = await contractTemplateService.updateContractTemplate(id, updates);
-            if (response.success) {
-                const updatedTemplate = response.data!;
-                set((state) => ({
-                    templates: state.templates.map((template) => (template.id === id ? updatedTemplate : template)),
-                    loading: false,
-                }));
-            } else {
-                set({ error: response.message || `Failed to update template ${id}`, loading: false });
-                logger.error(`Failed to update template ${id}:`, response.message);
-            }
+            const updatedTemplate = response.data!;
+            set((state) => ({
+                templates: state.templates.map((template) => (template.id === id ? updatedTemplate : template)),
+                loading: false,
+            }));
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err);
             set({ error: errorMessage, loading: false });
@@ -87,16 +72,11 @@ export const useContractTemplateStore = create<ContractTemplateStoreState>((set,
     deleteTemplate: async (id: string) => {
         set({ loading: true, error: null });
         try {
-            const response = await contractTemplateService.deleteContractTemplate(id);
-            if (response.success) {
-                set((state) => ({
-                    templates: state.templates.filter((template) => template.id !== id),
-                    loading: false,
-                }));
-            } else {
-                set({ error: response.message || `Failed to delete template ${id}`, loading: false });
-                logger.error(`Failed to delete template ${id}:`, response.message);
-            }
+            await contractTemplateService.deleteContractTemplate(id);
+            set((state) => ({
+                templates: state.templates.filter((template) => template.id !== id),
+                loading: false,
+            }));
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err);
             set({ error: errorMessage, loading: false });

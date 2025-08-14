@@ -6,18 +6,18 @@ export class ContractDraft extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'json' })
-    contract_data: any;
-
-    @Column({ type: 'varchar', length: 20 })
-    current_stage: string;
-
-    @Column({ type: 'json' })
-    stage_validations: Record<string, any>;
-
-    @Column({ type: 'boolean', default: true })
-    is_draft: boolean;
-
     @Column({ type: 'char', length: 36 })
-    created_by: string;
+    contract_id: string;
+
+    @Column({ type: 'varchar', length: 50 })
+    stage: string;
+
+    @Column({ type: 'json' })
+    data: any;
+
+    @Column({ type: 'int', default: 1 })
+    version: number;
+
+    @Column({ type: 'int' })
+    created_by: number;
 }
