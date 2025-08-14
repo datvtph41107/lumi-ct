@@ -1,34 +1,57 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Fragment } from 'react';
+import { BrowserRouter as Router, useRoutes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import PublicRoute from './components/Auth/PublicRoute';
+import SessionStatus from './components/Auth/SessionStatus';
+import SessionWarningModal from './components/Auth/SessionWarningModal';
 import './App.scss';
 
-// Layout components
-import Layout from './components/Layout/Layout';
+// Route configs
+import { publicRoutes, privateRoutes } from './routes/routes';
+import type { PublicRoute as PublicRouteType, PrivateRoute as PrivateRouteType } from './routes/routes';
 
-// Contract Management Pages
-import CreateContract from './page/Contract/CreateContract/CreateContract';
-import ContractCollection from './page/Contract/ContractCollection/ContractCollection';
-import ContractDraft from './page/Contract/ContractDraft/ContractDraft';
-import TemplateManagement from './page/Contract/TemplateManagement/TemplateManagement';
-
-// Auth pages
-import Login from './page/Auth/Login/Login';
-import Register from './page/Auth/Register/Register';
-import ForgotPassword from './page/Auth/ForgotPassword/ForgotPassword';
-import ResetPassword from './page/Auth/ResetPassword/ResetPassword';
-
-// Other pages
-import Dashboard from './page/Dashboard/Dashboard';
-import Profile from './page/Profile/Profile';
-import Settings from './page/Settings/Settings';
+// Pages
 import Unauthorized from './page/Unauthorized/Unauthorized';
 import NotFound from './page/NotFound/NotFound';
 
-// App Routes Component
+// Optional: fallback layout for special pages
+import Layout from './components/Layout/Layout';
+
+// Build route element per config
+const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: boolean) => {
+  const Page = route.component;
+  const LayoutComp = route.layout === null ? Fragment : (route.layout || Layout);
+
+  if (isPrivate) {
+    const privateRoute = route as PrivateRouteType;
+    const fallbackPath = route.path.includes('/admin') ? '/admin/login' : '/login';
+    const requiredRole = privateRoute.access?.roles || [];
+
+    return (
+      <ProtectedRoute fallbackPath={fallbackPath} requiredRole={requiredRole}>
+        <LayoutComp>
+          <Page />
+        </LayoutComp>
+      </ProtectedRoute>
+    );
+  }
+
+  const publicRoute = route as PublicRouteType;
+  return (
+    <PublicRoute
+      redirectPath={publicRoute.redirectPath}
+      allowedWhenAuthenticated={publicRoute.allowedWhenAuthenticated}
+    >
+      <LayoutComp>
+        <Page />
+      </LayoutComp>
+    </PublicRoute>
+  );
+};
+
 const AppRoutes: React.FC = () => {
   // Global idle timeout for the entire app
   useIdleTimeout({
@@ -41,108 +64,50 @@ const AppRoutes: React.FC = () => {
     onLogout: () => {
       // Global logout handling
       console.log('Auto logout triggered');
-    }
+    },
   });
 
+  const elements = useRoutes([
+    // Public routes
+    ...publicRoutes.map((route) => ({
+      path: route.path,
+      element: buildElement(route, false),
+    })),
+
+    // Private routes
+    ...privateRoutes.map((route) => ({
+      path: route.path,
+      element: buildElement(route, true),
+    })),
+
+    // Unauthorized
+    {
+      path: '/unauthorized',
+      element: (
+        <Layout>
+          <Unauthorized />
+        </Layout>
+      ),
+    },
+
+    // 404
+    {
+      path: '*',
+      element: (
+        <Layout>
+          <NotFound />
+        </Layout>
+      ),
+    },
+  ]);
+
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
-
-      {/* Protected routes */}
-      <Route path="/" element={
-        <ProtectedRoute>
-          <Layout>
-            <Dashboard />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      {/* Contract Management Routes */}
-      <Route path="/contracts" element={
-        <ProtectedRoute>
-          <Layout>
-            <CreateContract onMethodSelect={(method) => console.log('Method selected:', method)} />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/contracts/collection" element={
-        <ProtectedRoute>
-          <Layout>
-            <ContractCollection onSelect={(type, data) => console.log('Selected:', type, data)} />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/contracts/draft" element={
-        <ProtectedRoute>
-          <Layout>
-            <ContractDraft />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/contracts/draft/:id" element={
-        <ProtectedRoute>
-          <Layout>
-            <ContractDraft />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/contracts/templates" element={
-        <ProtectedRoute>
-          <Layout>
-            <TemplateManagement mode="basic" />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/contracts/templates/editor" element={
-        <ProtectedRoute>
-          <Layout>
-            <TemplateManagement mode="editor" />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      {/* Admin routes */}
-      <Route path="/admin" element={
-        <ProtectedRoute requiredRole={['admin']}>
-          <Layout>
-            <div>Admin Dashboard</div>
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      {/* Other protected routes */}
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <Layout>
-            <Profile />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Layout>
-            <Settings />
-          </Layout>
-        </ProtectedRoute>
-      } />
-
-      {/* 404 Page */}
-      <Route path="/404" element={<NotFound />} />
-
-      {/* Catch all route */}
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+    <>
+      {/* Global Components */}
+      <SessionWarningModal />
+      <SessionStatus />
+      {elements}
+    </>
   );
 };
 
