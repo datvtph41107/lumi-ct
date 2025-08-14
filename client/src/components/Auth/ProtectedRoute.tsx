@@ -9,7 +9,9 @@ import {
   selectRedirectPath,
   clearRedirectPath,
   getCurrentUser,
-  refreshToken
+  refreshToken,
+  getUserPermissions,
+  selectIsPermissionsLoaded
 } from '~/redux/slices/auth.slice';
 import { useIdleTimeout } from '~/hooks/useIdleTimeout';
 import IdleWarningModal from './IdleWarningModal';
@@ -34,6 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const isRefreshing = useSelector(selectIsRefreshing);
   const user = useSelector(selectUser);
   const redirectPath = useSelector(selectRedirectPath);
+  const isPermissionsLoaded = useSelector(selectIsPermissionsLoaded);
 
   const [isInitializing, setIsInitializing] = useState(true);
   const [showIdleWarning, setShowIdleWarning] = useState(false);
@@ -59,13 +62,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       try {
         // Try to get current user first
         await dispatch(getCurrentUser()).unwrap();
+        // Ensure permissions are loaded
+        if (!isPermissionsLoaded) {
+          await dispatch(getUserPermissions()).unwrap();
+        }
       } catch (error) {
         // If getCurrentUser fails, try to refresh token
         try {
           await dispatch(refreshToken()).unwrap();
+          if (!isPermissionsLoaded) {
+            await dispatch(getUserPermissions()).unwrap();
+          }
         } catch (refreshError) {
           // Both failed, user needs to login
-          console.log('Authentication failed, redirecting to login');
+          // No-op here; Navigate will handle redirect
         }
       } finally {
         setIsInitializing(false);
@@ -75,9 +85,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!isAuthenticated && !isLoading) {
       initializeAuth();
     } else {
+      // If already authenticated but permissions not loaded
+      if (isAuthenticated && !isPermissionsLoaded) {
+        dispatch(getUserPermissions());
+      }
       setIsInitializing(false);
     }
-  }, [dispatch, isAuthenticated, isLoading]);
+  }, [dispatch, isAuthenticated, isLoading, isPermissionsLoaded]);
 
   // Handle idle warning
   const handleIdleWarningContinue = () => {
@@ -121,7 +135,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check role-based access if required
   if (requiredRole.length > 0 && user) {
-    const hasRequiredRole = requiredRole.includes(user.role);
+    const hasRequiredRole = requiredRole.includes(user.role as any);
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;
     }

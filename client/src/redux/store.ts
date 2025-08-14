@@ -1,5 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/auth.slice';
+// Optional auth middleware (if later enabled)
+// import { authMiddleware } from './middleware/auth.middleware';
 
 export const store = configureStore({
   reducer: {
@@ -15,7 +17,8 @@ export const store = configureStore({
         // Ignore these paths in the state
         ignoredPaths: ['auth.lastActivity'],
       },
-    }),
+    })
+    // .concat(authMiddleware)
 });
 
 export type RootState = ReturnType<typeof store.getState>;
