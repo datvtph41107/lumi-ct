@@ -1,219 +1,476 @@
-import { BaseService } from "./base.service";
-import type { ApiResponse } from "~/core/types/api.types";
+import { BaseService } from './base.service';
+import { authCoreService } from '~/core/auth/AuthCoreService';
+import type {
+  Contract,
+  CreateContractDto,
+  UpdateContractDto,
+  ContractFilters,
+  ContractPagination,
+  ContractListResponse,
+  Milestone,
+  Task,
+  ContractFile,
+  Collaborator,
+  AuditLog
+} from '~/types/contract/contract.types';
 
-export class ContractService extends BaseService {
-    private readonly baseUrl = "/contracts";
+class ContractService extends BaseService {
+  constructor() {
+    super('/contracts');
+  }
 
-    // ===== CONTRACT CRUD =====
-    async createContract<TContract>(data: Record<string, unknown>): Promise<ApiResponse<TContract>> {
-        return this.request.private.post<TContract>(`${this.baseUrl}`, data);
+  // ==================== CONTRACT CRUD OPERATIONS ====================
+
+  async createContract(data: CreateContractDto): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canCreateContract(data.type)) {
+      throw new Error('Không có quyền tạo hợp đồng');
     }
 
-    async listContracts<TContract>(params?: Record<string, string | number | boolean | Array<string | number | boolean>>): Promise<ApiResponse<{ data: TContract[]; pagination: any }>> {
-        const url = this.buildUrl(`${this.baseUrl}`, params || {});
-        return this.request.private.get<{ data: TContract[]; pagination: any }>(url);
+    const response = await this.post<Contract>('/', data);
+    return response;
+  }
+
+  async getContract(id: number): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canReadContract(id)) {
+      throw new Error('Không có quyền xem hợp đồng này');
     }
 
-    async getContract<TContract>(id: string): Promise<ApiResponse<TContract>> {
-        return this.request.private.get<TContract>(`${this.baseUrl}/${id}`);
+    const response = await this.get<Contract>(`/${id}`);
+    return response;
+  }
+
+  async updateContract(id: number, data: UpdateContractDto): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(id)) {
+      throw new Error('Không có quyền cập nhật hợp đồng này');
     }
 
-    async updateContract<TContract>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TContract>> {
-        return this.request.private.patch<TContract>(`${this.baseUrl}/${id}`, data);
+    const response = await this.put<Contract>(`/${id}`, data);
+    return response;
+  }
+
+  async deleteContract(id: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canDeleteContract(id)) {
+      throw new Error('Không có quyền xóa hợp đồng này');
     }
 
-    async deleteContract(id: string): Promise<ApiResponse<{ message: string }>> {
-        return this.request.private.delete<{ message: string }>(`${this.baseUrl}/${id}`);
+    const response = await this.delete<{ message: string }>(`/${id}`);
+    return response;
+  }
+
+  async listContracts(filters: ContractFilters, pagination: ContractPagination): Promise<{ data: ContractListResponse }> {
+    const params = new URLSearchParams();
+    
+    // Add filters
+    if (filters.status) params.append('status', filters.status);
+    if (filters.type) params.append('type', filters.type);
+    if (filters.search) params.append('search', filters.search);
+    
+    // Add pagination
+    params.append('page', pagination.page?.toString() || '1');
+    params.append('limit', pagination.limit?.toString() || '10');
+
+    const response = await this.get<ContractListResponse>(`/?${params.toString()}`);
+    return response;
+  }
+
+  // ==================== CONTRACT WORKFLOW OPERATIONS ====================
+
+  async submitForReview(id: number): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(id)) {
+      throw new Error('Không có quyền submit hợp đồng này');
     }
 
-    // ===== DRAFT & STAGE MANAGEMENT =====
-    async autoSaveStage(id: string, data: { data: any; autoSave?: boolean; clientVersionToken?: string }): Promise<ApiResponse<{ stageDataId: string; savedAt: string; version: number }>> {
-        return this.request.private.patch<{ stageDataId: string; savedAt: string; version: number }, typeof data>(
-            `${this.baseUrl}/${id}/autosave`,
-            data,
-        );
+    const response = await this.post<Contract>(`/${id}/submit`, {});
+    return response;
+  }
+
+  async approveContract(id: number, comment?: string): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canApproveContract(id)) {
+      throw new Error('Không có quyền phê duyệt hợp đồng này');
     }
 
-    async saveStage(id: string, stage: string, data: { data: any }): Promise<ApiResponse<{ ok: boolean; savedAt: string }>> {
-        return this.request.private.patch<{ ok: boolean; savedAt: string }, { data: any }>(`${this.baseUrl}/${id}/stage/${stage}/save`, data);
+    const response = await this.post<Contract>(`/${id}/approve`, { comment });
+    return response;
+  }
+
+  async rejectContract(id: number, reason: string): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canRejectContract(id)) {
+      throw new Error('Không có quyền từ chối hợp đồng này');
     }
 
-    async getStageData<TStage>(id: string, stage: string): Promise<ApiResponse<TStage>> {
-        return this.request.private.get<TStage>(`${this.baseUrl}/${id}/stage/${stage}`);
+    const response = await this.post<Contract>(`/${id}/reject`, { reason });
+    return response;
+  }
+
+  async requestChanges(id: number, changes: string): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canApproveContract(id)) {
+      throw new Error('Không có quyền yêu cầu chỉnh sửa hợp đồng này');
     }
 
-    async transitionStage(id: string, from: string, to: string): Promise<ApiResponse<{ ok: boolean; current_stage: string }>> {
-        return this.request.private.post<{ ok: boolean; current_stage: string }, { from: string; to: string }>(
-            `${this.baseUrl}/${id}/transition`,
-            { from, to },
-        );
+    const response = await this.post<Contract>(`/${id}/request-changes`, { changes });
+    return response;
+  }
+
+  // ==================== MILESTONE MANAGEMENT ====================
+
+  async createMilestone(contractId: number, data: any): Promise<{ data: Milestone }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền tạo milestone');
     }
 
-    async preview<TPreview>(id: string): Promise<ApiResponse<TPreview>> {
-        return this.request.private.get<TPreview>(`${this.baseUrl}/${id}/preview`);
+    const response = await this.post<Milestone>(`/${contractId}/milestones`, data);
+    return response;
+  }
+
+  async updateMilestone(contractId: number, milestoneId: number, data: any): Promise<{ data: Milestone }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền cập nhật milestone');
     }
 
-    // ===== VERSIONING =====
-    async createVersion<TVersion>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TVersion>> {
-        return this.request.private.post<TVersion, Record<string, unknown>>(`${this.baseUrl}/${id}/versions`, data);
+    const response = await this.put<Milestone>(`/${contractId}/milestones/${milestoneId}`, data);
+    return response;
+  }
+
+  async deleteMilestone(contractId: number, milestoneId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền xóa milestone');
     }
 
-    async listVersions<TVersion>(id: string): Promise<ApiResponse<TVersion[]>> {
-        return this.request.private.get<TVersion[]>(`${this.baseUrl}/${id}/versions`);
+    const response = await this.delete<{ message: string }>(`/${contractId}/milestones/${milestoneId}`);
+    return response;
+  }
+
+  async listMilestones(contractId: number): Promise<{ data: Milestone[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem milestones');
     }
 
-    async getVersion<TVersion>(id: string, vid: string): Promise<ApiResponse<TVersion>> {
-        return this.request.private.get<TVersion>(`${this.baseUrl}/${id}/versions/${vid}`);
+    const response = await this.get<Milestone[]>(`/${contractId}/milestones`);
+    return response;
+  }
+
+  // ==================== TASK MANAGEMENT ====================
+
+  async createTask(contractId: number, data: any): Promise<{ data: Task }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền tạo task');
     }
 
-    async publishVersion(id: string, vid: string): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.post<{ ok: boolean }>(`${this.baseUrl}/${id}/versions/${vid}/publish`);
+    const response = await this.post<Task>(`/${contractId}/tasks`, data);
+    return response;
+  }
+
+  async updateTask(contractId: number, taskId: number, data: any): Promise<{ data: Task }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền cập nhật task');
     }
 
-    async rollbackVersion(id: string, vid: string): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.post<{ ok: boolean }>(`${this.baseUrl}/${id}/versions/${vid}/rollback`);
+    const response = await this.put<Task>(`/${contractId}/tasks/${taskId}`, data);
+    return response;
+  }
+
+  async deleteTask(contractId: number, taskId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền xóa task');
     }
 
-    // ===== MILESTONES & TASKS =====
-    async createMilestone<TMilestone>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TMilestone>> {
-        return this.request.private.post<TMilestone, Record<string, unknown>>(`${this.baseUrl}/${id}/milestones`, data);
+    const response = await this.delete<{ message: string }>(`/${contractId}/tasks/${taskId}`);
+    return response;
+  }
+
+  async listTasks(contractId: number): Promise<{ data: Task[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem tasks');
     }
 
-    async listMilestones<TMilestone>(id: string): Promise<ApiResponse<TMilestone[]>> {
-        return this.request.private.get<TMilestone[]>(`${this.baseUrl}/${id}/milestones`);
+    const response = await this.get<Task[]>(`/${contractId}/tasks`);
+    return response;
+  }
+
+  // ==================== FILE MANAGEMENT ====================
+
+  async uploadFile(contractId: number, file: File): Promise<{ data: ContractFile }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền upload file');
     }
 
-    async updateMilestone<TMilestone>(mid: string, data: Record<string, unknown>): Promise<ApiResponse<TMilestone>> {
-        return this.request.private.patch<TMilestone, Record<string, unknown>>(`${this.baseUrl}/milestones/${mid}`, data);
-        }
+    const formData = new FormData();
+    formData.append('file', file);
 
-    async deleteMilestone(mid: string): Promise<ApiResponse<{ message: string }>> {
-        return this.request.private.delete<{ message: string }>(`${this.baseUrl}/milestones/${mid}`);
+    const response = await this.post<ContractFile>(`/${contractId}/files`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response;
+  }
+
+  async deleteFile(contractId: number, fileId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền xóa file');
     }
 
-    async createTask<TTask>(mid: string, data: Record<string, unknown>): Promise<ApiResponse<TTask>> {
-        return this.request.private.post<TTask, Record<string, unknown>>(`${this.baseUrl}/milestones/${mid}/tasks`, data);
+    const response = await this.delete<{ message: string }>(`/${contractId}/files/${fileId}`);
+    return response;
+  }
+
+  async listFiles(contractId: number): Promise<{ data: ContractFile[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem files');
     }
 
-    async listTasks<TTask>(mid: string): Promise<ApiResponse<TTask[]>> {
-        return this.request.private.get<TTask[]>(`${this.baseUrl}/milestones/${mid}/tasks`);
+    const response = await this.get<ContractFile[]>(`/${contractId}/files`);
+    return response;
+  }
+
+  // ==================== COLLABORATOR MANAGEMENT ====================
+
+  async addCollaborator(contractId: number, data: any): Promise<{ data: Collaborator }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền thêm collaborator');
     }
 
-    async updateTask<TTask>(tid: string, data: Record<string, unknown>): Promise<ApiResponse<TTask>> {
-        return this.request.private.patch<TTask, Record<string, unknown>>(`${this.baseUrl}/tasks/${tid}`, data);
+    const response = await this.post<Collaborator>(`/${contractId}/collaborators`, data);
+    return response;
+  }
+
+  async updateCollaborator(contractId: number, collaboratorId: number, data: any): Promise<{ data: Collaborator }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền cập nhật collaborator');
     }
 
-    async deleteTask(tid: string): Promise<ApiResponse<{ message: string }>> {
-        return this.request.private.delete<{ message: string }>(`${this.baseUrl}/tasks/${tid}`);
+    const response = await this.put<Collaborator>(`/${contractId}/collaborators/${collaboratorId}`, data);
+    return response;
+  }
+
+  async removeCollaborator(contractId: number, collaboratorId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền xóa collaborator');
     }
 
-    // ===== COLLABORATORS =====
-    async addCollaborator<TCollaborator>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TCollaborator>> {
-        return this.request.private.post<TCollaborator, Record<string, unknown>>(`${this.baseUrl}/${id}/collaborators`, data);
+    const response = await this.delete<{ message: string }>(`/${contractId}/collaborators/${collaboratorId}`);
+    return response;
+  }
+
+  async listCollaborators(contractId: number): Promise<{ data: Collaborator[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem collaborators');
     }
 
-    async listCollaborators<TCollaborator>(id: string): Promise<ApiResponse<TCollaborator[]>> {
-        return this.request.private.get<TCollaborator[]>(`${this.baseUrl}/${id}/collaborators`);
+    const response = await this.get<Collaborator[]>(`/${contractId}/collaborators`);
+    return response;
+  }
+
+  async transferOwnership(contractId: number, userId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền chuyển quyền sở hữu');
     }
 
-    async updateCollaborator<TCollaborator>(cid: string, data: Record<string, unknown>): Promise<ApiResponse<TCollaborator>> {
-        return this.request.private.patch<TCollaborator, Record<string, unknown>>(`${this.baseUrl}/collaborators/${cid}`, data);
+    const response = await this.post<{ message: string }>(`/${contractId}/transfer-ownership`, { userId });
+    return response;
+  }
+
+  // ==================== AUDIT LOGS ====================
+
+  async getAuditLogs(contractId: number, filters?: any, pagination?: any): Promise<{ data: { logs: AuditLog[]; total: number } }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem audit logs');
     }
 
-    async removeCollaborator(cid: string): Promise<ApiResponse<{ message: string }>> {
-        return this.request.private.delete<{ message: string }>(`${this.baseUrl}/collaborators/${cid}`);
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value.toString());
+      });
+    }
+    if (pagination) {
+      params.append('page', pagination.page?.toString() || '1');
+      params.append('limit', pagination.limit?.toString() || '10');
     }
 
-    // ===== FILES =====
-    async uploadFile<TFile>(id: string, data: FormData): Promise<ApiResponse<TFile>> {
-        return this.request.private.post<TFile, FormData>(`${this.baseUrl}/${id}/files`, data);
+    const response = await this.get<{ logs: AuditLog[]; total: number }>(`/${contractId}/audit?${params.toString()}`);
+    return response;
+  }
+
+  async getAuditSummary(contractId: number): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem audit summary');
     }
 
-    async listFiles<TFile>(id: string): Promise<ApiResponse<TFile[]>> {
-        return this.request.private.get<TFile[]>(`${this.baseUrl}/${id}/files`);
+    const response = await this.get<any>(`/${contractId}/audit/summary`);
+    return response;
+  }
+
+  // ==================== EXPORT & REPORTING ====================
+
+  async exportContract(id: number, format: string): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canExportContract(id)) {
+      throw new Error('Không có quyền export hợp đồng');
     }
 
-    async deleteFile(fid: string): Promise<ApiResponse<{ message: string }>> {
-        return this.request.private.delete<{ message: string }>(`${this.baseUrl}/files/${fid}`);
+    const response = await this.get<any>(`/${id}/export?format=${format}`);
+    return response;
+  }
+
+  async getContractStatistics(): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canViewDashboard()) {
+      throw new Error('Không có quyền xem thống kê');
     }
 
-    // ===== APPROVAL =====
-    async approveContract(id: string): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.post<{ ok: boolean }>(`${this.baseUrl}/${id}/approve`);
+    const response = await this.get<any>('/statistics');
+    return response;
+  }
+
+  // ==================== DRAFT MANAGEMENT ====================
+
+  async saveDraft(contractId: number, stage: string, data: any): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền lưu draft');
     }
 
-    async rejectContract(id: string, reason: string): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.post<{ ok: boolean }, { reason: string }>(`${this.baseUrl}/${id}/reject`, { reason });
+    const response = await this.post<any>(`/${contractId}/drafts`, { stage, data });
+    return response;
+  }
+
+  async getDraft(contractId: number, stage: string): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem draft');
     }
 
-    async requestChanges(id: string, changes: string[]): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.post<{ ok: boolean }, { changes: string[] }>(`${this.baseUrl}/${id}/request-changes`, { changes });
+    const response = await this.get<any>(`/${contractId}/drafts/${stage}`);
+    return response;
+  }
+
+  async listDrafts(contractId: number): Promise<{ data: any[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem drafts');
     }
 
-    // ===== EXPORT/PRINT =====
-    async exportPdf(id: string): Promise<ApiResponse<Blob>> {
-        return this.request.private.get<Blob>(`${this.baseUrl}/${id}/export/pdf`);
+    const response = await this.get<any[]>(`/${contractId}/drafts`);
+    return response;
+  }
+
+  // ==================== VERSION MANAGEMENT ====================
+
+  async createVersion(contractId: number, data: any): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canUpdateContract(contractId)) {
+      throw new Error('Không có quyền tạo version');
     }
 
-    async exportDocx(id: string): Promise<ApiResponse<Blob>> {
-        return this.request.private.get<Blob>(`${this.baseUrl}/${id}/export/docx`);
+    const response = await this.post<any>(`/${contractId}/versions`, data);
+    return response;
+  }
+
+  async listVersions(contractId: number): Promise<{ data: any[] }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem versions');
     }
 
-    async printContract<TPrint>(id: string): Promise<ApiResponse<TPrint>> {
-        return this.request.private.get<TPrint>(`${this.baseUrl}/${id}/print`);
+    const response = await this.get<any[]>(`/${contractId}/versions`);
+    return response;
+  }
+
+  async getVersion(contractId: number, versionId: number): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canReadContract(contractId)) {
+      throw new Error('Không có quyền xem version');
     }
 
-    // ===== AUDIT/ANALYTICS =====
-    async getAuditLogs<TAudit>(id: string): Promise<ApiResponse<TAudit[]>> {
-        return this.request.private.get<TAudit[]>(`${this.baseUrl}/${id}/audit`);
+    const response = await this.get<any>(`/${contractId}/versions/${versionId}`);
+    return response;
+  }
+
+  // ==================== TEMPLATE MANAGEMENT ====================
+
+  async listTemplates(filters?: any): Promise<{ data: any[] }> {
+    // Check permission
+    if (!authCoreService.canManageTemplates()) {
+      throw new Error('Không có quyền xem templates');
     }
 
-    async getAnalytics<TAnalytics>(id: string): Promise<ApiResponse<TAnalytics>> {
-        return this.request.private.get<TAnalytics>(`${this.baseUrl}/${id}/analytics`);
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value.toString());
+      });
     }
 
-    async getDashboardStats<TStats>(): Promise<ApiResponse<TStats>> {
-        return this.request.private.get<TStats>(`${this.baseUrl}/dashboard/stats`);
+    const response = await this.get<any[]>(`/templates?${params.toString()}`);
+    return response;
+  }
+
+  async getTemplate(templateId: number): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canManageTemplates()) {
+      throw new Error('Không có quyền xem template');
     }
 
-    // ===== TEMPLATES =====
-    async listTemplates<TTemplate>(params?: Record<string, string | number | boolean>): Promise<ApiResponse<TTemplate[]>> {
-        const url = this.buildUrl(`${this.baseUrl}/templates`, params || {});
-        return this.request.private.get<TTemplate[]>(url);
+    const response = await this.get<any>(`/templates/${templateId}`);
+    return response;
+  }
+
+  async createTemplate(data: any): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canManageTemplates()) {
+      throw new Error('Không có quyền tạo template');
     }
 
-    async getTemplate<TTemplate>(tid: string): Promise<ApiResponse<TTemplate>> {
-        return this.request.private.get<TTemplate>(`${this.baseUrl}/templates/${tid}`);
+    const response = await this.post<any>('/templates', data);
+    return response;
+  }
+
+  async updateTemplate(templateId: number, data: any): Promise<{ data: any }> {
+    // Check permission
+    if (!authCoreService.canManageTemplates()) {
+      throw new Error('Không có quyền cập nhật template');
     }
 
-    async createTemplate<TTemplate>(data: Record<string, unknown>): Promise<ApiResponse<TTemplate>> {
-        return this.request.private.post<TTemplate, Record<string, unknown>>(`${this.baseUrl}/templates`, data);
+    const response = await this.put<any>(`/templates/${templateId}`, data);
+    return response;
+  }
+
+  async deleteTemplate(templateId: number): Promise<{ data: { message: string } }> {
+    // Check permission
+    if (!authCoreService.canManageTemplates()) {
+      throw new Error('Không có quyền xóa template');
     }
 
-    async updateTemplate<TTemplate>(tid: string, data: Record<string, unknown>): Promise<ApiResponse<TTemplate>> {
-        return this.request.private.patch<TTemplate, Record<string, unknown>>(`${this.baseUrl}/templates/${tid}`, data);
-    }
-
-    async deleteTemplate(tid: string): Promise<ApiResponse<{ ok: boolean }>> {
-        return this.request.private.delete<{ ok: boolean }>(`${this.baseUrl}/templates/${tid}`);
-    }
-
-    // ===== NOTIFICATIONS & REMINDERS =====
-    async createNotification<TNotification>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TNotification>> {
-        return this.request.private.post<TNotification, Record<string, unknown>>(`${this.baseUrl}/${id}/notifications`, data);
-    }
-
-    async listNotifications<TNotification>(id: string): Promise<ApiResponse<TNotification[]>> {
-        return this.request.private.get<TNotification[]>(`${this.baseUrl}/${id}/notifications`);
-    }
-
-    async createReminder<TReminder>(id: string, data: Record<string, unknown>): Promise<ApiResponse<TReminder>> {
-        return this.request.private.post<TReminder, Record<string, unknown>>(`${this.baseUrl}/${id}/reminders`, data);
-    }
-
-    async listReminders<TReminder>(id: string): Promise<ApiResponse<TReminder[]>> {
-        return this.request.private.get<TReminder[]>(`${this.baseUrl}/${id}/reminders`);
-    }
+    const response = await this.delete<{ message: string }>(`/templates/${templateId}`);
+    return response;
+  }
 }
 
 export const contractService = new ContractService();

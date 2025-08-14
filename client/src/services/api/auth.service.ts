@@ -1,15 +1,17 @@
 import { BaseService } from './base.service';
-import type { 
-  LoginCredentials, 
-  RegisterData, 
-  AuthResponse, 
-  RefreshTokenResponse, 
+import type {
+  LoginCredentials,
+  RegisterData,
+  AuthResponse,
+  RefreshTokenResponse,
   LogoutResponse,
   User,
   ChangePasswordData,
   UpdateProfileData,
   ForgotPasswordData,
-  ResetPasswordData
+  ResetPasswordData,
+  UserPermissions,
+  UserRole
 } from '~/types/auth/auth.types';
 
 class AuthService extends BaseService {
@@ -19,7 +21,7 @@ class AuthService extends BaseService {
 
   async login(credentials: LoginCredentials): Promise<{ data: AuthResponse }> {
     const response = await this.post<AuthResponse>('/login', credentials, {
-      withCredentials: true // Important for httpOnly cookies
+      withCredentials: true
     });
     return response;
   }
@@ -47,6 +49,13 @@ class AuthService extends BaseService {
 
   async getCurrentUser(): Promise<{ data: { user: User } }> {
     const response = await this.get<{ user: User }>('/me', {
+      withCredentials: true
+    });
+    return response;
+  }
+
+  async getUserPermissions(): Promise<{ data: { permissions: UserPermissions; roles: UserRole[] } }> {
+    const response = await this.get<{ permissions: UserPermissions; roles: UserRole[] }>('/permissions', {
       withCredentials: true
     });
     return response;
@@ -89,7 +98,7 @@ class AuthService extends BaseService {
 
   async updateProfile(data: UpdateProfileData): Promise<{ data: User }> {
     const formData = new FormData();
-    
+
     if (data.full_name) formData.append('full_name', data.full_name);
     if (data.email) formData.append('email', data.email);
     if (data.avatar) formData.append('avatar', data.avatar);

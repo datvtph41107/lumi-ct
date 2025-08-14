@@ -5,14 +5,25 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthCoreService } from '../../core/services/auth-core.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { PermissionGuard } from '../../core/guards/permission.guard';
 import { User } from '../../core/domain/user/user.entity';
 import { UserSession } from '../../core/domain/auth/user-session.entity';
+import { Role } from '../../core/domain/auth/role.entity';
+import { Permission } from '../../core/domain/auth/permission.entity';
+import { UserRole } from '../../core/domain/auth/user-role.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserSession]),
+    TypeOrmModule.forFeature([
+      User, 
+      UserSession, 
+      Role, 
+      Permission, 
+      UserRole
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -26,7 +37,19 @@ import { UserSession } from '../../core/domain/auth/user-session.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
-  exports: [AuthService, JwtStrategy, JwtRefreshStrategy],
+  providers: [
+    AuthService, 
+    AuthCoreService,
+    JwtStrategy, 
+    JwtRefreshStrategy,
+    PermissionGuard
+  ],
+  exports: [
+    AuthService, 
+    AuthCoreService,
+    JwtStrategy, 
+    JwtRefreshStrategy,
+    PermissionGuard
+  ],
 })
 export class AuthModule {}

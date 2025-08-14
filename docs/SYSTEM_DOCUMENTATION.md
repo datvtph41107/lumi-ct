@@ -1,728 +1,788 @@
-# Hệ Thống Quản Lý Hợp Đồng - Documentation
+# 📋 HỆ THỐNG QUẢN LÝ HỢP ĐỒNG - DOCUMENTATION TOÀN DIỆN
 
-## 📋 Mục Lục
+## 🏗️ **KIẾN TRÚC TỔNG QUAN**
 
-1. [Tổng Quan Hệ Thống](#tổng-quan-hệ-thống)
-2. [Kiến Trúc Hệ Thống](#kiến-trúc-hệ-thống)
-3. [Authentication & Authorization](#authentication--authorization)
-4. [Contract Management System](#contract-management-system)
-5. [Database Schema](#database-schema)
-6. [API Documentation](#api-documentation)
-7. [Frontend Architecture](#frontend-architecture)
-8. [Deployment Guide](#deployment-guide)
-9. [Security Considerations](#security-considerations)
-10. [Troubleshooting](#troubleshooting)
-
----
-
-## 🎯 Tổng Quan Hệ Thống
-
-### Mục Tiêu
-Hệ thống quản lý hợp đồng toàn diện với khả năng soạn thảo, quản lý và theo dõi hợp đồng theo quy trình chuyên nghiệp.
-
-### Tính Năng Chính
-- **Soạn thảo hợp đồng**: 3 phương thức (Basic Form, Editor, Upload File)
-- **Quản lý template**: Hệ thống template đa dạng
-- **Workflow theo giai đoạn**: 4 giai đoạn rõ ràng
-- **Collaboration**: Quản lý cộng tác viên
-- **Audit Trail**: Theo dõi lịch sử thay đổi
-- **Notification System**: Hệ thống thông báo thông minh
-
----
-
-## 🏗️ Kiến Trúc Hệ Thống
-
-### Backend (NestJS)
+### **Backend Architecture**
 ```
-server/
-├── src/
-│   ├── modules/
-│   │   ├── contract/           # Contract management
-│   │   ├── auth/              # Authentication
-│   │   ├── notification/      # Notification system
-│   │   └── user/              # User management
-│   ├── core/
-│   │   ├── domain/            # Domain entities
-│   │   ├── guards/            # Authorization guards
-│   │   └── interceptors/      # Cross-cutting concerns
-│   └── app.module.ts
+📁 server/src/
+├── 📁 core/                          # Core business logic
+│   ├── 📁 domain/                    # Database entities
+│   │   ├── 📁 auth/                  # Authentication entities
+│   │   ├── 📁 contract/              # Contract entities
+│   │   └── 📁 user/                  # User entities
+│   ├── 📁 services/                  # Core services
+│   ├── 📁 guards/                    # Authorization guards
+│   └── 📁 decorators/                # Custom decorators
+├── 📁 modules/                       # Feature modules
+│   ├── 📁 auth/                      # Authentication module
+│   ├── 📁 contract/                  # Contract management
+│   └── 📁 notification/              # Notification system
+└── 📁 app.module.ts                  # Root module
 ```
 
-### Frontend (React + TypeScript)
+### **Frontend Architecture**
 ```
-client/
-├── src/
-│   ├── page/Contract/         # Contract pages
-│   ├── components/            # Reusable components
-│   ├── services/api/          # API services
-│   ├── store/                 # State management
-│   ├── types/                 # TypeScript types
-│   └── contexts/              # React contexts
+📁 client/src/
+├── 📁 core/                          # Core functionality
+│   ├── 📁 auth/                      # Authentication core
+│   └── 📁 redux/                     # State management
+├── 📁 services/                      # API services
+├── 📁 components/                    # Reusable components
+├── 📁 page/                          # Page components
+│   └── 📁 Contract/                  # Contract pages
+└── 📁 types/                         # TypeScript types
 ```
 
----
+## 🔐 **AUTHENTICATION & AUTHORIZATION SYSTEM**
 
-## 🔐 Authentication & Authorization
+### **Backend Auth Core**
 
-### Authentication Flow
-1. **Login**: User đăng nhập với email/password
-2. **Token Generation**: Server tạo JWT access token và refresh token
-3. **HttpOnly Cookies**: Tokens được lưu trong httpOnly cookies
-4. **Auto Refresh**: Token tự động refresh trước khi hết hạn
-5. **Session Management**: Quản lý session an toàn
+#### **1. Entities**
+- **User**: Thông tin người dùng
+- **UserSession**: Quản lý phiên đăng nhập
+- **Role**: Định nghĩa vai trò
+- **Permission**: Quyền hạn chi tiết
+- **UserRole**: Liên kết user-role với scope
 
-### Authorization Levels
+#### **2. AuthCoreService**
 ```typescript
-enum UserRole {
-    ADMIN = 'admin',      // Toàn quyền
-    MANAGER = 'manager',  // Quản lý
-    USER = 'user'         // Người dùng thường
+// Core permission checking
+async hasPermission(userId: number, resource: string, action: string, context?: Record<string, any>): Promise<boolean>
+
+// Contract-specific permissions
+async canCreateContract(userId: number, contractType?: string): Promise<boolean>
+async canReadContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean>
+async canUpdateContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean>
+async canDeleteContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean>
+async canApproveContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean>
+async canRejectContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean>
+async canExportContract(userId: number, contractId: number): Promise<boolean>
+```
+
+#### **3. PermissionGuard**
+```typescript
+@RequirePermissions(
+  { resource: 'contract', action: 'create' },
+  { resource: 'template', action: 'manage' }
+)
+async createContract() {
+  // Implementation
 }
 ```
 
-### Protected Routes
-```typescript
-// Route với role requirement
-<ProtectedRoute requiredRole={['admin', 'manager']}>
-    <AdminDashboard />
-</ProtectedRoute>
-```
+### **Frontend Auth Core**
 
-### Core Authentication Components
-
-#### AuthContext
+#### **1. Redux Auth Slice**
 ```typescript
-interface AuthContextType {
-    user: User | null;
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    error: string | null;
-    login: (credentials: LoginCredentials) => Promise<void>;
-    logout: () => Promise<void>;
-    refreshToken: () => Promise<void>;
+interface AuthState {
+  user: User | null;
+  accessToken: string | null;
+  sessionId: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  error: string | null;
+  lastActivity: number;
+  idleTimeout: number;
+  isIdleWarningShown: boolean;
+  redirectPath: string | null;
+  
+  // Permission management
+  userPermissions: UserPermissions | null;
+  userRoles: UserRole[];
+  permissionCache: Map<string, boolean>;
+  isPermissionsLoaded: boolean;
 }
 ```
 
-#### AuthManager (Singleton)
+#### **2. AuthCoreService**
 ```typescript
-class AuthManager {
-    // Quản lý authentication state
-    // Auto token refresh
-    // Role-based access control
-    // Session management
-}
+// Permission checking
+hasPermission(resource: string, action: string, conditions?: Record<string, any>): boolean
+hasAnyPermission(permissions: PermissionCheck[]): boolean
+hasAllPermissions(permissions: PermissionCheck[]): boolean
+
+// Role checking
+hasRole(roleName: string, scope?: string, scopeId?: number): boolean
+hasAnyRole(roleNames: string[]): boolean
+hasAllRoles(roleNames: string[]): boolean
+
+// Contract-specific helpers
+canCreateContract(contractType?: string): boolean
+canReadContract(contractId?: number, context?: Record<string, any>): boolean
+canUpdateContract(contractId?: number, context?: Record<string, any>): boolean
+canDeleteContract(contractId?: number, context?: Record<string, any>): boolean
+canApproveContract(contractId?: number, context?: Record<string, any>): boolean
+canRejectContract(contractId?: number, context?: Record<string, any>): boolean
+canExportContract(contractId?: number): boolean
+canManageTemplates(): boolean
+canViewDashboard(dashboardType?: string): boolean
+canViewAnalytics(analyticsType?: string): boolean
 ```
 
----
-
-## 📄 Contract Management System
-
-### Workflow Stages
-1. **Stage 1 - Draft**: Chọn phương thức tạo hợp đồng
-2. **Stage 2 - Editor**: Soạn thảo nội dung
-3. **Stage 3 - Milestones**: Thiết lập mốc thời gian
-4. **Stage 4 - Review**: Xem lại và hoàn thành
-
-### Creation Methods
-
-#### 1. Basic Form
-- Form-based contract creation
-- Pre-defined fields
-- Auto-structure generation
-- Best for: Simple contracts
-
-#### 2. Editor (TipTap)
-- Rich text editor
-- Smart suggestions
-- Template integration
-- Best for: Complex contracts
-
-#### 3. Upload File
-- File upload (Word, PDF)
-- Content extraction
-- Convert to editor
-- Best for: Existing documents
-
-### Template System
-
-#### Template Types
+#### **3. PermissionGuard Components**
 ```typescript
-interface ContractTemplate {
-    id: string;
-    name: string;
-    description: string;
-    type: 'basic' | 'editor';
-    category: string;
-    fields?: TemplateField[];
-    content?: string;
-    variables?: string[];
-    is_public: boolean;
-}
+// Basic permission guard
+<PermissionGuard 
+  resource="contract" 
+  action="create" 
+  context={{ contractType: 'employment' }}
+>
+  <CreateContractButton />
+</PermissionGuard>
+
+// Contract-specific guards
+<ContractCreateGuard contractType="employment">
+  <CreateEmploymentContract />
+</ContractCreateGuard>
+
+<ContractReadGuard contractId={123}>
+  <ContractDetails />
+</ContractReadGuard>
+
+<ContractUpdateGuard contractId={123}>
+  <EditContractButton />
+</ContractUpdateGuard>
+
+<ContractDeleteGuard contractId={123}>
+  <DeleteContractButton />
+</ContractDeleteGuard>
+
+<ContractApproveGuard contractId={123}>
+  <ApproveButton />
+</ContractApproveGuard>
+
+<ContractRejectGuard contractId={123}>
+  <RejectButton />
+</ContractRejectGuard>
+
+// Role-based guards
+<ContractManagerGuard>
+  <AdminPanel />
+</ContractManagerGuard>
+
+<AccountingStaffGuard>
+  <FinancialReports />
+</AccountingStaffGuard>
+
+<HRStaffGuard>
+  <EmployeeContracts />
+</HRStaffGuard>
 ```
 
-#### Template Management
-- Create/Edit templates
-- Field configuration
-- Content templates
-- Variable system
-- Public/Private templates
+## 📄 **CONTRACT MANAGEMENT SYSTEM**
 
-### Collaboration Features
+### **Backend Contract Service**
 
-#### Collaborator Roles
+#### **1. CRUD Operations**
 ```typescript
-enum CollaboratorRole {
-    OWNER = 'owner',      // Chủ sở hữu
-    EDITOR = 'editor',    // Chỉnh sửa
-    REVIEWER = 'reviewer', // Xem lại
-    VIEWER = 'viewer'     // Chỉ xem
-}
+// Create contract with permission check
+async createContract(createDto: CreateContractDto, userId: number): Promise<Contract>
+
+// Get contract with permission check
+async getContract(id: number, userId: number): Promise<Contract>
+
+// Update contract with permission check
+async updateContract(id: number, updateDto: UpdateContractDto, userId: number): Promise<Contract>
+
+// Delete contract with permission check
+async deleteContract(id: number, userId: number): Promise<void>
+
+// List contracts with permission-based filtering
+async listContracts(filters: ContractFilters, pagination: ContractPagination, userId: number): Promise<{
+  data: Contract[];
+  total: number;
+  page: number;
+  limit: number;
+}>
 ```
 
-#### Permission System
-- Role-based permissions
-- Action-based access control
-- Ownership transfer
-- Audit logging
-
----
-
-## 🗄️ Database Schema
-
-### Core Entities
-
-#### Contract
-```sql
-CREATE TABLE contracts (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    content JSONB,
-    data JSONB,
-    created_by INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### ContractDraft
-```sql
-CREATE TABLE contract_drafts (
-    id UUID PRIMARY KEY,
-    contract_id UUID REFERENCES contracts(id),
-    stage VARCHAR(50) NOT NULL,
-    data JSONB,
-    version INTEGER DEFAULT 1,
-    created_by INTEGER NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Collaborator
-```sql
-CREATE TABLE collaborators (
-    id UUID PRIMARY KEY,
-    contract_id UUID REFERENCES contracts(id),
-    user_id INTEGER NOT NULL,
-    role VARCHAR(50) NOT NULL,
-    active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### AuditLog
-```sql
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY,
-    contract_id UUID REFERENCES contracts(id),
-    user_id INTEGER NOT NULL,
-    action VARCHAR(100) NOT NULL,
-    description TEXT,
-    meta JSONB,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-#### Notification & Reminder
-```sql
-CREATE TABLE contract_notifications (
-    id UUID PRIMARY KEY,
-    contract_id UUID REFERENCES contracts(id),
-    user_id INTEGER NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    title VARCHAR(255),
-    message TEXT,
-    scheduled_at TIMESTAMP,
-    sent_at TIMESTAMP
-);
-
-CREATE TABLE contract_reminders (
-    id UUID PRIMARY KEY,
-    contract_id UUID REFERENCES contracts(id),
-    user_id INTEGER NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    frequency VARCHAR(50) NOT NULL,
-    trigger_date TIMESTAMP NOT NULL,
-    status VARCHAR(50) NOT NULL
-);
-```
-
----
-
-## 🌐 API Documentation
-
-### Authentication Endpoints
-
-#### POST /auth/login
+#### **2. Workflow Operations**
 ```typescript
-// Request
-{
-    email: string;
-    password: string;
-    remember_me?: boolean;
-}
+// Submit for review
+async submitForReview(id: number, userId: number): Promise<Contract>
 
-// Response
-{
-    user: User;
-    message: string;
-}
+// Approve contract
+async approveContract(id: number, userId: number, comment?: string): Promise<Contract>
+
+// Reject contract
+async rejectContract(id: number, userId: number, reason: string): Promise<Contract>
+
+// Request changes
+async requestChanges(id: number, userId: number, changes: string): Promise<Contract>
 ```
 
-#### POST /auth/register
+#### **3. Milestone & Task Management**
 ```typescript
-// Request
-{
-    username: string;
-    email: string;
-    password: string;
-    confirm_password: string;
-    full_name: string;
-}
+// Milestone operations
+async createMilestone(contractId: number, milestoneData: any, userId: number): Promise<Milestone>
+async updateMilestone(milestoneId: number, updateData: any, userId: number): Promise<Milestone>
+async deleteMilestone(milestoneId: number, userId: number): Promise<void>
+
+// Task operations
+async createTask(contractId: number, taskData: any, userId: number): Promise<Task>
+async updateTask(contractId: number, taskId: number, data: any, userId: number): Promise<Task>
+async deleteTask(contractId: number, taskId: number, userId: number): Promise<void>
 ```
 
-#### POST /auth/refresh
+#### **4. File Management**
 ```typescript
-// Response
-{
-    user: User;
-    message: string;
-}
+// File operations
+async uploadFile(contractId: number, fileData: any, userId: number): Promise<ContractFile>
+async deleteFile(fileId: number, userId: number): Promise<void>
 ```
 
-### Contract Endpoints
-
-#### GET /contracts
+#### **5. Export & Reporting**
 ```typescript
-// Query Parameters
-{
-    page?: number;
-    limit?: number;
-    search?: string;
-    status?: string;
-    type?: string;
-}
+// Export operations
+async exportContract(id: number, format: string, userId: number): Promise<any>
 
-// Response
-{
-    data: Contract[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-    };
-}
+// Statistics
+async getContractStatistics(userId: number): Promise<any>
 ```
 
-#### POST /contracts
+### **Frontend Contract Service**
+
+#### **1. Service with Permission Integration**
 ```typescript
-// Request
-{
-    name: string;
-    description?: string;
-    type: string;
-    content?: string;
-    data?: object;
+class ContractService extends BaseService {
+  async createContract(data: CreateContractDto): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canCreateContract(data.type)) {
+      throw new Error('Không có quyền tạo hợp đồng');
+    }
+    const response = await this.post<Contract>('/', data);
+    return response;
+  }
+
+  async getContract(id: number): Promise<{ data: Contract }> {
+    // Check permission
+    if (!authCoreService.canReadContract(id)) {
+      throw new Error('Không có quyền xem hợp đồng này');
+    }
+    const response = await this.get<Contract>(`/${id}`);
+    return response;
+  }
+
+  // Similar pattern for all operations...
 }
 ```
 
-#### PUT /contracts/:id
+## 🔄 **WORKFLOW SYSTEM**
+
+### **Contract Workflow Stages**
+1. **Draft**: Soạn thảo hợp đồng
+2. **Review**: Chờ phê duyệt
+3. **Changes Requested**: Yêu cầu chỉnh sửa
+4. **Approved**: Đã phê duyệt
+5. **Rejected**: Từ chối
+6. **Active**: Đang hiệu lực
+7. **Expired**: Hết hạn
+8. **Terminated**: Chấm dứt
+
+### **Workflow Transitions**
 ```typescript
-// Request
-{
-    name?: string;
-    description?: string;
-    content?: string;
-    data?: object;
-}
+// Draft -> Review
+await contractService.submitForReview(contractId);
+
+// Review -> Approved
+await contractService.approveContract(contractId, comment);
+
+// Review -> Rejected
+await contractService.rejectContract(contractId, reason);
+
+// Review -> Changes Requested
+await contractService.requestChanges(contractId, changes);
+
+// Changes Requested -> Draft
+// User updates contract and resubmits
 ```
 
-### Draft Management
+## 👥 **COLLABORATOR MANAGEMENT**
 
-#### GET /contracts/:id/drafts
+### **Collaborator Roles**
+- **Owner**: Quyền sở hữu hoàn toàn
+- **Editor**: Có thể chỉnh sửa
+- **Reviewer**: Có thể phê duyệt
+- **Viewer**: Chỉ xem
+
+### **Collaborator Operations**
 ```typescript
-// Response
-{
-    data: ContractDraft[];
-}
+// Add collaborator
+async addCollaborator(contractId: number, data: any): Promise<{ data: Collaborator }>
+
+// Update collaborator
+async updateCollaborator(contractId: number, collaboratorId: number, data: any): Promise<{ data: Collaborator }>
+
+// Remove collaborator
+async removeCollaborator(contractId: number, collaboratorId: number): Promise<{ data: { message: string } }>
+
+// List collaborators
+async listCollaborators(contractId: number): Promise<{ data: Collaborator[] }>
+
+// Transfer ownership
+async transferOwnership(contractId: number, userId: number): Promise<{ data: { message: string } }>
 ```
 
-#### POST /contracts/:id/drafts
+## 📊 **AUDIT & ANALYTICS**
+
+### **Audit Logging**
 ```typescript
-// Request
-{
-    stage: string;
-    data: object;
-}
+// Every operation is logged
+await this.auditLogService.create({
+  contract_id: contractId,
+  user_id: userId,
+  action: 'CREATE_CONTRACT',
+  details: { contract_type: createDto.type, template_id: createDto.template_id }
+});
 ```
 
-### Collaboration
-
-#### GET /contracts/:id/collaborators
+### **Audit Operations**
 ```typescript
-// Response
-{
-    data: Collaborator[];
-}
+// Get contract audit logs
+async getAuditLogs(contractId: number, filters?: any, pagination?: any): Promise<{ data: { logs: AuditLog[]; total: number } }>
+
+// Get audit summary
+async getAuditSummary(contractId: number): Promise<{ data: any }>
 ```
 
-#### POST /contracts/:id/collaborators
+### **Analytics**
 ```typescript
-// Request
-{
-    user_id: number;
-    role: string;
-}
+// Contract statistics
+async getContractStatistics(userId: number): Promise<any>
+// Returns: { total, byStatus: { draft, pending, approved, rejected } }
 ```
 
-### Audit Logs
+## 🔔 **NOTIFICATION SYSTEM**
 
-#### GET /contracts/:id/audit
+### **Notification Types**
+- **Milestone Due**: Nhắc nhở milestone sắp đến hạn
+- **Task Due**: Nhắc nhở task sắp đến hạn
+- **Contract Expiring**: Hợp đồng sắp hết hạn
+- **Approval Required**: Cần phê duyệt
+- **Changes Requested**: Yêu cầu chỉnh sửa
+
+### **Notification Channels**
+- **Email**: Gửi email
+- **In-App**: Thông báo trong ứng dụng
+- **SMS**: Gửi SMS (nếu có)
+- **Push**: Push notification
+
+### **Reminder System**
 ```typescript
-// Query Parameters
-{
-    page?: number;
-    limit?: number;
-    action?: string;
-    user_id?: number;
-    date_from?: string;
-    date_to?: string;
-}
+// Create milestone reminder
+await this.notificationService.createMilestoneReminder(milestone);
 
-// Response
-{
-    data: AuditLog[];
-    pagination: PaginationInfo;
-}
+// Create task reminder
+await this.notificationService.createTaskReminder(task);
+
+// Cancel reminders
+await this.notificationService.cancelRemindersByMilestone(milestoneId);
+await this.notificationService.cancelRemindersByTask(taskId);
 ```
 
----
+## 📁 **FILE MANAGEMENT**
 
-## 🎨 Frontend Architecture
-
-### State Management
-
-#### Zustand Store
+### **File Operations**
 ```typescript
-interface ContractDraftStore {
-    // Current draft state
-    currentDraft: ContractDraft | null;
-    currentStage: string;
-    creationMethod: ContractCreationMethod | null;
-    
-    // UI state
-    hasUnsavedChanges: boolean;
-    isLoading: boolean;
-    
-    // Actions
-    setCurrentDraft: (draft: ContractDraft) => void;
-    nextStage: () => void;
-    previousStage: () => void;
-    saveStage: () => Promise<void>;
-    performAutoSave: () => Promise<void>;
-}
+// Upload file
+async uploadFile(contractId: number, file: File): Promise<{ data: ContractFile }>
+
+// Delete file
+async deleteFile(contractId: number, fileId: number): Promise<{ data: { message: string } }>
+
+// List files
+async listFiles(contractId: number): Promise<{ data: ContractFile[] }>
 ```
 
-#### Auto-save Hook
+### **File Types Supported**
+- **PDF**: Tài liệu PDF
+- **DOCX**: Tài liệu Word
+- **XLSX**: Bảng tính Excel
+- **Images**: Hình ảnh (JPG, PNG, etc.)
+- **Other**: Các file khác
+
+## 📋 **TEMPLATE MANAGEMENT**
+
+### **Template Types**
+- **Basic**: Template với form fields
+- **Editor**: Template với HTML content
+- **Mixed**: Kết hợp cả hai
+
+### **Template Operations**
 ```typescript
-const useAutoSave = () => {
-    // Auto-save on content change
-    // Keyboard shortcuts (Ctrl+S)
-    // Before unload warning
-    // Periodic auto-save
-};
+// List templates
+async listTemplates(filters?: any): Promise<{ data: any[] }>
+
+// Get template
+async getTemplate(templateId: number): Promise<{ data: any }>
+
+// Create template
+async createTemplate(data: any): Promise<{ data: any }>
+
+// Update template
+async updateTemplate(templateId: number, data: any): Promise<{ data: any }>
+
+// Delete template
+async deleteTemplate(templateId: number): Promise<{ data: { message: string } }>
 ```
 
-### Component Structure
+## 🔄 **VERSION MANAGEMENT**
 
-#### Contract Pages
-```
-page/Contract/
-├── CreateContract/          # Method selection
-├── ContractCollection/      # Template & draft selection
-├── ContractDraft/          # Main drafting interface
-└── TemplateManagement/     # Template management
-```
-
-#### Components
-```
-components/
-├── stages/                 # Stage components
-│   ├── StageDraft/
-│   ├── StageMilestones/
-│   └── StageReview/
-├── DaftContract/          # Editor components
-│   ├── EditorPage/
-│   ├── SidebarLeft/
-│   └── SidebarRight/
-└── CollaboratorManagement/
-```
-
-### Routing
+### **Version Operations**
 ```typescript
-// Public routes
-/login
-/register
-/forgot-password
+// Create version
+async createVersion(contractId: number, data: any): Promise<{ data: any }>
 
-// Protected routes
-/
-/contracts
-/contracts/collection
-/contracts/draft
-/contracts/draft/:id
-/contracts/templates
-/profile
-/settings
+// List versions
+async listVersions(contractId: number): Promise<{ data: any[] }>
 
-// Admin routes
-/admin
+// Get version
+async getVersion(contractId: number, versionId: number): Promise<{ data: any }>
 ```
 
----
+### **Version Features**
+- **Auto-increment**: Tự động tăng version number
+- **Change tracking**: Ghi lại thay đổi
+- **Rollback**: Khôi phục version cũ
+- **Comparison**: So sánh giữa các version
 
-## 🚀 Deployment Guide
+## 📊 **DASHBOARD & REPORTING**
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- Redis (for caching)
-- Docker (optional)
+### **Dashboard Features**
+- **Contract Statistics**: Thống kê hợp đồng
+- **Recent Activity**: Hoạt động gần đây
+- **Pending Approvals**: Chờ phê duyệt
+- **Expiring Contracts**: Hợp đồng sắp hết hạn
+- **User Activity**: Hoạt động người dùng
 
-### Environment Variables
+### **Reporting**
+- **Contract Reports**: Báo cáo hợp đồng
+- **User Reports**: Báo cáo người dùng
+- **Audit Reports**: Báo cáo audit
+- **Export Options**: Tùy chọn xuất báo cáo
 
-#### Backend (.env)
+## 🔧 **SYSTEM CONFIGURATION**
+
+### **Environment Variables**
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/contract_db
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=contract_management
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=password
 
 # JWT
 JWT_SECRET=your-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-JWT_EXPIRES_IN=30m
+JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-
-# Redis
-REDIS_URL=redis://localhost:6379
 
 # Email
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+SMTP_PASS=your-password
 
 # File Upload
-UPLOAD_PATH=./uploads
 MAX_FILE_SIZE=10485760
+UPLOAD_PATH=./uploads
+
+# Session
+SESSION_SECRET=your-session-secret
+SESSION_MAX_AGE=86400000
 ```
 
-#### Frontend (.env)
-```env
-REACT_APP_API_URL=http://localhost:3001/api
-REACT_APP_WS_URL=ws://localhost:3001
-```
-
-### Docker Deployment
-
-#### docker-compose.yml
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:14
-    environment:
-      POSTGRES_DB: contract_db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  backend:
-    build: ./server
-    environment:
-      - NODE_ENV=production
-    depends_on:
-      - postgres
-      - redis
-    ports:
-      - "3001:3001"
-
-  frontend:
-    build: ./client
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
-```
-
-### Production Checklist
-- [ ] SSL/TLS certificates
-- [ ] Database backups
-- [ ] Environment variables
-- [ ] Logging configuration
-- [ ] Monitoring setup
-- [ ] Security headers
-- [ ] Rate limiting
-- [ ] CORS configuration
-
----
-
-## 🔒 Security Considerations
-
-### Authentication Security
-- **HttpOnly Cookies**: Prevent XSS attacks
-- **CSRF Protection**: CSRF tokens
-- **Rate Limiting**: Prevent brute force
-- **Password Hashing**: bcrypt with salt
-- **Session Management**: Secure session handling
-
-### Authorization Security
-- **Role-based Access Control**: Granular permissions
-- **Resource-level Authorization**: Contract ownership
-- **Audit Logging**: Complete action tracking
-- **Input Validation**: Server-side validation
-
-### Data Security
-- **SQL Injection Prevention**: Parameterized queries
-- **XSS Prevention**: Input sanitization
-- **File Upload Security**: Type validation
-- **Data Encryption**: Sensitive data encryption
-
-### Network Security
-- **HTTPS Only**: TLS encryption
-- **Security Headers**: CSP, HSTS, etc.
-- **CORS Configuration**: Proper origin control
-- **API Rate Limiting**: Prevent abuse
-
----
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-#### Authentication Issues
-```bash
-# Check JWT token
-jwt.decode(token, verify=False)
-
-# Check cookies
-document.cookie
-
-# Check network requests
-Network tab in DevTools
-```
-
-#### Database Issues
-```sql
--- Check connections
-SELECT * FROM pg_stat_activity;
-
--- Check locks
-SELECT * FROM pg_locks;
-
--- Check slow queries
-SELECT * FROM pg_stat_statements ORDER BY mean_time DESC;
-```
-
-#### Performance Issues
-```bash
-# Check memory usage
-htop
-
-# Check disk usage
-df -h
-
-# Check logs
-tail -f logs/app.log
-```
-
-### Debug Mode
+### **Database Configuration**
 ```typescript
-// Enable debug logging
-DEBUG=* npm run dev
-
-// Enable SQL logging
-LOG_LEVEL=debug
+// TypeORM configuration
+{
+  type: 'postgres',
+  host: process.env.DATABASE_HOST,
+  port: parseInt(process.env.DATABASE_PORT),
+  username: process.env.DATABASE_USERNAME,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME,
+  entities: [__dirname + '/**/*.entity{.ts,.js}'],
+  synchronize: false,
+  logging: process.env.NODE_ENV === 'development',
+}
 ```
 
-### Monitoring
-- **Application Metrics**: Response times, error rates
-- **Database Metrics**: Query performance, connections
-- **System Metrics**: CPU, memory, disk usage
-- **User Metrics**: Active users, feature usage
+## 🚀 **DEPLOYMENT**
+
+### **Backend Deployment**
+```bash
+# Install dependencies
+npm install
+
+# Build application
+npm run build
+
+# Run migrations
+npm run migration:run
+
+# Start application
+npm run start:prod
+```
+
+### **Frontend Deployment**
+```bash
+# Install dependencies
+npm install
+
+# Build application
+npm run build
+
+# Serve static files
+npm run serve
+```
+
+### **Docker Deployment**
+```dockerfile
+# Backend Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist ./dist
+EXPOSE 3000
+CMD ["node", "dist/main"]
+```
+
+## 🔒 **SECURITY CONSIDERATIONS**
+
+### **Authentication Security**
+- **HttpOnly Cookies**: Bảo mật token
+- **JWT Expiration**: Token có thời hạn
+- **Refresh Token Rotation**: Xoay vòng refresh token
+- **Session Management**: Quản lý phiên đăng nhập
+
+### **Authorization Security**
+- **Permission-based Access**: Kiểm tra quyền hạn
+- **Role-based Access**: Kiểm tra vai trò
+- **Context-aware Permissions**: Quyền hạn theo ngữ cảnh
+- **Audit Logging**: Ghi lại mọi hoạt động
+
+### **Data Security**
+- **Input Validation**: Kiểm tra đầu vào
+- **SQL Injection Prevention**: Ngăn chặn SQL injection
+- **XSS Prevention**: Ngăn chặn XSS
+- **CSRF Protection**: Bảo vệ CSRF
+
+## 🧪 **TESTING**
+
+### **Backend Testing**
+```bash
+# Unit tests
+npm run test
+
+# Integration tests
+npm run test:e2e
+
+# Coverage
+npm run test:cov
+```
+
+### **Frontend Testing**
+```bash
+# Unit tests
+npm run test
+
+# Integration tests
+npm run test:integration
+
+# E2E tests
+npm run test:e2e
+```
+
+## 📈 **PERFORMANCE OPTIMIZATION**
+
+### **Backend Optimization**
+- **Database Indexing**: Tạo index cho database
+- **Query Optimization**: Tối ưu hóa query
+- **Caching**: Cache dữ liệu
+- **Connection Pooling**: Pool kết nối database
+
+### **Frontend Optimization**
+- **Code Splitting**: Chia nhỏ code
+- **Lazy Loading**: Load theo demand
+- **Image Optimization**: Tối ưu hóa hình ảnh
+- **Bundle Optimization**: Tối ưu hóa bundle
+
+## 🔧 **MAINTENANCE & MONITORING**
+
+### **Logging**
+- **Application Logs**: Log ứng dụng
+- **Error Logs**: Log lỗi
+- **Audit Logs**: Log audit
+- **Performance Logs**: Log hiệu suất
+
+### **Monitoring**
+- **Health Checks**: Kiểm tra sức khỏe
+- **Performance Monitoring**: Giám sát hiệu suất
+- **Error Tracking**: Theo dõi lỗi
+- **User Analytics**: Phân tích người dùng
+
+## 📚 **API DOCUMENTATION**
+
+### **Authentication Endpoints**
+```
+POST /auth/login - Đăng nhập
+POST /auth/register - Đăng ký
+POST /auth/logout - Đăng xuất
+POST /auth/refresh - Làm mới token
+GET /auth/me - Lấy thông tin user
+GET /auth/permissions - Lấy quyền hạn
+```
+
+### **Contract Endpoints**
+```
+GET /contracts - Danh sách hợp đồng
+POST /contracts - Tạo hợp đồng
+GET /contracts/:id - Chi tiết hợp đồng
+PUT /contracts/:id - Cập nhật hợp đồng
+DELETE /contracts/:id - Xóa hợp đồng
+POST /contracts/:id/submit - Submit phê duyệt
+POST /contracts/:id/approve - Phê duyệt
+POST /contracts/:id/reject - Từ chối
+POST /contracts/:id/request-changes - Yêu cầu chỉnh sửa
+```
+
+### **Milestone Endpoints**
+```
+GET /contracts/:id/milestones - Danh sách milestone
+POST /contracts/:id/milestones - Tạo milestone
+PUT /contracts/:id/milestones/:milestoneId - Cập nhật milestone
+DELETE /contracts/:id/milestones/:milestoneId - Xóa milestone
+```
+
+### **Task Endpoints**
+```
+GET /contracts/:id/tasks - Danh sách task
+POST /contracts/:id/tasks - Tạo task
+PUT /contracts/:id/tasks/:taskId - Cập nhật task
+DELETE /contracts/:id/tasks/:taskId - Xóa task
+```
+
+### **File Endpoints**
+```
+GET /contracts/:id/files - Danh sách file
+POST /contracts/:id/files - Upload file
+DELETE /contracts/:id/files/:fileId - Xóa file
+```
+
+### **Collaborator Endpoints**
+```
+GET /contracts/:id/collaborators - Danh sách collaborator
+POST /contracts/:id/collaborators - Thêm collaborator
+PUT /contracts/:id/collaborators/:collaboratorId - Cập nhật collaborator
+DELETE /contracts/:id/collaborators/:collaboratorId - Xóa collaborator
+POST /contracts/:id/transfer-ownership - Chuyển quyền sở hữu
+```
+
+### **Audit Endpoints**
+```
+GET /contracts/:id/audit - Audit logs
+GET /contracts/:id/audit/summary - Audit summary
+```
+
+### **Template Endpoints**
+```
+GET /templates - Danh sách template
+POST /templates - Tạo template
+GET /templates/:id - Chi tiết template
+PUT /templates/:id - Cập nhật template
+DELETE /templates/:id - Xóa template
+```
+
+## 🎯 **USE CASES**
+
+### **1. Tạo Hợp Đồng Mới**
+1. User chọn template
+2. Điền thông tin cơ bản
+3. Soạn thảo nội dung
+4. Thiết lập milestones và tasks
+5. Thêm collaborators
+6. Submit để phê duyệt
+
+### **2. Phê Duyệt Hợp Đồng**
+1. Reviewer nhận thông báo
+2. Xem xét hợp đồng
+3. Phê duyệt hoặc yêu cầu chỉnh sửa
+4. Hệ thống cập nhật trạng thái
+
+### **3. Quản Lý Milestone**
+1. Tạo milestone với deadline
+2. Gán tasks cho milestone
+3. Theo dõi tiến độ
+4. Nhận thông báo khi sắp đến hạn
+
+### **4. Export Báo Cáo**
+1. Chọn loại báo cáo
+2. Thiết lập filters
+3. Xuất file (PDF, Excel, etc.)
+4. Gửi email hoặc download
+
+## 🔄 **WORKFLOW EXAMPLES**
+
+### **Employment Contract Workflow**
+```
+Draft -> Review -> Approved -> Active -> Expired
+  ↓        ↓         ↓         ↓         ↓
+Create   Submit    Approve   Sign     Renew/Terminate
+```
+
+### **Financial Contract Workflow**
+```
+Draft -> Review -> Changes Requested -> Review -> Approved -> Active
+  ↓        ↓              ↓              ↓         ↓         ↓
+Create   Submit        Request         Resubmit  Approve   Execute
+```
+
+## 📊 **PERMISSION MATRIX**
+
+| Role | Create | Read | Update | Delete | Approve | Export | Manage Templates |
+|------|--------|------|--------|--------|---------|--------|------------------|
+| Contract Manager | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Accounting Staff | ❌ | ✅ | ✅* | ❌ | ✅* | ✅ | ❌ |
+| HR Staff | ✅* | ✅ | ✅* | ❌ | ✅* | ✅ | ❌ |
+| Contract Creator | ✅ | ✅ | ✅* | ❌ | ❌ | ✅ | ❌ |
+| Contract Reviewer | ❌ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| Contract Viewer | ❌ | ✅* | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+*With conditions (e.g., own contracts, specific types)
+
+## 🚀 **FUTURE ENHANCEMENTS**
+
+### **Planned Features**
+- **Mobile App**: Ứng dụng mobile
+- **AI Integration**: Tích hợp AI
+- **Blockchain**: Blockchain cho hợp đồng
+- **Multi-language**: Đa ngôn ngữ
+- **Advanced Analytics**: Phân tích nâng cao
+
+### **Performance Improvements**
+- **Microservices**: Chuyển sang microservices
+- **Caching Layer**: Thêm caching layer
+- **CDN**: Content Delivery Network
+- **Load Balancing**: Cân bằng tải
 
 ---
 
-## 📚 Additional Resources
+## 📞 **SUPPORT & CONTACT**
 
-### Documentation
-- [NestJS Documentation](https://docs.nestjs.com/)
-- [React Documentation](https://react.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+### **Technical Support**
+- **Email**: support@contract-management.com
+- **Phone**: +84 123 456 789
+- **Documentation**: https://docs.contract-management.com
 
-### Tools
-- [Postman](https://www.postman.com/) - API testing
-- [pgAdmin](https://www.pgadmin.org/) - Database management
-- [Redis Commander](https://github.com/joeferner/redis-commander) - Redis management
-
-### Best Practices
-- [OWASP Security Guidelines](https://owasp.org/)
-- [REST API Design](https://restfulapi.net/)
-- [React Best Practices](https://react.dev/learn)
+### **Development Team**
+- **Backend Lead**: backend@company.com
+- **Frontend Lead**: frontend@company.com
+- **DevOps Lead**: devops@company.com
 
 ---
 
-## 📞 Support
-
-### Contact Information
-- **Email**: support@contractsystem.com
-- **Documentation**: https://docs.contractsystem.com
-- **GitHub**: https://github.com/contractsystem
-
-### Issue Reporting
-1. Check existing issues
-2. Create new issue with detailed description
-3. Include error logs and steps to reproduce
-4. Provide environment information
-
----
-
-*Last updated: January 2024*
-*Version: 1.0.0*
+*Documentation này được cập nhật lần cuối: 2024-01-XX*
+*Phiên bản: 1.0.0*

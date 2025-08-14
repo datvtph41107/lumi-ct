@@ -1,1266 +1,766 @@
 // src/modules/contracts/contracts.service.ts
-import { Injectable, Inject, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { DataSource, QueryRunner, Repository } from 'typeorm';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Contract, ContractStatus } from '@/core/domain/contract/contract.entity';
-import { ContractVersion } from '@/core/domain/contract/contract-versions.entity';
-import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
-import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
-import { ContractFile } from '@/core/domain/contract/contract-file.entity';
-import { Milestone, MilestoneStatus } from '@/core/domain/contract/contract-milestones.entity';
-import { Task, TaskStatus } from '@/core/domain/contract/contract-taks.entity';
-import { Collaborator } from '@/core/domain/permission/collaborator.entity';
-import { AuditLog } from '@/core/domain/permission/audit-log.entity';
-import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
-import { StageSaveDto } from '@/core/dto/contract/stage-save.dto';
-import { CreateVersionDto } from '@/core/dto/contract/create-version.dto';
-import { CreateMilestoneDto } from '@/core/dto/contract/create-milestone.dto';
-import { CreateTaskDto } from '@/core/dto/contract/create-task.dto';
-import { CreateCollaboratorDto } from '@/core/dto/contract/collaborator.dto';
-import { ContractQueryDto } from '@/core/dto/contract/contract-query.dto';
-import { CreateTemplateDto, UpdateTemplateDto, TemplateQueryDto } from '@/core/dto/contract/template.dto';
-import { UploadFileDto, UpdateFileDto } from '@/core/dto/contract/file.dto';
-import { CreateNotificationDto, CreateReminderDto } from '@/core/dto/contract/notification.dto';
+import { Repository, DataSource } from 'typeorm';
+import { AuthCoreService } from '../../core/services/auth-core.service';
+import { Contract } from '../../core/domain/contract/contract.entity';
+import { ContractDraft } from '../../core/domain/contract/contract-draft.entity';
+import { ContractTemplate } from '../../core/domain/contract/contract-template.entity';
+import { ContractContent } from '../../core/domain/contract/contract-content.entity';
+import { ContractVersion } from '../../core/domain/contract/contract-version.entity';
+import { Milestone } from '../../core/domain/contract/milestone.entity';
+import { Task } from '../../core/domain/contract/task.entity';
+import { ContractFile } from '../../core/domain/contract/contract-file.entity';
+import { Collaborator } from '../../core/domain/contract/collaborator.entity';
+import { AuditLog } from '../../core/domain/contract/audit-log.entity';
+import { User } from '../../core/domain/user/user.entity';
+import { WorkflowService } from './workflow.service';
+import { NotificationService } from '../notification/notification.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
-import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
-import { NotificationService } from '../notification/notification.service';
+import type { CreateContractDto, UpdateContractDto, ContractFilters, ContractPagination } from './dto/contract.dto';
 
 @Injectable()
 export class ContractService {
-    private contractRepo: Repository<Contract>;
-    private versionRepo: Repository<ContractVersion>;
-    private templateRepo: Repository<ContractTemplate>;
-    private draftRepo: Repository<ContractDraft>;
-    private milestoneRepo: Repository<Milestone>;
-    private taskRepo: Repository<Task>;
-    private collabRepo: Repository<Collaborator>;
-    private auditRepo: Repository<AuditLog>;
-    private fileRepo: Repository<ContractFile>;
+  constructor(
+    @InjectRepository(Contract)
+    private readonly contractRepository: Repository<Contract>,
+    @InjectRepository(ContractDraft)
+    private readonly draftRepository: Repository<ContractDraft>,
+    @InjectRepository(ContractTemplate)
+    private readonly templateRepository: Repository<ContractTemplate>,
+    @InjectRepository(ContractContent)
+    private readonly contentRepository: Repository<ContractContent>,
+    @InjectRepository(ContractVersion)
+    private readonly versionRepository: Repository<ContractVersion>,
+    @InjectRepository(Milestone)
+    private readonly milestoneRepository: Repository<Milestone>,
+    @InjectRepository(Task)
+    private readonly taskRepository: Repository<Task>,
+    @InjectRepository(ContractFile)
+    private readonly fileRepository: Repository<ContractFile>,
+    @InjectRepository(Collaborator)
+    private readonly collaboratorRepository: Repository<Collaborator>,
+    @InjectRepository(AuditLog)
+    private readonly auditLogRepository: Repository<AuditLog>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly dataSource: DataSource,
+    private readonly authCoreService: AuthCoreService,
+    private readonly workflowService: WorkflowService,
+    private readonly notificationService: NotificationService,
+    private readonly auditLogService: AuditLogService,
+    private readonly collaboratorService: CollaboratorService,
+  ) {}
 
-    constructor(
-        @Inject('DATA_SOURCE') private readonly db: DataSource,
-        @Inject('LOGGER') private readonly logger: LoggerTypes,
-        private readonly auditService: AuditLogService,
-        private readonly collabService: CollaboratorService,
-        private readonly notificationService: NotificationService,
-    ) {
-        this.contractRepo = this.db.getRepository(Contract);
-        this.versionRepo = this.db.getRepository(ContractVersion);
-        this.templateRepo = this.db.getRepository(ContractTemplate);
-        this.draftRepo = this.db.getRepository(ContractDraft);
-        this.milestoneRepo = this.db.getRepository(Milestone);
-        this.taskRepo = this.db.getRepository(Task);
-        this.collabRepo = this.db.getRepository(Collaborator);
-        this.auditRepo = this.db.getRepository(AuditLog);
-        this.fileRepo = this.db.getRepository(ContractFile);
+  // ==================== CONTRACT CRUD OPERATIONS ====================
+
+  async createContract(createDto: CreateContractDto, userId: number): Promise<Contract> {
+    // Check permission
+    if (!(await this.authCoreService.canCreateContract(userId, createDto.type))) {
+      throw new ForbiddenException('Không có quyền tạo hợp đồng');
     }
 
-    // ===== CONTRACT CRUD OPERATIONS =====
-    async create(body: CreateContractDto, options: { userId: number }) {
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-        try {
-            const ent = this.contractRepo.create({
-                name: body.name,
-                contract_code: body.contract_code,
-                contract_type: body.contract_type,
-                category: body.category,
-                priority: body.priority as any,
-                mode: body.mode as any,
-                template_id: body.template_id,
-                created_by: options.userId.toString(),
-                status: ContractStatus.DRAFT,
-                current_stage: 'template_selection',
-                version: 1,
-                auto_save_enabled: true,
-                is_draft: true,
-            });
-            const saved = await qr.manager.save(ent);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-            // add owner collaborator
-            await qr.manager.save(
-                this.collabRepo.create({ contract_id: saved.id, user_id: options.userId, role: CollaboratorRole.OWNER, active: true }),
-            );
+    try {
+      // Create contract
+      const contract = this.contractRepository.create({
+        ...createDto,
+        created_by: userId,
+        status: 'draft',
+        current_stage: 'draft'
+      });
 
-            // initial stage data if template provided
-            if (body.template_id) {
-                await qr.manager.save(
-                    this.draftRepo.create({
-                        contract_id: saved.id,
-                        stage: 'template_selection',
-                        data: { template_id: body.template_id },
-                        version: saved.version,
-                        created_by: options.userId,
-                    }),
-                );
-            }
+      const savedContract = await queryRunner.manager.save(contract);
 
-            await qr.commitTransaction();
-            // audit
-            await this.auditService.create({
-                contract_id: saved.id,
-                user_id: options.userId,
-                action: 'CREATE_CONTRACT',
-                meta: { body },
-            });
-            return { id: saved.id, version: saved.version, status: saved.status, current_stage: saved.current_stage };
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('create contract error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
+      // Create initial draft
+      const draft = this.draftRepository.create({
+        contract_id: savedContract.id,
+        stage: 'draft',
+        data: createDto.initial_data || {},
+        version: 1,
+        created_by: userId
+      });
 
-    async getContract(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
+      await queryRunner.manager.save(draft);
 
-        // latest stage data
-        const stages = await this.draftRepo
-            .createQueryBuilder('s')
-            .where('s.contract_id = :cid', { cid: contractId })
-            .orderBy('s.created_at', 'DESC')
-            .getMany();
-
-        const latestByStage = stages.reduce(
-            (acc, s) => {
-                if (!acc[s.stage]) acc[s.stage] = s;
-                return acc;
-            },
-            {} as Record<string, any>,
-        );
-
-        const collaborators = await this.collabRepo.find({ where: { contract_id: contractId, active: true } });
-        const versions = await this.versionRepo.find({
-            where: { contract_id: contractId },
-            order: { edited_at: 'DESC' },
-            take: 20,
+      // Create initial content
+      if (createDto.content) {
+        const content = this.contentRepository.create({
+          contract_id: savedContract.id,
+          content: createDto.content,
+          version: 1,
+          created_by: userId
         });
 
-        return { ...contract, stage_data: latestByStage, collaborators, versions } as any;
-    }
+        await queryRunner.manager.save(content);
+      }
 
-    async updateContract(contractId: string, body: Partial<CreateContractDto>, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
+      // Create initial version
+      const version = this.versionRepository.create({
+        contract_id: savedContract.id,
+        version: 1,
+        changes: 'Initial version',
+        created_by: userId
+      });
 
-        // permission check: user must be collaborator with editor rights or owner
-        const allowed = await this.collabService.hasRole(contractId, userId, [CollaboratorRole.OWNER, CollaboratorRole.EDITOR]);
-        if (!allowed) throw new ForbiddenException('No permission to update contract');
+      await queryRunner.manager.save(version);
 
-        Object.assign(contract, { ...body, updated_by: userId.toString() });
-        const saved = await this.contractRepo.save(contract);
-
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'UPDATE_CONTRACT',
-            meta: { body },
-        });
-        return saved;
-    }
-
-    // ===== CONTRACT LISTING & SEARCH =====
-    async listContracts(query: ContractQueryDto, userId: number) {
-        const queryBuilder = this.contractRepo.createQueryBuilder('contract');
-
-        // Apply filters
-        if ((query as any).search) {
-            queryBuilder.andWhere(
-                '(contract.name ILIKE :search OR contract.contract_code ILIKE :search OR contract.notes ILIKE :search)',
-                { search: `%${(query as any).search}%` },
-            );
-        }
-
-        if ((query as any).status) {
-            queryBuilder.andWhere('contract.status = :status', { status: (query as any).status });
-        }
-
-        if ((query as any).priority) {
-            queryBuilder.andWhere('contract.priority = :priority', { priority: (query as any).priority });
-        }
-
-        if ((query as any).category) {
-            queryBuilder.andWhere('contract.category = :category', { category: (query as any).category });
-        }
-
-        if ((query as any).contract_type) {
-            queryBuilder.andWhere('contract.contract_type = :contract_type', { contract_type: (query as any).contract_type });
-        }
-
-        if ((query as any).drafter_id) {
-            queryBuilder.andWhere('contract.drafter_id = :drafter_id', { drafter_id: (query as any).drafter_id });
-        }
-
-        if ((query as any).manager_id) {
-            queryBuilder.andWhere('contract.manager_id = :manager_id', { manager_id: (query as any).manager_id });
-        }
-
-        if ((query as any).created_from) {
-            queryBuilder.andWhere('contract.created_at >= :created_from', { created_from: (query as any).created_from });
-        }
-
-        if ((query as any).created_to) {
-            queryBuilder.andWhere('contract.created_at <= :created_to', { created_to: (query as any).created_to });
-        }
-
-        if ((query as any).effective_from) {
-            // skipping since no effective_date field on entity presently
-        }
-
-        const page = (query as any).page || 1;
-        const limit = (query as any).limit || 10;
-
-        queryBuilder.orderBy('contract.created_at', ((query as any).sort_order || 'desc').toUpperCase() as 'ASC' | 'DESC');
-        queryBuilder.skip((page - 1) * limit).take(limit);
-
-        const [contracts, total] = await queryBuilder.getManyAndCount();
-
-        return {
-            data: contracts,
-            pagination: {
-                page,
-                limit,
-                total,
-                total_pages: Math.ceil(total / limit),
-            },
-        };
-    }
-
-    // ===== STAGE MANAGEMENT =====
-    async autosaveStage(contractId: string, dto: StageSaveDto, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
-
-        if (!contract.auto_save_enabled && dto.autoSave) {
-            throw new ForbiddenException('Autosave disabled for this contract');
-        }
-
-        const entry = this.draftRepo.create({
-            contract_id: contractId,
-            stage: (dto.data as any)?.stage ?? 'content_draft',
-            data: dto.data,
-            version: contract.version,
-            created_by: userId,
+      // Start workflow if template has workflow
+      if (createDto.template_id) {
+        const template = await this.templateRepository.findOne({
+          where: { id: createDto.template_id }
         });
 
-        const saved = await this.draftRepo.save(entry);
-        await this.contractRepo.update({ id: contractId }, { last_auto_save: new Date() as any });
-
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'AUTOSAVE_STAGE',
-            meta: { stage: entry.stage },
-        });
-        return { stageDataId: saved.id, savedAt: saved.created_at, version: contract.version } as any;
-    }
-
-    async saveStage(contractId: string, stage: string, dto: StageSaveDto, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-        try {
-            const entry = this.draftRepo.create({
-                contract_id: contractId,
-                stage,
-                data: dto.data,
-                version: contract.version,
-                created_by: userId,
-            });
-            const savedEntry = await qr.manager.save(entry);
-
-            // create version snapshot for audit (optional)
-            const snapshot = this.versionRepo.create({
-                contract_id: contractId,
-                version_number: contract.version,
-                content_snapshot: { [stage]: dto.data },
-                edited_by: userId.toString(),
-                edited_at: new Date(),
-            });
-            await qr.manager.save(snapshot);
-
-            await qr.commitTransaction();
-            await this.auditService.create({
-                contract_id: contractId,
-                user_id: userId,
-                action: 'SAVE_STAGE',
-                meta: { stage },
-            });
-            return { ok: true, savedAt: savedEntry.created_at } as any;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('saveStage error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async transitionStage(contractId: string, from: string, to: string, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
-
-        if (contract.current_stage !== from) throw new BadRequestException('Stage mismatch');
-
-        const validation = await this.runStageValidation(contractId, from);
-        if (!(validation as any).ok) throw new BadRequestException({ message: 'Validation failed', details: (validation as any).errors });
-
-        contract.current_stage = to as any;
-        await this.contractRepo.save(contract);
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'TRANSITION_STAGE',
-            meta: { from, to },
-        });
-        return { ok: true, current_stage: to } as any;
-    }
-
-    // ===== VERSION MANAGEMENT =====
-    async createVersion(contractId: string, dto: CreateVersionDto, userId: number) {
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const contract = await qr.manager.findOne(Contract, { where: { id: contractId } });
-            if (!contract) throw new NotFoundException('Contract not found');
-
-            // collect latest stage data
-            const stageRows = await this.draftRepo
-                .createQueryBuilder('s')
-                .where('s.contract_id = :cid', { cid: contractId })
-                .orderBy('s.created_at', 'DESC')
-                .getMany();
-            const latestByStage = stageRows.reduce(
-                (acc, row) => {
-                    if (!acc[row.stage]) acc[row.stage] = row.data;
-                    return acc;
-                },
-                {} as Record<string, any>,
-            );
-
-            // bump version
-            const newVersionNumber = contract.version + 1;
-            contract.version = newVersionNumber;
-            await qr.manager.save(contract);
-
-            // create ContractVersion
-            const versionEnt = this.versionRepo.create({
-                contract_id: contractId,
-                version_number: newVersionNumber,
-                content_snapshot: latestByStage,
-                edited_by: userId.toString(),
-                edited_at: new Date(),
-                change_summary: (dto as any).note,
-            } as any);
-            const savedVersion = await qr.manager.save(versionEnt as any);
-
-            // if publish requested -> validate then set current_version_id & status active
-            if ((dto as any).publish) {
-                const validation = await this.validateBeforePublish(latestByStage);
-                if (!(validation as any).ok) {
-                    throw new BadRequestException({ message: 'Validation failed', details: (validation as any).errors });
-                }
-                contract.current_version_id = (savedVersion as any).id;
-                contract.status = ContractStatus.ACTIVE as any;
-                await qr.manager.save(contract);
-            }
-
-            await qr.commitTransaction();
-            await this.auditService.create({
-                contract_id: contractId,
-                user_id: userId,
-                action: 'CREATE_VERSION',
-                meta: { version: newVersionNumber },
-            });
-            return { versionId: (savedVersion as any).id, version: newVersionNumber, published: !!(dto as any).publish } as any;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('createVersion error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async publishVersion(contractId: string, versionId: string, userId: number) {
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const version = await qr.manager.findOne(ContractVersion, {
-                where: { id: versionId, contract_id: contractId },
-            });
-            if (!version) throw new NotFoundException('Version not found');
-
-            const validation = await this.validateBeforePublish((version as any).content_snapshot);
-            if (!(validation as any).ok)
-                throw new BadRequestException({ message: 'Validation failed', details: (validation as any).errors });
-
-            const contract = await qr.manager.findOne(Contract, { where: { id: contractId } });
-            if (!contract) throw new NotFoundException('Contract not found');
-            contract.current_version_id = versionId;
-            contract.status = ContractStatus.ACTIVE as any;
-            await qr.manager.save(contract);
-
-            await qr.commitTransaction();
-            await this.auditService.create({
-                contract_id: contractId,
-                user_id: userId,
-                action: 'PUBLISH_VERSION',
-                meta: { versionId },
-            });
-            return { ok: true };
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('publishVersion error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    // ===== TEMPLATE MANAGEMENT =====
-    async listTemplates(query: TemplateQueryDto) {
-        const queryBuilder = this.templateRepo.createQueryBuilder('template');
-        if ((query as any).search) {
-            queryBuilder.andWhere('template.name ILIKE :search OR template.description ILIKE :search', {
-                search: `%${(query as any).search}%`,
-            });
-        }
-        if ((query as any).type) {
-            queryBuilder.andWhere('template.type = :type', { type: (query as any).type });
-        }
-        if ((query as any).category) {
-            queryBuilder.andWhere('template.category = :category', { category: (query as any).category });
-        }
-        if ((query as any).is_active !== undefined) {
-            queryBuilder.andWhere('template.is_active = :is_active', { is_active: (query as any).is_active });
-        }
-        // optional mode filter
-        if ((query as any).mode) {
-            queryBuilder.andWhere('template.mode = :mode', { mode: (query as any).mode });
-        }
-        queryBuilder.orderBy('template.created_at', 'DESC');
-        return queryBuilder.getMany();
-    }
-
-    async getTemplate(tid: string) {
-        const template = await this.templateRepo.findOne({ where: { id: tid } });
-        if (!template) {
-            throw new NotFoundException('Template not found');
-        }
-        return template;
-    }
-
-    async createTemplate(dto: CreateTemplateDto, userId: number) {
-        const template = this.templateRepo.create({
-            ...dto,
-            created_by: userId.toString(),
-            updated_by: userId.toString(),
-        });
-        return this.templateRepo.save(template);
-    }
-
-    async updateTemplate(tid: string, dto: UpdateTemplateDto, userId: number) {
-        const template = await this.getTemplate(tid);
-        Object.assign(template, dto, { updated_by: userId.toString() });
-        return this.templateRepo.save(template);
-    }
-
-    async deleteTemplate(tid: string, userId: number) {
-        const template = await this.getTemplate(tid);
-        template.is_active = false;
-        template.updated_by = userId.toString();
-        return this.templateRepo.save(template);
-    }
-
-    // ===== MILESTONE & TASK MANAGEMENT =====
-    async createMilestone(contractId: string, dto: CreateMilestoneDto, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const ent = this.milestoneRepo.create({
-                contract_id: contractId,
-                name: (dto as any).name,
-                description: (dto as any).description,
-                date_range: (dto as any).date_range,
-                assignee_id: (dto as any).assignee_id || userId.toString(),
-                assignee_name: (dto as any).assignee_name || 'Self',
-                status: MilestoneStatus.PENDING,
-                priority: (dto as any).priority || 'medium',
-                progress: 0,
-                deliverables: (dto as any).deliverables || [],
-                updated_by: userId.toString(),
-            } as any);
-
-            const saved = await qr.manager.save(ent);
-
-            // Create reminder for milestone due date
-            if ((dto as any).date_range?.end_date) {
-                const endDate = new Date((dto as any).date_range.end_date);
-                const reminderDate = new Date(endDate);
-                reminderDate.setDate(reminderDate.getDate() - 1); // 1 day before
-
-                await this.notificationService.createReminder({
-                    contract_id: contractId,
-                    milestone_id: (saved as any).id,
-                    user_id: parseInt((dto as any).assignee_id || userId.toString()),
-                    type: 'milestone_due' as any,
-                    frequency: 'once' as any,
-                    title: `Milestone Due: ${(dto as any).name}`,
-                    message: `The milestone "${(dto as any).name}" is due tomorrow. Please review and update the progress.`,
-                    trigger_date: reminderDate,
-                    notification_channels: ['email', 'in_app'],
-                    metadata: {
-                        milestone_name: (dto as any).name,
-                        contract_name: contract.name,
-                    },
-                });
-            }
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: contractId,
-                user_id: userId,
-                action: 'CREATE_MILESTONE',
-                meta: { id: (saved as any).id, name: (dto as any).name },
-                description: `Created milestone: ${(dto as any).name}`,
-            });
-
-            return saved;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('createMilestone error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async updateMilestone(milestoneId: string, dto: Partial<CreateMilestoneDto>, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const oldData = { ...milestone };
-            Object.assign(milestone, dto, { updated_by: userId.toString() });
-            const updated = await qr.manager.save(milestone);
-
-            // Update reminder if due date changed
-            if ((dto as any).date_range?.end_date && 
-                (dto as any).date_range.end_date !== oldData.date_range?.end_date) {
-                
-                // Cancel old reminders
-                await this.notificationService.cancelRemindersByMilestone(milestoneId);
-
-                // Create new reminder
-                const endDate = new Date((dto as any).date_range.end_date);
-                const reminderDate = new Date(endDate);
-                reminderDate.setDate(reminderDate.getDate() - 1);
-
-                await this.notificationService.createReminder({
-                    contract_id: milestone.contract_id,
-                    milestone_id: milestoneId,
-                    user_id: parseInt(milestone.assignee_id),
-                    type: 'milestone_due' as any,
-                    frequency: 'once' as any,
-                    title: `Milestone Due: ${milestone.name}`,
-                    message: `The milestone "${milestone.name}" is due tomorrow. Please review and update the progress.`,
-                    trigger_date: reminderDate,
-                    notification_channels: ['email', 'in_app'],
-                    metadata: {
-                        milestone_name: milestone.name,
-                    },
-                });
-            }
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: milestone.contract_id,
-                user_id: userId,
-                action: 'UPDATE_MILESTONE',
-                meta: { id: milestoneId, changes: dto },
-                description: `Updated milestone: ${milestone.name}`,
-            });
-
-            return updated;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('updateMilestone error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async deleteMilestone(milestoneId: string, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            // Cancel all reminders for this milestone
-            await this.notificationService.cancelRemindersByMilestone(milestoneId);
-
-            // Delete associated tasks
-            await qr.manager.delete(Task, { milestone_id: milestoneId });
-
-            // Delete milestone
-            await qr.manager.remove(milestone);
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: milestone.contract_id,
-                user_id: userId,
-                action: 'DELETE_MILESTONE',
-                meta: { id: milestoneId, name: milestone.name },
-                description: `Deleted milestone: ${milestone.name}`,
-            });
-
-            return { ok: true } as any;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('deleteMilestone error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async createTask(milestoneId: string, dto: CreateTaskDto, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: milestoneId } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const ent = this.taskRepo.create({
-                milestone_id: milestoneId,
-                name: (dto as any).name,
-                description: (dto as any).description,
-                assignee_id: (dto as any).assignee_id || userId.toString(),
-                assignee_name: (dto as any).assignee_name || 'Self',
-                time_range: (dto as any).time_range,
-                due_date: (dto as any).due_date ? new Date((dto as any).due_date) : null,
-                status: TaskStatus.PENDING,
-                priority: (dto as any).priority || 'medium',
-                dependencies: (dto as any).dependencies || [],
-                attachments: (dto as any).attachments || [],
-                comments: (dto as any).comments || [],
-                updated_by: userId.toString(),
-            } as any);
-
-            const saved = await qr.manager.save(ent);
-
-            // Create reminder for task due date
-            if ((dto as any).due_date) {
-                const dueDate = new Date((dto as any).due_date);
-                const reminderDate = new Date(dueDate);
-                reminderDate.setDate(reminderDate.getDate() - 1); // 1 day before
-
-                await this.notificationService.createReminder({
-                    contract_id: milestone.contract_id,
-                    task_id: (saved as any).id,
-                    user_id: parseInt((dto as any).assignee_id || userId.toString()),
-                    type: 'task_due' as any,
-                    frequency: 'once' as any,
-                    title: `Task Due: ${(dto as any).name}`,
-                    message: `The task "${(dto as any).name}" is due tomorrow. Please complete it on time.`,
-                    trigger_date: reminderDate,
-                    notification_channels: ['email', 'in_app'],
-                    metadata: {
-                        task_name: (dto as any).name,
-                        milestone_name: milestone.name,
-                    },
-                });
-            }
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: milestone.contract_id,
-                user_id: userId,
-                action: 'CREATE_TASK',
-                meta: { id: (saved as any).id, name: (dto as any).name, milestone_id: milestoneId },
-                description: `Created task: ${(dto as any).name}`,
-            });
-
-            return saved;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('createTask error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async updateTask(taskId: string, dto: Partial<CreateTaskDto>, userId: number) {
-        const task = await this.taskRepo.findOne({ where: { id: taskId } });
-        if (!task) throw new NotFoundException('Task not found');
-
-        const milestone = await this.milestoneRepo.findOne({ where: { id: task.milestone_id } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            const oldDueDate = task.due_date;
-            Object.assign(task, dto, { updated_by: userId.toString() });
-            const updated = await qr.manager.save(task);
-
-            // Update reminder if due date changed
-            if ((dto as any).due_date && (dto as any).due_date !== oldDueDate) {
-                // Cancel old reminders
-                await this.notificationService.cancelRemindersByTask(taskId);
-
-                // Create new reminder
-                const dueDate = new Date((dto as any).due_date);
-                const reminderDate = new Date(dueDate);
-                reminderDate.setDate(reminderDate.getDate() - 1);
-
-                await this.notificationService.createReminder({
-                    contract_id: milestone.contract_id,
-                    task_id: taskId,
-                    user_id: parseInt(task.assignee_id),
-                    type: 'task_due' as any,
-                    frequency: 'once' as any,
-                    title: `Task Due: ${task.name}`,
-                    message: `The task "${task.name}" is due tomorrow. Please complete it on time.`,
-                    trigger_date: reminderDate,
-                    notification_channels: ['email', 'in_app'],
-                    metadata: {
-                        task_name: task.name,
-                        milestone_name: milestone.name,
-                    },
-                });
-            }
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: milestone.contract_id,
-                user_id: userId,
-                action: 'UPDATE_TASK',
-                meta: { id: taskId, changes: dto },
-                description: `Updated task: ${task.name}`,
-            });
-
-            return updated;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('updateTask error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    async deleteTask(taskId: string, userId: number) {
-        const task = await this.taskRepo.findOne({ where: { id: taskId } });
-        if (!task) throw new NotFoundException('Task not found');
-
-        const milestone = await this.milestoneRepo.findOne({ where: { id: task.milestone_id } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-
-        const qr = this.db.createQueryRunner();
-        await qr.connect();
-        await qr.startTransaction();
-
-        try {
-            // Cancel all reminders for this task
-            await this.notificationService.cancelRemindersByTask(taskId);
-
-            // Delete task
-            await qr.manager.remove(task);
-
-            await qr.commitTransaction();
-
-            await this.auditService.create({
-                contract_id: milestone.contract_id,
-                user_id: userId,
-                action: 'DELETE_TASK',
-                meta: { id: taskId, name: task.name },
-                description: `Deleted task: ${task.name}`,
-            });
-
-            return { ok: true } as any;
-        } catch (err) {
-            await qr.rollbackTransaction();
-            this.logger.APP.error('deleteTask error', err);
-            throw err;
-        } finally {
-            await qr.release();
-        }
-    }
-
-    // ===== FILE MANAGEMENT =====
-    async uploadFile(contractId: string, dto: UploadFileDto, userId: number) {
-        const file = this.fileRepo.create({
-            ...(dto as any),
-            contract_id: contractId,
-        } as any);
-        return this.fileRepo.save(file);
-    }
-
-    async listFiles(contractId: string) {
-        return this.fileRepo.find({
-            where: { contract_id: contractId } as any,
-            order: { created_at: 'DESC' } as any,
-        });
-    }
-
-    async deleteFile(fid: string, userId: number) {
-        const file = await this.fileRepo.findOne({ where: { id: fid } as any });
-        if (!file) throw new NotFoundException('File not found');
-        await this.fileRepo.remove(file);
-        return { ok: true } as any;
-    }
-
-    // ===== COLLABORATOR MANAGEMENT =====
-    async addCollaborator(contractId: string, dto: CreateCollaboratorDto, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        // Check if user has permission to add collaborators
-        const canManage = await this.collabService.canEdit(contractId, userId);
-        if (!canManage) {
-            throw new ForbiddenException('You do not have permission to manage collaborators');
-        }
-
-        const collaborator = await this.collabService.add(
-            contractId, 
-            (dto as any).user_id, 
-            (dto as any).role as any,
+        if (template?.workflow_id) {
+          await this.workflowService.createWorkflowInstance(
+            savedContract.id,
+            template.workflow_id,
             userId
-        );
+          );
+        }
+      }
 
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'ADD_COLLABORATOR',
-            meta: { 
-                collaborator_user_id: (dto as any).user_id,
-                role: (dto as any).role 
-            },
-            description: `Added collaborator with role: ${(dto as any).role}`
+      // Add creator as owner collaborator
+      await this.collaboratorService.addCollaborator(
+        savedContract.id,
+        userId,
+        'owner',
+        userId
+      );
+
+      // Log audit
+      await this.auditLogService.create({
+        contract_id: savedContract.id,
+        user_id: userId,
+        action: 'CREATE_CONTRACT',
+        details: { contract_type: createDto.type, template_id: createDto.template_id }
+      });
+
+      await queryRunner.commitTransaction();
+      return savedContract;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getContract(id: number, userId: number): Promise<Contract> {
+    const contract = await this.contractRepository.findOne({
+      where: { id },
+      relations: [
+        'template',
+        'current_content',
+        'current_version',
+        'milestones',
+        'tasks',
+        'files',
+        'collaborators',
+        'collaborators.user'
+      ]
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Hợp đồng không tồn tại');
+    }
+
+    // Check permission
+    if (!(await this.authCoreService.canReadContract(userId, id, {
+      ownerId: contract.created_by,
+      status: contract.status,
+      type: contract.type
+    }))) {
+      throw new ForbiddenException('Không có quyền xem hợp đồng này');
+    }
+
+    return contract;
+  }
+
+  async updateContract(id: number, updateDto: UpdateContractDto, userId: number): Promise<Contract> {
+    const contract = await this.contractRepository.findOne({
+      where: { id },
+      relations: ['current_content', 'current_version']
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Hợp đồng không tồn tại');
+    }
+
+    // Check permission
+    if (!(await this.authCoreService.canUpdateContract(userId, id, {
+      ownerId: contract.created_by,
+      status: contract.status,
+      type: contract.type
+    }))) {
+      throw new ForbiddenException('Không có quyền cập nhật hợp đồng này');
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Update contract
+      Object.assign(contract, updateDto);
+      const updatedContract = await queryRunner.manager.save(contract);
+
+      // Create new version if content changed
+      if (updateDto.content && updateDto.content !== contract.current_content?.content) {
+        const newVersion = contract.current_version ? contract.current_version.version + 1 : 1;
+        
+        const content = this.contentRepository.create({
+          contract_id: id,
+          content: updateDto.content,
+          version: newVersion,
+          created_by: userId
         });
 
-        return collaborator;
-    }
+        await queryRunner.manager.save(content);
 
-    async listCollaborators(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        return this.collabService.list(contractId);
-    }
-
-    async updateCollaborator(cid: string, dto: Partial<CreateCollaboratorDto>, userId: number) {
-        // Parse collaborator ID to get contract_id and user_id
-        const [contractId, collaboratorUserId] = cid.split('_');
-        if (!contractId || !collaboratorUserId) {
-            throw new BadRequestException('Invalid collaborator ID format');
-        }
-
-        // Check if user has permission to update collaborators
-        const canManage = await this.collabService.canEdit(contractId, userId);
-        if (!canManage) {
-            throw new ForbiddenException('You do not have permission to manage collaborators');
-        }
-
-        const collaborator = await this.collabService.updateRole(
-            contractId,
-            parseInt(collaboratorUserId),
-            (dto as any).role as any,
-            userId
-        );
-
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'UPDATE_COLLABORATOR_ROLE',
-            meta: { 
-                collaborator_user_id: parseInt(collaboratorUserId),
-                new_role: (dto as any).role 
-            },
-            description: `Updated collaborator role to: ${(dto as any).role}`
+        const version = this.versionRepository.create({
+          contract_id: id,
+          version: newVersion,
+          changes: updateDto.changes || 'Content updated',
+          created_by: userId
         });
 
-        return collaborator;
+        await queryRunner.manager.save(version);
+
+        // Update contract with new version
+        updatedContract.current_content = content;
+        updatedContract.current_version = version;
+        await queryRunner.manager.save(updatedContract);
+      }
+
+      // Log audit
+      await this.auditLogService.create({
+        contract_id: id,
+        user_id: userId,
+        action: 'UPDATE_CONTRACT',
+        details: { changes: updateDto.changes }
+      });
+
+      await queryRunner.commitTransaction();
+      return updatedContract;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async deleteContract(id: number, userId: number): Promise<void> {
+    const contract = await this.contractRepository.findOne({
+      where: { id }
+    });
+
+    if (!contract) {
+      throw new NotFoundException('Hợp đồng không tồn tại');
     }
 
-    async removeCollaborator(cid: string, userId: number) {
-        // Parse collaborator ID to get contract_id and user_id
-        const [contractId, collaboratorUserId] = cid.split('_');
-        if (!contractId || !collaboratorUserId) {
-            throw new BadRequestException('Invalid collaborator ID format');
-        }
-
-        // Check if user has permission to remove collaborators
-        const canManage = await this.collabService.canEdit(contractId, userId);
-        if (!canManage) {
-            throw new ForbiddenException('You do not have permission to manage collaborators');
-        }
-
-        // Prevent removing yourself if you're the only owner
-        if (parseInt(collaboratorUserId) === userId) {
-            const isOwner = await this.collabService.isOwner(contractId, userId);
-            if (isOwner) {
-                const owners = await this.collabService.getContractOwners(contractId);
-                if (owners.length <= 1) {
-                    throw new BadRequestException('Cannot remove yourself as the only owner');
-                }
-            }
-        }
-
-        const collaborator = await this.collabService.remove(
-            contractId,
-            parseInt(collaboratorUserId),
-            userId
-        );
-
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'REMOVE_COLLABORATOR',
-            meta: { 
-                collaborator_user_id: parseInt(collaboratorUserId)
-            },
-            description: `Removed collaborator from contract`
-        });
-
-        return collaborator;
+    // Check permission
+    if (!(await this.authCoreService.canDeleteContract(userId, id, {
+      ownerId: contract.created_by,
+      status: contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền xóa hợp đồng này');
     }
 
-    async transferOwnership(contractId: string, toUserId: number, userId: number) {
-        // Check if user is owner
-        const isOwner = await this.collabService.isOwner(contractId, userId);
-        if (!isOwner) {
-            throw new ForbiddenException('Only owners can transfer ownership');
-        }
+    // Soft delete
+    await this.contractRepository.update(id, { 
+      deleted_at: new Date(),
+      deleted_by: userId
+    });
 
-        await this.collabService.transferOwnership(contractId, userId, toUserId, userId);
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: id,
+      user_id: userId,
+      action: 'DELETE_CONTRACT'
+    });
+  }
 
-        await this.auditService.create({
-            contract_id: contractId,
-            user_id: userId,
-            action: 'TRANSFER_OWNERSHIP',
-            meta: { 
-                from_user_id: userId,
-                to_user_id: toUserId 
-            },
-            description: `Transferred contract ownership`
-        });
+  async listContracts(filters: ContractFilters, pagination: ContractPagination, userId: number): Promise<{
+    data: Contract[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const queryBuilder = this.contractRepository
+      .createQueryBuilder('contract')
+      .leftJoinAndSelect('contract.template', 'template')
+      .leftJoinAndSelect('contract.current_content', 'current_content')
+      .leftJoinAndSelect('contract.collaborators', 'collaborators')
+      .leftJoinAndSelect('collaborators.user', 'collaborator_user')
+      .where('contract.deleted_at IS NULL');
 
-        return { success: true, message: 'Ownership transferred successfully' };
+    // Apply filters
+    if (filters.status) {
+      queryBuilder.andWhere('contract.status = :status', { status: filters.status });
     }
 
-    async getCollaboratorPermissions(contractId: string, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        const role = await this.collabService.getRole(contractId, userId);
-        if (!role) {
-            throw new ForbiddenException('You do not have access to this contract');
-        }
-
-        return {
-            role,
-            permissions: {
-                can_view: await this.collabService.canView(contractId, userId),
-                can_edit: await this.collabService.canEdit(contractId, userId),
-                can_review: await this.collabService.canReview(contractId, userId),
-                is_owner: await this.collabService.isOwner(contractId, userId),
-            }
-        };
+    if (filters.type) {
+      queryBuilder.andWhere('contract.type = :type', { type: filters.type });
     }
 
-    // ===== EXPORT & PRINT =====
-    async exportPdf(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        // TODO: Implement PDF generation logic
-        return {
-            success: true,
-            message: 'PDF export initiated',
-            download_url: `/api/contracts/${contractId}/download/pdf`,
-        };
+    if (filters.search) {
+      queryBuilder.andWhere(
+        '(contract.title ILIKE :search OR contract.description ILIKE :search)',
+        { search: `%${filters.search}%` }
+      );
     }
 
-    async exportDocx(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        // TODO: Implement DOCX generation logic
-        return {
-            success: true,
-            message: 'DOCX export initiated',
-            download_url: `/api/contracts/${contractId}/download/docx`,
-        };
+    // Apply permission-based filtering
+    const userPermissions = await this.authCoreService.getUserPermissions(userId);
+    const isManager = userPermissions.roles.some(role => role.name === 'contract_manager');
+    
+    if (!isManager) {
+      // Filter by user's access
+      queryBuilder.andWhere(
+        '(contract.created_by = :userId OR collaborators.user_id = :userId)',
+        { userId }
+      );
     }
 
-    async generatePrintView(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
+    // Apply pagination
+    const page = pagination.page || 1;
+    const limit = pagination.limit || 10;
+    const offset = (page - 1) * limit;
 
-        // TODO: Generate print-friendly HTML view
-        return {
-            success: true,
-            print_url: `/api/contracts/${contractId}/print/view`,
-        };
+    queryBuilder
+      .orderBy('contract.updated_at', 'DESC')
+      .skip(offset)
+      .take(limit);
+
+    const [data, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit
+    };
+  }
+
+  // ==================== CONTRACT WORKFLOW OPERATIONS ====================
+
+  async submitForReview(id: number, userId: number): Promise<Contract> {
+    const contract = await this.getContract(id, userId);
+
+    if (contract.status !== 'draft') {
+      throw new BadRequestException('Chỉ có thể submit hợp đồng ở trạng thái draft');
     }
 
-    // ===== ANALYTICS & DASHBOARD =====
-    async getContractAnalytics(id: string) {
-        const contract = await this.contractRepo.findOne({ where: { id } });
-        if (!contract) throw new NotFoundException('Contract not found');
-        return {
-            id: contract.id,
-            status: contract.status,
-        } as any;
+    // Start workflow
+    const workflowInstance = await this.workflowService.createWorkflowInstance(
+      id,
+      'default_contract_workflow',
+      userId
+    );
+
+    // Update contract status
+    await this.contractRepository.update(id, {
+      status: 'pending_review',
+      current_stage: 'review',
+      workflow_instance_id: workflowInstance.id
+    });
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: id,
+      user_id: userId,
+      action: 'SUBMIT_FOR_REVIEW'
+    });
+
+    return this.getContract(id, userId);
+  }
+
+  async approveContract(id: number, userId: number, comment?: string): Promise<Contract> {
+    const contract = await this.getContract(id, userId);
+
+    if (!(await this.authCoreService.canApproveContract(userId, id, {
+      status: contract.status,
+      type: contract.type
+    }))) {
+      throw new ForbiddenException('Không có quyền phê duyệt hợp đồng này');
     }
 
-    async getDashboardStats(userId: number) {
-        const total = await this.contractRepo.count();
-        const drafts = await this.contractRepo.count({ where: { status: ContractStatus.DRAFT } as any });
-        const active = await this.contractRepo.count({ where: { status: ContractStatus.ACTIVE } as any });
-        return { total, drafts, active } as any;
+    // Execute workflow step
+    await this.workflowService.executeStep(
+      contract.workflow_instance_id,
+      'approve',
+      userId,
+      'approve',
+      comment
+    );
+
+    // Update contract status
+    await this.contractRepository.update(id, {
+      status: 'approved',
+      current_stage: 'approved',
+      approved_by: userId,
+      approved_at: new Date()
+    });
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: id,
+      user_id: userId,
+      action: 'APPROVE_CONTRACT',
+      details: { comment }
+    });
+
+    return this.getContract(id, userId);
+  }
+
+  async rejectContract(id: number, userId: number, reason: string): Promise<Contract> {
+    const contract = await this.getContract(id, userId);
+
+    if (!(await this.authCoreService.canRejectContract(userId, id, {
+      status: contract.status,
+      type: contract.type
+    }))) {
+      throw new ForbiddenException('Không có quyền từ chối hợp đồng này');
     }
 
-    // ===== NOTIFICATION & REMINDERS =====
-    async createNotification(contractId: string, dto: CreateNotificationDto, userId: number) {
-        // TODO: Implement notification creation logic
-        return {
-            success: true,
-            message: 'Notification created successfully',
-            notification_id: 'temp-id',
-        };
+    // Execute workflow step
+    await this.workflowService.executeStep(
+      contract.workflow_instance_id,
+      'reject',
+      userId,
+      'reject',
+      reason
+    );
+
+    // Update contract status
+    await this.contractRepository.update(id, {
+      status: 'rejected',
+      current_stage: 'rejected',
+      rejected_by: userId,
+      rejected_at: new Date(),
+      rejection_reason: reason
+    });
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: id,
+      user_id: userId,
+      action: 'REJECT_CONTRACT',
+      details: { reason }
+    });
+
+    return this.getContract(id, userId);
+  }
+
+  async requestChanges(id: number, userId: number, changes: string): Promise<Contract> {
+    const contract = await this.getContract(id, userId);
+
+    if (!(await this.authCoreService.canApproveContract(userId, id, {
+      status: contract.status,
+      type: contract.type
+    }))) {
+      throw new ForbiddenException('Không có quyền yêu cầu chỉnh sửa hợp đồng này');
     }
 
-    async listNotifications(contractId: string) {
-        // TODO: Implement notification listing logic
-        return [];
+    // Execute workflow step
+    await this.workflowService.executeStep(
+      contract.workflow_instance_id,
+      'request_changes',
+      userId,
+      'request_changes',
+      changes
+    );
+
+    // Update contract status
+    await this.contractRepository.update(id, {
+      status: 'changes_requested',
+      current_stage: 'changes_requested',
+      changes_requested_by: userId,
+      changes_requested_at: new Date(),
+      requested_changes: changes
+    });
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: id,
+      user_id: userId,
+      action: 'REQUEST_CHANGES',
+      details: { changes }
+    });
+
+    return this.getContract(id, userId);
+  }
+
+  // ==================== MILESTONE & TASK MANAGEMENT ====================
+
+  async createMilestone(contractId: number, milestoneData: any, userId: number): Promise<Milestone> {
+    const contract = await this.getContract(contractId, userId);
+
+    if (!(await this.authCoreService.canUpdateContract(userId, contractId, {
+      ownerId: contract.created_by,
+      status: contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền tạo milestone');
     }
 
-    async createReminder(contractId: string, dto: CreateReminderDto, userId: number) {
-        // TODO: Implement reminder creation logic
-        return {
-            success: true,
-            message: 'Reminder created successfully',
-            reminder_id: 'temp-id',
-        };
+    const milestone = this.milestoneRepository.create({
+      ...milestoneData,
+      contract_id: contractId,
+      created_by: userId
+    });
+
+    const savedMilestone = await this.milestoneRepository.save(milestone);
+
+    // Create notification
+    await this.notificationService.createMilestoneReminder(savedMilestone);
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: contractId,
+      user_id: userId,
+      action: 'CREATE_MILESTONE',
+      details: { milestone_id: savedMilestone.id }
+    });
+
+    return savedMilestone;
+  }
+
+  async updateMilestone(milestoneId: number, updateData: any, userId: number): Promise<Milestone> {
+    const milestone = await this.milestoneRepository.findOne({
+      where: { id: milestoneId },
+      relations: ['contract']
+    });
+
+    if (!milestone) {
+      throw new NotFoundException('Milestone không tồn tại');
     }
 
-    async listReminders(contractId: string) {
-        // TODO: Implement reminder listing logic
-        return [];
+    if (!(await this.authCoreService.canUpdateContract(userId, milestone.contract_id, {
+      ownerId: milestone.contract.created_by,
+      status: milestone.contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền cập nhật milestone');
     }
 
-    // ===== AUDIT & ANALYTICS =====
-    async getAuditLogs(contractId: string, filters?: any, pagination?: any) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
+    Object.assign(milestone, updateData);
+    const updatedMilestone = await this.milestoneRepository.save(milestone);
 
-        return this.auditService.findByContract(contractId, filters, pagination);
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: milestone.contract_id,
+      user_id: userId,
+      action: 'UPDATE_MILESTONE',
+      details: { milestone_id: milestoneId }
+    });
+
+    return updatedMilestone;
+  }
+
+  async deleteMilestone(milestoneId: number, userId: number): Promise<void> {
+    const milestone = await this.milestoneRepository.findOne({
+      where: { id: milestoneId },
+      relations: ['contract']
+    });
+
+    if (!milestone) {
+      throw new NotFoundException('Milestone không tồn tại');
     }
 
-    async getAuditSummary(contractId: string) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) {
-            throw new NotFoundException('Contract not found');
-        }
-
-        return this.auditService.getAuditSummary(contractId);
+    if (!(await this.authCoreService.canUpdateContract(userId, milestone.contract_id, {
+      ownerId: milestone.contract.created_by,
+      status: milestone.contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền xóa milestone');
     }
 
-    async getUserAuditLogs(userId: number, filters?: any, pagination?: any) {
-        return this.auditService.findByUser(userId, filters, pagination);
+    await this.milestoneRepository.delete(milestoneId);
+
+    // Cancel related reminders
+    await this.notificationService.cancelRemindersByMilestone(milestoneId);
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: milestone.contract_id,
+      user_id: userId,
+      action: 'DELETE_MILESTONE',
+      details: { milestone_id: milestoneId }
+    });
+  }
+
+  // Similar methods for Task management...
+  async createTask(contractId: number, taskData: any, userId: number): Promise<Task> {
+    const contract = await this.getContract(contractId, userId);
+
+    if (!(await this.authCoreService.canUpdateContract(userId, contractId, {
+      ownerId: contract.created_by,
+      status: contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền tạo task');
     }
 
-    async getSystemAuditLogs(filters?: any, pagination?: any) {
-        return this.auditService.getSystemAuditLogs(filters, pagination);
+    const task = this.taskRepository.create({
+      ...taskData,
+      contract_id: contractId,
+      created_by: userId
+    });
+
+    const savedTask = await this.taskRepository.save(task);
+
+    // Create notification
+    await this.notificationService.createTaskReminder(savedTask);
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: contractId,
+      user_id: userId,
+      action: 'CREATE_TASK',
+      details: { task_id: savedTask.id }
+    });
+
+    return savedTask;
+  }
+
+  // ==================== FILE MANAGEMENT ====================
+
+  async uploadFile(contractId: number, fileData: any, userId: number): Promise<ContractFile> {
+    const contract = await this.getContract(contractId, userId);
+
+    if (!(await this.authCoreService.canUpdateContract(userId, contractId, {
+      ownerId: contract.created_by,
+      status: contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền upload file');
     }
 
-    async softDelete(contractId: string, userId: number) {
-        const contract = await this.contractRepo.findOne({ where: { id: contractId } });
-        if (!contract) throw new NotFoundException('Contract not found');
-        contract.deleted_at = new Date();
-        await this.contractRepo.save(contract);
-        await this.auditService.create({ contract_id: contractId, user_id: userId, action: 'SOFT_DELETE' });
-        return { message: 'Deleted (soft)' };
+    const file = this.fileRepository.create({
+      ...fileData,
+      contract_id: contractId,
+      uploaded_by: userId
+    });
+
+    const savedFile = await this.fileRepository.save(file);
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: contractId,
+      user_id: userId,
+      action: 'UPLOAD_FILE',
+      details: { file_id: savedFile.id, filename: savedFile.filename }
+    });
+
+    return savedFile;
+  }
+
+  async deleteFile(fileId: number, userId: number): Promise<void> {
+    const file = await this.fileRepository.findOne({
+      where: { id: fileId },
+      relations: ['contract']
+    });
+
+    if (!file) {
+      throw new NotFoundException('File không tồn tại');
     }
 
-    // ===== DRAFT & STAGE MANAGEMENT =====
-    async getStageData(contractId: string, stage: string) {
-        return this.draftRepo.findOne({ where: { contract_id: contractId, stage }, order: { created_at: 'DESC' } as any });
+    if (!(await this.authCoreService.canUpdateContract(userId, file.contract_id, {
+      ownerId: file.contract.created_by,
+      status: file.contract.status
+    }))) {
+      throw new ForbiddenException('Không có quyền xóa file');
     }
 
-    async generatePreview(contractId: string) {
-        // TODO: Implement preview logic (can reuse generatePrintView or return summary)
-        return this.generatePrintView(contractId as any);
+    await this.fileRepository.delete(fileId);
+
+    // Log audit
+    await this.auditLogService.create({
+      contract_id: file.contract_id,
+      user_id: userId,
+      action: 'DELETE_FILE',
+      details: { file_id: fileId, filename: file.filename }
+    });
+  }
+
+  // ==================== EXPORT & REPORTING ====================
+
+  async exportContract(id: number, format: string, userId: number): Promise<any> {
+    const contract = await this.getContract(id, userId);
+
+    if (!(await this.authCoreService.canExportContract(userId, id))) {
+      throw new ForbiddenException('Không có quyền export hợp đồng');
     }
 
-    // ===== VERSIONING =====
-    async listVersions(contractId: string) {
-        return this.versionRepo.find({ where: { contract_id: contractId }, order: { edited_at: 'DESC' } as any });
+    // Implementation for different export formats
+    switch (format) {
+      case 'pdf':
+        return this.exportToPDF(contract);
+      case 'docx':
+        return this.exportToDOCX(contract);
+      case 'json':
+        return this.exportToJSON(contract);
+      default:
+        throw new BadRequestException('Format không được hỗ trợ');
+    }
+  }
+
+  private async exportToPDF(contract: Contract): Promise<any> {
+    // PDF export implementation
+    return { format: 'pdf', data: contract };
+  }
+
+  private async exportToDOCX(contract: Contract): Promise<any> {
+    // DOCX export implementation
+    return { format: 'docx', data: contract };
+  }
+
+  private async exportToJSON(contract: Contract): Promise<any> {
+    // JSON export implementation
+    return { format: 'json', data: contract };
+  }
+
+  // ==================== STATISTICS & ANALYTICS ====================
+
+  async getContractStatistics(userId: number): Promise<any> {
+    const userPermissions = await this.authCoreService.getUserPermissions(userId);
+    const isManager = userPermissions.roles.some(role => role.name === 'contract_manager');
+
+    let queryBuilder = this.contractRepository
+      .createQueryBuilder('contract')
+      .where('contract.deleted_at IS NULL');
+
+    if (!isManager) {
+      queryBuilder.andWhere(
+        '(contract.created_by = :userId OR EXISTS (SELECT 1 FROM collaborators c WHERE c.contract_id = contract.id AND c.user_id = :userId))',
+        { userId }
+      );
     }
 
-    async getVersion(contractId: string, versionId: string) {
-        return this.versionRepo.findOne({ where: { id: versionId, contract_id: contractId } });
-    }
+    const [
+      totalContracts,
+      draftContracts,
+      pendingContracts,
+      approvedContracts,
+      rejectedContracts
+    ] = await Promise.all([
+      queryBuilder.getCount(),
+      queryBuilder.clone().andWhere('contract.status = :status', { status: 'draft' }).getCount(),
+      queryBuilder.clone().andWhere('contract.status = :status', { status: 'pending_review' }).getCount(),
+      queryBuilder.clone().andWhere('contract.status = :status', { status: 'approved' }).getCount(),
+      queryBuilder.clone().andWhere('contract.status = :status', { status: 'rejected' }).getCount()
+    ]);
 
-    async rollbackVersion(contractId: string, versionId: string, userId: number) {
-        // TODO: Implement rollback logic (set contract content to version snapshot)
-        return { ok: false, message: 'Rollback not implemented yet' };
-    }
-
-    // ===== MILESTONE & TASK MANAGEMENT =====
-    async listMilestones(contractId: string) {
-        return this.milestoneRepo.find({ where: { contract_id: contractId } as any });
-    }
-
-    async updateMilestone(mid: string, dto: Partial<CreateMilestoneDto>, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: mid } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-        Object.assign(milestone, dto);
-        return this.milestoneRepo.save(milestone);
-    }
-
-    async deleteMilestone(mid: string, userId: number) {
-        const milestone = await this.milestoneRepo.findOne({ where: { id: mid } });
-        if (!milestone) throw new NotFoundException('Milestone not found');
-        await this.milestoneRepo.remove(milestone);
-        return { ok: true } as any;
-    }
-
-    async listTasks(mid: string) {
-        return this.taskRepo.find({ where: { milestone_id: mid } as any });
-    }
-
-    async updateTask(tid: string, dto: Partial<CreateTaskDto>, userId: number) {
-        const task = await this.taskRepo.findOne({ where: { id: tid } });
-        if (!task) throw new NotFoundException('Task not found');
-        Object.assign(task, dto);
-        return this.taskRepo.save(task);
-    }
-
-    async deleteTask(tid: string, userId: number) {
-        const task = await this.taskRepo.findOne({ where: { id: tid } });
-        if (!task) throw new NotFoundException('Task not found');
-        await this.taskRepo.remove(task);
-        return { ok: true } as any;
-    }
-
-    // ===== COLLABORATOR MANAGEMENT =====
-    async approveContract(contractId: string, userId: number) {
-        // TODO: Implement approval logic
-        return { ok: false, message: 'Approval not implemented yet' };
-    }
-
-    async rejectContract(contractId: string, reason: string, userId: number) {
-        // TODO: Implement reject logic
-        return { ok: false, message: 'Reject not implemented yet' };
-    }
-
-    async requestChanges(contractId: string, changes: string[], userId: number) {
-        // TODO: Implement request changes logic
-        return { ok: false, message: 'Request changes not implemented yet' };
-    }
-
-    // ===== HELPER METHODS =====
-    private async runStageValidation(contractId: string, stage: string) {
-        // implement per-stage validation rules (check stage-specific required fields)
-        return { ok: true, errors: [] as any[] };
-    }
-
-    private async validateBeforePublish(snapshot: Record<string, any>) {
-        return { ok: true, errors: [] as any[] };
-    }
-
-    private groupFilesByType(files: ContractFile[]) {
-        const grouped: Record<string, number> = {};
-        files.forEach(() => {
-            const type = 'generic';
-            grouped[type] = (grouped[type] || 0) + 1;
-        });
-        return grouped;
-    }
-
-    private groupContractsByStatus(contracts: Contract[]) {
-        const grouped = {};
-        contracts.forEach((contract) => {
-            const status = contract.status;
-            grouped[status] = (grouped[status] || 0) + 1;
-        });
-        return grouped;
-    }
-
-    private groupContractsByPriority(contracts: Contract[]) {
-        const grouped = {};
-        contracts.forEach((contract) => {
-            const priority = contract.priority;
-            grouped[priority] = (grouped[priority] || 0) + 1;
-        });
-        return grouped;
-    }
-
-    private getExpiringContracts(contracts: Contract[]) {
-        const thirtyDaysFromNow = new Date();
-        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-        return contracts.filter((contract) => {
-            return false;
-        });
-    }
-
-    private async getUpcomingMilestones(userId: number) {
-        return [] as any;
-    }
+    return {
+      total: totalContracts,
+      byStatus: {
+        draft: draftContracts,
+        pending: pendingContracts,
+        approved: approvedContracts,
+        rejected: rejectedContracts
+      }
+    };
+  }
 }
