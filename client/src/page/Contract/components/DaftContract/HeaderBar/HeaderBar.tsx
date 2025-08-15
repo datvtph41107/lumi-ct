@@ -6,12 +6,14 @@ import { PiArrowArcLeftFill, PiArrowArcRightFill } from "react-icons/pi";
 import { useCallback, useMemo } from "react";
 import { useContractStore } from "~/store/contract-store";
 import { ApiClient } from "~/core/http/api/ApiClient";
+import { useEditorStore } from "~/store/editor-store";
 
 const cx = classNames.bind(styles);
 
 const HeaderBar = () => {
     const { currentContract } = useContractStore();
     const api = useMemo(() => ApiClient.getInstance().private, []);
+    const { editor } = useEditorStore();
 
     const triggerDownload = useCallback((filename: string, base64: string, contentType: string) => {
         const blob = new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], { type: contentType });
@@ -45,6 +47,17 @@ const HeaderBar = () => {
         navigator.clipboard?.writeText(url);
         alert("Đã sao chép liên kết chia sẻ vào clipboard");
     }, [currentContract?.id]);
+
+    const handleExportHtml = useCallback(() => {
+        const html = editor?.getHTML() || "<p></p>";
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${currentContract?.name || "contract"}.html`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    }, [editor, currentContract?.name]);
 
     return (
         <header className={cx("header")}>
@@ -85,6 +98,7 @@ const HeaderBar = () => {
             <div className={cx("actions")}>
                 <div className={cx("action-btn")} onClick={handleDownloadPdf}>Download PDF</div>
                 <div className={cx("action-btn")} onClick={handleDownloadDocx}>Download DOCX</div>
+                <div className={cx("action-btn")} onClick={handleExportHtml}>Export HTML</div>
                 <button className={cx("action-btn")} onClick={() => window.print()}>Print</button>
                 <button className={cx("action-btn")} onClick={handleShare}>Share</button>
             </div>
