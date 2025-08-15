@@ -6,7 +6,7 @@ import { Logger } from "~/core/Logger";
 interface MilestoneValidationErrors {
     [milestoneId: string]: {
         name?: string;
-        dueDate?: string;
+        dateRange?: string;
         tasks?: string;
     };
 }
@@ -14,15 +14,15 @@ interface MilestoneValidationErrors {
 const logger = Logger.getInstance();
 
 export const useContractForm = () => {
-    const { currentDraft, updateDraft, loading, error } = useContractDraftStore();
+    const { currentDraft, updateDraftData, loading, error } = useContractDraftStore();
     const [formData, setFormData] = useState<ContractFormData | null>(null);
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [milestoneValidationErrors, setMilestoneValidationErrors] = useState<MilestoneValidationErrors>({});
 
     useEffect(() => {
         if (currentDraft) {
-            setFormData(currentDraft.formData);
-            setMilestones(currentDraft.formData.milestones || []);
+            setFormData(currentDraft.contractData as ContractFormData);
+            setMilestones((currentDraft.contractData as ContractFormData).milestones || []);
         }
     }, [currentDraft]);
 
@@ -30,10 +30,8 @@ export const useContractForm = () => {
         (updates: Partial<ContractFormData>) => {
             setFormData((prev) => {
                 if (!prev) return null;
-                const newFormData = { ...prev, ...updates };
-                // Ensure milestones are always updated from the dedicated state
+                const newFormData = { ...prev, ...updates } as ContractFormData;
                 if (updates.milestones === undefined) {
-                    // Only update if not explicitly passed
                     newFormData.milestones = milestones;
                 }
                 return newFormData;
@@ -43,16 +41,28 @@ export const useContractForm = () => {
     );
 
     const addMilestone = useCallback((newMilestone: Milestone) => {
-        setMilestones((prev) => [...prev, newMilestone]);
-    }, []);
+        setMilestones((prev) => {
+            const updated = [...prev, newMilestone];
+            updateDraftData("milestones_tasks", { milestones: updated } as Partial<ContractFormData>);
+            return updated;
+        });
+    }, [updateDraftData]);
 
     const updateMilestone = useCallback((id: string, updates: Partial<Milestone>) => {
-        setMilestones((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m)));
-    }, []);
+        setMilestones((prev) => {
+            const updated = prev.map((m) => (m.id === id ? { ...m, ...updates } : m));
+            updateDraftData("milestones_tasks", { milestones: updated } as Partial<ContractFormData>);
+            return updated;
+        });
+    }, [updateDraftData]);
 
     const deleteMilestone = useCallback((id: string) => {
-        setMilestones((prev) => prev.filter((m) => m.id !== id));
-    }, []);
+        setMilestones((prev) => {
+            const updated = prev.filter((m) => m.id !== id);
+            updateDraftData("milestones_tasks", { milestones: updated } as Partial<ContractFormData>);
+            return updated;
+        });
+    }, [updateDraftData]);
 
     const validateCurrentStep = useCallback((): boolean => {
         if (!formData) return false;
@@ -60,34 +70,25 @@ export const useContractForm = () => {
         let isValid = true;
         const newErrors: MilestoneValidationErrors = {};
 
-        // Example validation for milestones stage (Stage 1)
-        if (currentDraft?.currentStage === 1) {
+        // Validate Milestones stage shape
+        if ((currentDraft?.flow.currentStage || "") === "milestones_tasks") {
             if (milestones.length === 0) {
                 isValid = false;
-                // This error might be handled by an alert in StageMilestones, not per-milestone
             } else {
                 milestones.forEach((m) => {
                     const milestoneErrors: { [key: string]: string } = {};
-                    if (!m.name.trim()) {
-                        milestoneErrors.name = "Milestone name is required.";
+                    if (!m.name?.trim()) {
+                        milestoneErrors.name = "Tên mốc thời gian là bắt buộc";
                         isValid = false;
                     }
-                    if (!m.dueDate) {
-                        milestoneErrors.dueDate = "Due date is required.";
+                    if (!m.dateRange?.startDate || !m.dateRange?.endDate) {
+                        milestoneErrors.dateRange = "Phải chọn khoảng thời gian";
                         isValid = false;
                     }
-                    if (m.tasks.length === 0) {
-                        milestoneErrors.tasks = "At least one task is required for this milestone.";
+                    if (!m.tasks || m.tasks.length === 0) {
+                        milestoneErrors.tasks = "Cần ít nhất 1 công việc";
                         isValid = false;
-                    } else {
-                        m.tasks.forEach((task) => {
-                            if (!task.name.trim() || !task.assignee.trim()) {
-                                milestoneErrors.tasks = "All tasks must have a name and assignee.";
-                                isValid = false;
-                            }
-                        });
                     }
-
                     if (Object.keys(milestoneErrors).length > 0) {
                         newErrors[m.id] = milestoneErrors;
                     }
@@ -97,15 +98,18 @@ export const useContractForm = () => {
 
         setMilestoneValidationErrors(newErrors);
         return isValid;
-    }, [formData, currentDraft?.currentStage, milestones]);
+    }, [formData, currentDraft?.flow.currentStage, milestones]);
 
     const getMilestoneValidationErrors = useCallback(() => milestoneValidationErrors, [milestoneValidationErrors]);
 
     const getMilestoneStats = useCallback(() => {
         const totalMilestones = milestones.length;
-        const completedMilestones = milestones.filter((m) => m.status === "completed").length;
+        const completedMilestones = milestones.filter((m) => (m as any).status === "completed").length;
         const totalTasks = milestones.reduce((acc, m) => acc + (m.tasks?.length || 0), 0);
-        const completedTasks = milestones.reduce((acc, m) => acc + (m.tasks?.filter((t) => t.completed).length || 0), 0);
+        const completedTasks = milestones.reduce(
+            (acc, m) => acc + (m.tasks?.filter((t: any) => t.completed).length || 0),
+            0,
+        );
 
         return {
             totalMilestones,
@@ -115,17 +119,20 @@ export const useContractForm = () => {
         };
     }, [milestones]);
 
-    // Effect to sync milestones from local state to formData when milestones change
+    // Sync milestones to current draft when local changes
     useEffect(() => {
-        if (formData && JSON.stringify(formData.milestones) !== JSON.stringify(milestones)) {
-            updateFormData({ milestones });
+        if (currentDraft && formData) {
+            updateDraftData("milestones_tasks", { milestones } as Partial<ContractFormData>);
         }
-    }, [milestones, formData, updateFormData]);
+    }, [milestones, formData, currentDraft, updateDraftData]);
 
     return {
         formData,
         milestones,
-        setMilestones, // Allow StageMilestones to directly set milestones
+        setMilestones: (updated: Milestone[]) => {
+            setMilestones(updated);
+            updateDraftData("milestones_tasks", { milestones: updated } as Partial<ContractFormData>);
+        },
         updateFormData,
         addMilestone,
         updateMilestone,

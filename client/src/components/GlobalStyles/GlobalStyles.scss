@@ -108,18 +108,15 @@ html *::-webkit-scrollbar-track {
         padding-bottom: 1rem;
     }
 
-    .layout,
+    /* Keep layout and main visible; hide chrome around the editor */
     .layout-head,
-    .main,
     .sidebar-left,
     .sidebar-right,
-    .page-wrapper,
     .page-tag,
     .page-control,
     .print-button,
     .print-area,
     .toolbar {
-        overflow: hidden;
         display: none !important;
     }
 }

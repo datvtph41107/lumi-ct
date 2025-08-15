@@ -21,6 +21,8 @@ export interface DateRange {
     endDate: string | null;
 }
 export interface TimeRange {
+    startDate: string | null;
+    endDate: string | null;
     estimatedHours: number;
     actualHours?: number;
 }
@@ -189,6 +191,35 @@ export interface ContractTask {
     comments?: string[];
 }
 
+// UI-friendly aliases used across stages/components
+export interface Task {
+    id: string;
+    name: string;
+    description?: string;
+    assignee: string;
+    timeRange: TimeRange;
+    completed?: boolean;
+}
+
+export interface Milestone {
+    id: string;
+    name: string;
+    description?: string;
+    dateRange: DateRange;
+    priority: Priority;
+    assignee: string;
+    tasks: Task[];
+}
+
+export interface MilestoneFormData {
+    name: string;
+    description: string;
+    dateRange: DateRange;
+    priority: Priority;
+    assignee: string;
+    tasks: Task[];
+}
+
 // Stage validation/flow
 export type StageStatus = 'locked' | 'incomplete' | 'valid' | 'invalid';
 export interface StageValidation {
@@ -242,4 +273,17 @@ export interface ContractDraft {
     createdAt: string;
     updatedAt: string;
     createdBy: string;
+}
+
+export interface Contract {
+    id: string;
+    title: string;
+    contractType: string;
+    customFields?: Record<string, unknown>;
+    milestones: Milestone[];
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    contract_code?: string;
+    name?: string;
 }

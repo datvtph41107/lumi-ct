@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ProgressBarHeader from './components/ProgressBarHeader/ProgressBarHeader';
 import Stage1Draft from './components/stages/StageDraft';
 import Stage2Milestones from './components/stages/Milestones/StageMilestones';
-// import Stage4Preview from "./components/stages/PreviewContract/StagePreview";
+import StagePreview from './components/stages/Preview/StagePreview';
 import { useContractStore } from '~/store/contract-store';
 // import { useContractForm } from "~/hooks/useContractForm";
 import styles from './ContractDaft.module.scss';
@@ -16,8 +16,8 @@ const cx = classNames.bind(styles);
 const ContractDraft = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { currentStep, goToStep } = useContractStore();
-    // const { formData, validateStep } = useContractForm();
+    const { currentStep, goToStep, formData } = useContractStore();
+    // const { validateStep } = useContractForm();
 
     // Get mode and draftId from URL parameters
     const searchParams = new URLSearchParams(location.search);
@@ -109,9 +109,7 @@ const ContractDraft = () => {
             case 3:
                 return <StageNotifications />;
             case 4:
-                return <Stage1Draft contractType={mode} draftId={draftId} />;
-
-            // return <Stage4Preview />;
+                return <StagePreview />;
             default:
                 return <Stage1Draft contractType={mode} draftId={draftId} />;
         }
@@ -119,7 +117,7 @@ const ContractDraft = () => {
 
     return (
         <div className={cx('wrapper', { collapse: isVisible })}>
-            {formData.mode === 'editor' && (
+            {formData?.mode === 'editor' && (
                 <ProgressBarHeader currentStage={currentStep} isVisible={isVisible} isAtTop={isAtTop} />
             )}
             <div className={cx('container')}>{renderStage()}</div>
