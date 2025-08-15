@@ -1,63 +1,23 @@
 import React from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb, faCheckCircle, faTimes, faArrowRight } from '@fortawesome/free-solid-svg-icons';
-import styles from './SmartSuggestions.module.scss';
-import classNames from 'classnames/bind';
-
-const cx = classNames.bind(styles);
 
 interface SmartSuggestionsProps {
-    suggestions: string[];
-    onApply: (suggestion: string) => void;
-    onDismiss?: (suggestion: string) => void;
+	suggestions: string[];
+	onApply: (suggestion: string) => void;
 }
 
-const SmartSuggestions: React.FC<SmartSuggestionsProps> = ({ suggestions, onApply, onDismiss }) => {
-    if (suggestions.length === 0) {
-        return null;
-    }
-
+const SmartSuggestions: React.FC<SmartSuggestionsProps> = ({ suggestions, onApply }) => {
+    if (!suggestions || suggestions.length === 0) return null;
     return (
-        <div className={cx('smart-suggestions')}>
-            <div className={cx('suggestions-header')}>
-                <FontAwesomeIcon icon={faLightbulb} />
-                <span>Gợi ý thông minh</span>
-            </div>
-
-            <div className={cx('suggestions-list')}>
-                {suggestions.map((suggestion, index) => (
-                    <div key={index} className={cx('suggestion-item')}>
-                        <div className={cx('suggestion-content')}>
-                            <span className={cx('suggestion-text')}>{suggestion}</span>
-                        </div>
-
-                        <div className={cx('suggestion-actions')}>
-                            <button
-                                className={cx('apply-btn')}
-                                onClick={() => onApply(suggestion)}
-                                title="Áp dụng gợi ý"
-                            >
-                                <FontAwesomeIcon icon={faCheckCircle} />
-                                Áp dụng
-                            </button>
-
-                            {onDismiss && (
-                                <button
-                                    className={cx('dismiss-btn')}
-                                    onClick={() => onDismiss(suggestion)}
-                                    title="Bỏ qua gợi ý"
-                                >
-                                    <FontAwesomeIcon icon={faTimes} />
-                                </button>
-                            )}
-                        </div>
-                    </div>
+        <div style={{ position: 'absolute', right: 16, top: 120, background: 'rgba(255,255,255,0.95)', border: '1px solid #eee', borderRadius: 8, padding: 12, width: 280, boxShadow: '0 4px 14px rgba(0,0,0,0.08)', zIndex: 20 }}>
+            <div style={{ fontWeight: 600, marginBottom: 8 }}>Gợi ý</div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                {suggestions.map((s, idx) => (
+                    <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <span style={{ flex: 1, fontSize: 13, color: '#333' }}>{s}</span>
+                        <button onClick={() => onApply(s)} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #ddd', background: '#f6f6f6', cursor: 'pointer' }}>Áp dụng</button>
+                    </li>
                 ))}
-            </div>
-
-            <div className={cx('suggestions-footer')}>
-                <span className={cx('suggestions-info')}>Gợi ý dựa trên nội dung hợp đồng và quy định pháp luật</span>
-            </div>
+            </ul>
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import { BaseService } from './base.service';
-import { authCoreService } from '~/core/auth/AuthCoreService';
+import { authCoreService } from '~/core/auth/AuthCoreSerivce';
 import type {
     Contract,
     CreateContractDto,
@@ -479,6 +479,16 @@ class ContractService extends BaseService {
 
         const response = await this.delete<{ message: string }>(`/templates/${templateId}`);
         return response;
+    }
+
+    // ==================== DRAFT & STAGE MANAGEMENT (helper methods used by store/editor) ====================
+
+    async saveStage(contractId: string, stage: string, payload: { data: any }): Promise<{ data: any }> {
+        return this.patch<any, { data: any }>(`/${contractId}/stage/${stage}/save`, payload);
+    }
+
+    async transitionStage(contractId: string, from: string, to: string): Promise<{ data: any }> {
+        return this.post<any>(`/${contractId}/transition`, { from, to });
     }
 }
 

@@ -13,9 +13,9 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     app.enableCors({
         origin: [
-            'http://localhost:5173', // Vite dev server
+            process.env.CLIENT_URL || 'http://localhost:5173',
         ],
-        credentials: true, // Important: Allow cookies
+        credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
         exposedHeaders: ['Set-Cookie'],

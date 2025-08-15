@@ -77,9 +77,8 @@ import { useContractDraftStore } from '~/store/contract-draft-store';
 import { contractService } from '~/services/api/contract.service';
 import EditorToolbar from './EditorToolbar';
 import EditorSidebar from './EditorSidebar';
-import SmartSuggestions from './SmartSuggestions';
-import ExportModal from './ExportModal';
-import PrintModal from './PrintModal';
+import SmartSuggestions from './SuggestionEditor';
+// Simple export/print placeholders remain optional
 import styles from './EditorPage.module.scss';
 import classNames from 'classnames/bind';
 
@@ -103,7 +102,7 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Auto-save hook
-    useAutoSave();
+    useAutoSave(currentDraft?.id, undefined, { enabled: !!currentDraft });
 
     // TipTap Editor Configuration
     const editor = useEditor({
@@ -200,10 +199,9 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
             const content = editor.getHTML();
 
             if (currentDraft?.id) {
-                await contractService.updateDraft(currentDraft.id, {
-                    content,
-                    stage: 'editor',
-                });
+                await contractService.saveStage(currentDraft.id as any, 'editor', {
+                    data: { content },
+                } as any);
             }
 
             onSave?.(content);
@@ -222,14 +220,45 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
         if (!editor) return;
 
         const content = editor.getHTML();
-        onExport?.(format);
+        if (format === 'pdf') {
+            // Open printable window; user can "Save as PDF"
+            const win = window.open('', '_blank');
+            if (!win) return;
+            win.document.open();
+            win.document.write(`<!doctype html><html><head><title>Export PDF</title><style>body{font-family:Arial,sans-serif;max-width:794px;margin:0 auto;padding:32px} @page { size:A4; margin: 16mm 12mm; }</style></head><body>${content}</body></html>`);
+            win.document.close();
+            win.focus();
+            win.print();
+            return;
+        }
+
+        // Fallback export to Word-compatible HTML (.doc)
+        const header = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contract Export</title></head><body>`;
+        const footer = `</body></html>`;
+        const html = header + content + footer;
+        const blob = new Blob([html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'contract.doc';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
         setShowExportModal(false);
     };
 
     // Print content
     const handlePrint = () => {
         if (!editor) return;
-        setShowPrintModal(true);
+        const content = editor.getHTML();
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.open();
+        win.document.write(`<!doctype html><html><head><title>Print</title><style>body{font-family:Arial,sans-serif;max-width:794px;margin:0 auto;padding:32px} @page { size:A4; margin: 16mm 12mm; }</style></head><body>${content}</body></html>`);
+        win.document.close();
+        win.focus();
+        win.print();
     };
 
     // Insert template content
@@ -392,23 +421,29 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
             {/* Main Content */}
             <div className={cx('editor-main')}>
                 {/* Toolbar */}
-                <EditorToolbar editor={editor} />
+                <EditorToolbar
+                    editor={editor}
+                    onSave={handleSave}
+                    onPrint={handlePrint}
+                    onExport={(fmt) => handleExport(fmt)}
+                />
 
                 {/* Editor Area */}
                 <div className={cx('editor-area')}>
                     <EditorContent editor={editor} />
 
                     {/* Smart Suggestions */}
-                    {showSuggestions && suggestions.length > 0 && (
+                                        {showSuggestions && suggestions.length > 0 && (
                         <SmartSuggestions
                             suggestions={suggestions}
                             onApply={(suggestion) => {
-                                // Handle suggestion application
-                                console.log('Apply suggestion:', suggestion);
+                                if (!editor) return;
+                                // naive apply: insert new paragraph with suggestion text
+                                editor.commands.insertContent(`<p>${suggestion}</p>`);
                             }}
                         />
                     )}
-                </div>
+</div>
 
                 {/* Sidebar */}
                 <EditorSidebar

@@ -22,13 +22,13 @@ interface UseAutoSaveReturn {
 }
 
 export const useAutoSave = (
-    draftId: string | null,
-    formData: ContractFormData | null,
+    draftId?: string | null,
+    formData?: ContractFormData | null,
     options: UseAutoSaveOptions = {},
 ): UseAutoSaveReturn => {
     const { enabled = true, onSave, onError } = options;
 
-    const { updateDraft, performAutoSave, hasUnsavedChanges, setDirty } = useContractDraftStore();
+    const { updateDraft, performAutoSave, hasUnsavedChanges, setDirty, currentDraft } = useContractDraftStore();
 
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -45,8 +45,11 @@ export const useAutoSave = (
 
     // Manual save (Ctrl+S / Cmd+S or save button)
     const saveNow = useCallback(async (): Promise<void> => {
-        if (!draftId || !formData || !enabled) return;
+        const id = draftId ?? currentDraft?.id ?? null;
+        const data = formData ?? (currentDraft?.contractData as ContractFormData | null);
+        if (!id || !data || !enabled) return;
         try {
+            await updateDraft(id, { contractData: data });
             await performAutoSave();
             const now = new Date();
             setLastSaved(now);
@@ -54,15 +57,15 @@ export const useAutoSave = (
             setLocalDirty(false);
             setDirty(false);
             onSave?.(true);
-            logger.debug('Manual save successful', { draftId, saveCount: saveCount + 1 });
+            logger.debug('Manual save successful', { draftId: id, saveCount: saveCount + 1 });
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Save failed';
             setError(errorMessage);
             onSave?.(false, errorMessage);
             onError?.(errorMessage);
-            logger.error('Manual save failed', { draftId, error: errorMessage });
+            logger.error('Manual save failed', { draftId: id, error: errorMessage });
         }
-    }, [draftId, formData, enabled, performAutoSave, onSave, onError, saveCount, setDirty]);
+    }, [draftId, formData, enabled, currentDraft, updateDraft, performAutoSave, onSave, onError, saveCount, setDirty]);
 
     // Before unload prompt if dirty
     useEffect(() => {
