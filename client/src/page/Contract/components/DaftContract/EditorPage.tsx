@@ -75,12 +75,10 @@ import {
 import { useAutoSave } from '~/hooks/useAutoSave';
 import { useContractDraftStore } from '~/store/contract-draft-store';
 import { contractService } from '~/services/api/contract.service';
-// TODO: Wire real toolbar and sidebar once available
-const EditorToolbar: React.FC<{ editor: any }> = () => null;
-const EditorSidebar: React.FC<{ template?: any; onInsertSection: (t: string) => void; onInsertTemplate: (c: string) => void }> = () => null;
-const SmartSuggestions: React.FC<{ suggestions: string[]; onApply: (s: string) => void }> = () => null;
-const ExportModal: React.FC<{ onExport: (f: string) => void; onClose: () => void }> = () => null;
-const PrintModal: React.FC<{ content: string; onClose: () => void }> = () => null;
+import EditorToolbar from './EditorToolbar';
+import EditorSidebar from './EditorSidebar';
+import SmartSuggestions from './SuggestionEditor';
+// Simple export/print placeholders remain optional
 import styles from './EditorPage.module.scss';
 import classNames from 'classnames/bind';
 
@@ -392,7 +390,12 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
             {/* Main Content */}
             <div className={cx('editor-main')}>
                 {/* Toolbar */}
-                <EditorToolbar editor={editor} />
+                <EditorToolbar
+                    editor={editor}
+                    onSave={handleSave}
+                    onPrint={handlePrint}
+                    onExport={(fmt) => handleExport(fmt)}
+                />
 
                 {/* Editor Area */}
                 <div className={cx('editor-area')}>

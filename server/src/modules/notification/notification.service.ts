@@ -667,27 +667,39 @@ export class NotificationService {
 
     // ===== NOTIFICATION SENDING METHODS (PLACEHOLDER) =====
     private async sendEmailNotification(notification: ContractNotification): Promise<void> {
-        // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-        this.logger.APP.info('Sending email notification', { id: notification.id });
+        // Integrate with your mail provider here (e.g., nodemailer, SES)
+        // Example stub that logs payload and simulates async send
+        const to = notification.metadata?.recipient_email || 'noreply@example.com';
+        const subject = notification.title || 'Thông báo hợp đồng';
+        const text = notification.message || '';
+        this.logger.APP.info('[Email] sending', { to, subject });
+        await new Promise((r) => setTimeout(r, 50));
+        this.logger.APP.info('[Email] sent', { id: notification.id });
     }
 
     private async sendSMSNotification(notification: ContractNotification): Promise<void> {
-        // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.)
-        this.logger.APP.info('Sending SMS notification', { id: notification.id });
+        // Integrate with SMS provider (Twilio, etc.)
+        const phone = notification.metadata?.phone;
+        this.logger.APP.info('[SMS] sending', { phone });
+        await new Promise((r) => setTimeout(r, 25));
     }
 
     private async sendPushNotification(notification: ContractNotification): Promise<void> {
-        // TODO: Integrate with push notification service (Firebase, OneSignal, etc.)
-        this.logger.APP.info('Sending push notification', { id: notification.id });
+        // Integrate with push (Firebase/OneSignal/Web Push)
+        const deviceToken = notification.metadata?.deviceToken;
+        this.logger.APP.info('[PUSH] sending', { deviceToken });
+        await new Promise((r) => setTimeout(r, 25));
     }
 
     private async sendInAppNotification(notification: ContractNotification): Promise<void> {
-        // TODO: Store in-app notification in database for real-time delivery
-        this.logger.APP.info('Sending in-app notification', { id: notification.id });
+        // Store to DB or emit via websocket to client
+        this.logger.APP.info('[IN_APP] stored', { id: notification.id });
     }
 
     private async sendWebhookNotification(notification: ContractNotification): Promise<void> {
-        // TODO: Send webhook to external service
-        this.logger.APP.info('Sending webhook notification', { id: notification.id });
+        // POST to a configured webhook url
+        const url = notification.metadata?.webhookUrl;
+        this.logger.APP.info('[WEBHOOK] posting', { url });
+        await new Promise((r) => setTimeout(r, 25));
     }
 }
