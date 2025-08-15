@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import ProgressBarHeader from "./components/ProgressBarHeader/ProgressBarHeader";
-import Stage1Draft from "./components/stages/StageDraft";
-import Stage2Milestones from "./components/stages/Milestones/StageMilestones";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ProgressBarHeader from './components/ProgressBarHeader/ProgressBarHeader';
+import Stage1Draft from './components/stages/StageDraft';
+import Stage2Milestones from './components/stages/Milestones/StageMilestones';
 // import Stage4Preview from "./components/stages/PreviewContract/StagePreview";
-import { useContractStore } from "~/store/contract-store";
+import { useContractStore } from '~/store/contract-store';
 // import { useContractForm } from "~/hooks/useContractForm";
-import styles from "./ContractDaft.module.scss";
-import classNames from "classnames/bind";
-import { routePrivate } from "~/config/routes.config";
+import styles from './ContractDaft.module.scss';
+import classNames from 'classnames/bind';
+import { routePrivate } from '~/config/routes.config';
+import StageNotifications from './components/stages/Notification/StageNotifications';
 
 const cx = classNames.bind(styles);
 
@@ -20,8 +21,8 @@ const ContractDraft = () => {
 
     // Get mode and draftId from URL parameters
     const searchParams = new URLSearchParams(location.search);
-    const mode = searchParams.get("mode") || "basic";
-    const draftId = searchParams.get("draftId");
+    const mode = searchParams.get('mode') || 'basic';
+    const draftId = searchParams.get('draftId');
 
     const [isVisible, setIsVisible] = useState(true);
     const [isAtTop, setIsAtTop] = useState(true);
@@ -74,14 +75,14 @@ const ContractDraft = () => {
             }
         };
 
-        window.addEventListener("scroll", onScroll, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
         return () => {
-            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener('scroll', onScroll);
         };
     }, []);
 
     useEffect(() => {
-        if (currentStep < 1 || currentStep > 3) {
+        if (currentStep < 1 || currentStep > 4) {
             goToStep(1);
             navigate(`/${routePrivate.createContract}`);
         }
@@ -107,7 +108,8 @@ const ContractDraft = () => {
                 return <Stage2Milestones />;
             case 3:
                 return <Stage1Draft contractType={mode} draftId={draftId} />;
-
+            case 4:
+                return <StageNotifications />;
             // return <Stage4Preview />;
             default:
                 return <Stage1Draft contractType={mode} draftId={draftId} />;
@@ -115,9 +117,11 @@ const ContractDraft = () => {
     };
 
     return (
-        <div className={cx("wrapper", { collapse: isVisible })}>
-            {/* {formData.mode === "editor" && <ProgressBarHeader currentStage={currentStep} isVisible={isVisible} isAtTop={isAtTop} />} */}
-            <div className={cx("container")}>{renderStage()}</div>
+        <div className={cx('wrapper', { collapse: isVisible })}>
+            {formData.mode === 'editor' && (
+                <ProgressBarHeader currentStage={currentStep} isVisible={isVisible} isAtTop={isAtTop} />
+            )}
+            <div className={cx('container')}>{renderStage()}</div>
         </div>
     );
 };

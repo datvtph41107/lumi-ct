@@ -21,6 +21,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './SidebarRight.module.scss';
 import classNames from 'classnames/bind';
+import { useLocation } from 'react-router-dom';
+import CollaboratorManagement from '~/components/CollaboratorManagement/CollaboratorManagement';
+import { auditLogService } from '~/services/api/audit-log.service';
 
 const cx = classNames.bind(styles);
 
@@ -76,6 +79,9 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
         darkMode: false,
     });
     const [loading, setLoading] = useState(false);
+    const location = useLocation();
+    const query = new URLSearchParams(location.search);
+    const resolvedContractId = contractId || query.get('draftId') || 'contract-001';
 
     useEffect(() => {
         loadData();
@@ -105,65 +111,23 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                     });
                     break;
                 case 'collaborators':
-                    setCollaborators([
-                        {
-                            id: '1',
-                            name: 'Nguyễn Văn A',
-                            email: 'nguyenvana@example.com',
-                            role: 'owner',
-                            joinedAt: '2024-01-15 10:30',
-                        },
-                        {
-                            id: '2',
-                            name: 'Nguyễn Thị B',
-                            email: 'nguyenthib@example.com',
-                            role: 'editor',
-                            joinedAt: '2024-01-15 11:45',
-                        },
-                        {
-                            id: '3',
-                            name: 'Trần Văn C',
-                            email: 'tranvanc@example.com',
-                            role: 'viewer',
-                            joinedAt: '2024-01-15 12:15',
-                        },
-                    ]);
+                    // Collaborator list is rendered by CollaboratorManagement
                     break;
                 case 'activity':
-                    setActivity([
-                        {
-                            id: '1',
-                            action: 'Chỉnh sửa nội dung',
-                            description: 'Cập nhật điều khoản lương',
-                            timestamp: '2024-01-15 14:20',
-                            user: 'Nguyễn Văn A',
-                            type: 'edit',
-                        },
-                        {
-                            id: '2',
-                            action: 'Lưu bản nháp',
-                            description: 'Tự động lưu',
-                            timestamp: '2024-01-15 14:15',
-                            user: 'Hệ thống',
-                            type: 'save',
-                        },
-                        {
-                            id: '3',
-                            action: 'Thêm collaborator',
-                            description: 'Đã thêm Trần Văn C',
-                            timestamp: '2024-01-15 12:15',
-                            user: 'Nguyễn Văn A',
-                            type: 'share',
-                        },
-                        {
-                            id: '4',
-                            action: 'Bình luận',
-                            description: 'Cần bổ sung điều khoản bảo mật',
-                            timestamp: '2024-01-15 11:45',
-                            user: 'Nguyễn Thị B',
-                            type: 'comment',
-                        },
-                    ]);
+                    // Fetch real audit activity if available
+                    try {
+                        const recent = await auditLogService.getRecentActivity(resolvedContractId, 10);
+                        setActivity(
+                            recent.map((log) => ({
+                                id: String(log.id),
+                                action: log.action,
+                                description: log.description || auditLogService.getActionDisplayName(log.action),
+                                timestamp: log.created_at,
+                                user: log.user_name || `${log.user_id}`,
+                                type: 'edit',
+                            })),
+                        );
+                    } catch {}
                     break;
             }
         } catch (error) {
@@ -520,41 +484,10 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                         {/* Collaborators Tab */}
                         {activeTab === 'collaborators' && (
                             <div className={cx('collaborators-tab')}>
-                                <div className={cx('collaborators-list')}>
-                                    {collaborators.map((collaborator) => (
-                                        <div key={collaborator.id} className={cx('collaborator-item')}>
-                                            <div className={cx('collaborator-avatar')}>
-                                                {collaborator.avatar ? (
-                                                    <img src={collaborator.avatar} alt={collaborator.name} />
-                                                ) : (
-                                                    <div className={cx('avatar-placeholder')}>
-                                                        {collaborator.name.charAt(0)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className={cx('collaborator-info')}>
-                                                <h4>{collaborator.name}</h4>
-                                                <p>{collaborator.email}</p>
-                                                <span
-                                                    className={cx('role-badge')}
-                                                    style={{ backgroundColor: getRoleColor(collaborator.role) }}
-                                                >
-                                                    {getRoleText(collaborator.role)}
-                                                </span>
-                                                <small>Tham gia: {collaborator.joinedAt}</small>
-                                            </div>
-                                            <div className={cx('collaborator-actions')}>
-                                                <button className={cx('action-btn', 'edit')}>
-                                                    <FontAwesomeIcon icon={faEdit} />
-                                                </button>
-                                                <button className={cx('action-btn', 'remove')}>
-                                                    <FontAwesomeIcon icon={faTrash} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
+                                <CollaboratorManagement
+                                    contractId={resolvedContractId}
+                                    currentUserId={Number(userId) || 0}
+                                />
                                 <div className={cx('collaborator-tips')}>
                                     <h4>Về cộng tác viên</h4>
                                     <ul>

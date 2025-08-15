@@ -9,7 +9,6 @@ import LoginLayout from '~/layouts/LoginLayout';
 import AdminLogin from '~/page/admin/AdminLogin';
 import Login from '~/page/client/Login';
 import Dashboard from '~/page/Dashboard';
-import Admin from '~/page/admin/Admin';
 
 // Types
 import { ROLE, PERMISSION } from '~/types/auth/auth.types';
@@ -21,6 +20,11 @@ import ContractPage from '~/page/Contract/ContractPage';
 import CreateContractLayout from '~/layouts/CreateContractLayout';
 import ContractDaft from '~/page/Contract/ContractDaft';
 import ContractCollection from '~/page/Contract/ContractCollection';
+
+// New admin pages (placeholders)
+import SystemNotifications from '~/page/admin/SystemNotifications';
+import UserManagement from '~/page/admin/UserManagement';
+import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
 
 // Route interfaces
 interface BaseRoute {
@@ -80,14 +84,41 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     // Admin Panel - Chỉ dành cho Admin hoặc có quyền admin access
+    // {
+
+    // System Notifications Settings - Admin only
     {
-        path: config.routePrivate.admin,
-        component: Admin,
+        path: '/admin/notifications',
+        component: SystemNotifications,
         layout: AdminLayout,
         access: {
             roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.ADMIN_ACCESS],
-            requireAll: false, // Chỉ cần 1 trong 2: role ADMIN HOẶC permission ADMIN_ACCESS
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
+        },
+    },
+
+    // User Management - Admin only
+    {
+        path: '/admin/users',
+        component: UserManagement,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.USER_MANAGEMENT],
+            requireAll: false,
+        },
+    },
+
+    // Roles/Permissions Management - Admin only
+    {
+        path: '/admin/roles-permissions',
+        component: RolePermissionManagement,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
         },
     },
 

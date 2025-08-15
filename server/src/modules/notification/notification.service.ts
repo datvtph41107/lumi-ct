@@ -166,6 +166,10 @@ export class NotificationService {
         });
     }
 
+    async getNotificationsByContract(contractId: string): Promise<ContractNotification[]> {
+        return this.notificationRepo.find({ where: { contract_id: contractId }, order: { created_at: 'DESC' as any } });
+    }
+
     async getFailedNotifications(): Promise<ContractNotification[]> {
         const now = new Date();
         return this.notificationRepo.find({
@@ -562,6 +566,14 @@ export class NotificationService {
                 contract_name: contract.name,
             },
         });
+    }
+
+    // Public wrappers used by contract service
+    async createMilestoneReminder(milestone: Milestone): Promise<void> {
+        await this.createMilestoneDueReminder(milestone);
+    }
+    async createTaskReminder(task: Task): Promise<void> {
+        await this.createTaskDueReminder(task);
     }
 
     private async createMilestoneOverdueReminder(milestone: Milestone): Promise<void> {
