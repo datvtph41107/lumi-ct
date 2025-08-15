@@ -1,13 +1,15 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authSlice from "./slices/auth.slice";
-// import contractSlice from "./slices/contract.slice";
-// import dashboardReducer from "./slices/dashboard.slice";
+import contractSlice from "./slices/contract.slice";
+import userSlice from "./slices/user.slice";
+import dashboardSlice from "./slices/dashboard.slice";
 
 export const store = configureStore({
     reducer: {
         auth: authSlice,
-        // contract: contractSlice,
-        // users: userSlice,
+        contract: contractSlice,
+        user: userSlice,
+        dashboard: dashboardSlice,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
