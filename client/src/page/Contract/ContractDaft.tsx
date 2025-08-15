@@ -9,6 +9,7 @@ import { useContractStore } from "~/store/contract-store";
 import styles from "./ContractDaft.module.scss";
 import classNames from "classnames/bind";
 import { routePrivate } from "~/config/routes.config";
+import StageNotifications from "./components/stages/Notification/StageNotifications";
 
 const cx = classNames.bind(styles);
 
@@ -81,7 +82,7 @@ const ContractDraft = () => {
     }, []);
 
     useEffect(() => {
-        if (currentStep < 1 || currentStep > 3) {
+        if (currentStep < 1 || currentStep > 4) {
             goToStep(1);
             navigate(`/${routePrivate.createContract}`);
         }
@@ -106,6 +107,8 @@ const ContractDraft = () => {
             case 2:
                 return <Stage2Milestones />;
             case 3:
+                return <StageNotifications />;
+            case 4:
                 return <Stage1Draft contractType={mode} draftId={draftId} />;
 
             // return <Stage4Preview />;

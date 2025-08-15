@@ -496,7 +496,7 @@ const ContractCollection: React.FC = () => {
     const handleEditDraft = (draft: ContractDraft) => {
         // Navigate to the current stage of the draft
         const currentStage = draft.flow?.currentStage || "basic_info";
-        navigate(`/contract/draft?draftId=${draft.id}&stage=${currentStage}`);
+        navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${currentStage}`);
         logger.info("Editing existing draft", { draftId: draft.id, stage: currentStage });
     };
 

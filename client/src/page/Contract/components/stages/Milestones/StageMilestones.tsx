@@ -12,7 +12,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
     faFileContract,
     faChevronLeft,
-    faChevronRight,
     faPlus,
     faEdit,
     faCheckCircle,
@@ -26,10 +25,9 @@ import ControlledDropdownField from "~/components/Form/ControllerValid/Controlle
 import TaskManager from "./TaskManager";
 import Button from "~/components/Button";
 import type { MilestoneFormData, Milestone, Task } from "~/types/contract/contract.types";
-// import { useContractForm } from "~/hooks/useContractForm";
+import { useContractForm } from "~/hooks/useContractForm";
 import Badge from "~/components/Badge";
 import { convertDateRange, convertTimeRange, formatDateForDisplay, validateDateRange } from "~/utils/contract";
-import { useNavigate } from "react-router-dom";
 import { useContractStore } from "~/store/contract-store";
 
 const cx = classNames.bind(styles);
@@ -42,8 +40,7 @@ const StageMilestones: React.FC = () => {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
     const { currentStep, goToStep } = useContractStore();
-    const { setMilestones, validateStep, nextStep } = useContractForm();
-    const navigate = useNavigate();
+    const { setMilestones, validateCurrentStep } = useContractForm();
 
     const employees = [
         { value: "nguyen-van-a", label: "Nguyễn Văn A" },
@@ -76,7 +73,6 @@ const StageMilestones: React.FC = () => {
     const handleUpdateMilestone: SubmitHandler<MilestoneFormData> = (data) => {
         if (!editingMilestone) return;
 
-        // Validate date range
         const dateRangeError = validateDateRange(data.dateRange);
         if (dateRangeError) {
             alert(dateRangeError);
@@ -117,7 +113,6 @@ const StageMilestones: React.FC = () => {
     };
 
     const handleCreateMilestone: SubmitHandler<MilestoneFormData> = (data) => {
-        // Validate date range
         const dateRangeError = validateDateRange(data.dateRange);
         if (dateRangeError) {
             alert(dateRangeError);
@@ -139,13 +134,11 @@ const StageMilestones: React.FC = () => {
 
         const updatedMilestones = [...milestones, newMilestone];
         setMilestonesState(updatedMilestones);
-        // setMilestones(updatedMilestones);
+        setMilestones(updatedMilestones);
         setCurrentTasks([]);
     };
 
     const handleFormSubmit = () => {
-        console.log("Form submitted with milestones:", milestones);
-
         if (milestones.length === 0) {
             alert("Vui lòng tạo ít nhất một mốc thời gian");
             return;
@@ -153,12 +146,8 @@ const StageMilestones: React.FC = () => {
 
         setMilestones(milestones);
 
-        if (validateStep(2)) {
-            console.log("Step 2 validation passed, moving to step 3");
-            nextStep();
-            navigate("/page/create/daft?stage=3");
-        } else {
-            console.log("Step 2 validation failed");
+        if (validateCurrentStep()) {
+            goToStep(currentStep + 1);
         }
     };
 
@@ -190,8 +179,7 @@ const StageMilestones: React.FC = () => {
                     <div className={cx("card")}>
                         <div className={cx("cardHeader")}>
                             <h2>
-                                <FontAwesomeIcon icon={faPlus} className={cx("icon", "iconLarge")} />{" "}
-                                {editingMilestone ? "Chỉnh sửa Mốc thời gian" : "Tạo Mốc thời gian mới"}
+                                <FontAwesomeIcon icon={faPlus} className={cx("icon", "iconLarge")} /> {editingMilestone ? "Chỉnh sửa Mốc thời gian" : "Tạo Mốc thời gian mới"}
                             </h2>
                             {editingMilestone && (
                                 <Button outline small text onClick={handleCancelEdit}>
@@ -217,38 +205,16 @@ const StageMilestones: React.FC = () => {
                                 onSubmit={editingMilestone ? handleUpdateMilestone : handleCreateMilestone}
                                 className={cx("milestoneForm")}
                             >
-                                <Input
-                                    name="name"
-                                    label="Tên mốc thời gian"
-                                    placeholder="Nhập tên mốc thời gian"
-                                    required="Vui lòng nhập tên mốc thời gian"
-                                />
+                                <Input name="name" label="Tên mốc thời gian" placeholder="Nhập tên mốc thời gian" required="Vui lòng nhập tên mốc thời gian" />
 
                                 <TextArea name="description" label="Mô tả" placeholder="Mô tả chi tiết về mốc thời gian" rows={3} />
 
-                                <ControlledDateRangeField
-                                    name="dateRange"
-                                    label="Thời gian thực hiện"
-                                    placeholder="Chọn ngày bắt đầu và kết thúc"
-                                    requiredMessage="Vui lòng chọn đầy đủ thời gian thực hiện"
-                                />
+                                <ControlledDateRangeField name="dateRange" label="Thời gian thực hiện" placeholder="Chọn ngày bắt đầu và kết thúc" requiredMessage="Vui lòng chọn đầy đủ thời gian thực hiện" />
 
                                 <div className={cx("gridCols2")}>
-                                    <ControlledDropdownField
-                                        name="priority"
-                                        label="Mức độ ưu tiên"
-                                        options={priorityOptions}
-                                        placeholder="Chọn mức độ ưu tiên"
-                                        requiredMessage="Vui lòng chọn mức độ ưu tiên"
-                                    />
+                                    <ControlledDropdownField name="priority" label="Mức độ ưu tiên" options={priorityOptions} placeholder="Chọn mức độ ưu tiên" requiredMessage="Vui lòng chọn mức độ ưu tiên" />
 
-                                    <ControlledDropdownField
-                                        name="assignee"
-                                        label="Người phụ trách"
-                                        options={employees}
-                                        placeholder="Chọn người phụ trách"
-                                        requiredMessage="Vui lòng chọn người phụ trách"
-                                    />
+                                    <ControlledDropdownField name="assignee" label="Người phụ trách" options={employees} placeholder="Chọn người phụ trách" requiredMessage="Vui lòng chọn người phụ trách" />
                                 </div>
 
                                 <div className={cx("separator")} />
@@ -290,27 +256,23 @@ const StageMilestones: React.FC = () => {
                                     {milestones.map((milestone, index) => (
                                         <div key={milestone.id} className={cx("timelineItem")}>
                                             {index < milestones.length - 1 && <div className={cx("timelineConnector")} />}
-                                            <div className={cx("timelineContent")}>
+                                            <div className={cx("timelineContent")}> 
                                                 <div className={cx("timelineNumber")}>{index + 1}</div>
-                                                <div className={cx("timelineCard")}>
+                                                <div className={cx("timelineCard")}> 
                                                     <div className={cx("timelineHeader")}>
                                                         <div className={cx("timelineTitle")}>
                                                             <h3>{milestone.name}</h3>
                                                             <p>{milestone.description}</p>
                                                         </div>
                                                         <div className={cx("timelineBadges")}>
-                                                            <Badge
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className={getPriorityClass(milestone.priority)}
-                                                            >
+                                                            <Badge size="sm" variant="outline" className={getPriorityClass(milestone.priority)}>
                                                                 {getPriorityText(milestone.priority)}
                                                             </Badge>
                                                         </div>
                                                     </div>
 
                                                     <div className={cx("timelineMeta")}>
-                                                        <div className={cx("metaLine")}>
+                                                        <div className={cx("metaLine")}> 
                                                             <span className={cx("grayText")}>Thời gian hoạt động</span>
                                                             <span className={cx("separator-ic")}>
                                                                 <FontAwesomeIcon icon={faCircle} />
@@ -322,7 +284,7 @@ const StageMilestones: React.FC = () => {
                                                             </span>
                                                         </div>
 
-                                                        <div className={cx("metaLine")}>
+                                                        <div className={cx("metaLine")}> 
                                                             <span className={cx("grayText")}>Người phụ trách</span>
                                                             <span className={cx("separator-ic")}>
                                                                 <FontAwesomeIcon icon={faCircle} />
@@ -332,30 +294,20 @@ const StageMilestones: React.FC = () => {
                                                     </div>
 
                                                     {milestone.tasks.length > 0 && (
-                                                        <div className={cx("timelineTasks")}>
+                                                        <div className={cx("timelineTasks")}> 
                                                             <span className={cx("tasksLabel")}>Công việc ({milestone.tasks.length}):</span>
                                                             {milestone.tasks.map((task) => (
-                                                                <div key={task.id} className={cx("timelineTask")}>
-                                                                    <div className={cx("taskHeader")}>
+                                                                <div key={task.id} className={cx("timelineTask")}> 
+                                                                    <div className={cx("taskHeader")}> 
                                                                         <div className={cx("taskTitle")}>{task.name}</div>
                                                                         <div className={cx("taskTime")}>
-                                                                            <FontAwesomeIcon
-                                                                                icon={faClock}
-                                                                                className={cx("icon", "iconSmall")}
-                                                                            />
+                                                                            <FontAwesomeIcon icon={faClock} className={cx("icon", "iconSmall")} />
                                                                             {task.timeRange.estimatedHours}h
                                                                         </div>
                                                                     </div>
-
-                                                                    {task.description && (
-                                                                        <p className={cx("taskDescription")}>{task.description}</p>
-                                                                    )}
-
-                                                                    <div className={cx("taskAssignee")}>
-                                                                        <FontAwesomeIcon
-                                                                            icon={faUser}
-                                                                            className={cx("icon", "iconSmall")}
-                                                                        />
+                                                                    {task.description && <p className={cx("taskDescription")}>{task.description}</p>}
+                                                                    <div className={cx("taskAssignee")}> 
+                                                                        <FontAwesomeIcon icon={faUser} className={cx("icon", "iconSmall")} />
                                                                         {task.assignee}
                                                                     </div>
                                                                 </div>
@@ -363,26 +315,11 @@ const StageMilestones: React.FC = () => {
                                                         </div>
                                                     )}
 
-                                                    <div className={cx("timelineActions")}>
-                                                        <Button
-                                                            small
-                                                            rounded
-                                                            primary
-                                                            bolder
-                                                            onClick={() => handleEditMilestone(milestone)}
-                                                            leftIcon={<FontAwesomeIcon icon={faEdit} />}
-                                                        >
+                                                    <div className={cx("timelineActions")}> 
+                                                        <Button small rounded primary bolder onClick={() => handleEditMilestone(milestone)} leftIcon={<FontAwesomeIcon icon={faEdit} />}>
                                                             Chỉnh sửa
                                                         </Button>
-
-                                                        <Button
-                                                            small
-                                                            rounded
-                                                            outline
-                                                            bolder
-                                                            className={cx("cancelled-btn")}
-                                                            onClick={() => setShowDeleteConfirm(milestone.id)}
-                                                        >
+                                                        <Button small rounded outline bolder className={cx("cancelled-btn")} onClick={() => setShowDeleteConfirm(milestone.id)}>
                                                             Xóa
                                                         </Button>
                                                     </div>
@@ -397,17 +334,10 @@ const StageMilestones: React.FC = () => {
                 </div>
 
                 <div className={cx("footerBar")}>
-                    <div className={cx("footerActions")}>
-                        <Button
-                            outline
-                            medium
-                            onClick={() => {
-                                if (currentStep > 1) goToStep(currentStep - 1);
-                            }}
-                        >
+                    <div className={cx("footerActions")}> 
+                        <Button outline medium onClick={() => { if (currentStep > 1) goToStep(currentStep - 1); }}>
                             <FontAwesomeIcon icon={faChevronLeft} /> Quay lại
                         </Button>
-
                         <Button primary medium onClick={handleFormSubmit}>
                             <FontAwesomeIcon icon={faFileContract} />
                             Lưu và tiếp tục đến giai đoạn 3
@@ -416,14 +346,9 @@ const StageMilestones: React.FC = () => {
                 </div>
 
                 <div className={cx("form-sidebar", { collapsed: sidebarCollapsed })}>
-                    <button
-                        className={cx("sidebar-toggle")}
-                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-                    >
-                        <FontAwesomeIcon icon={sidebarCollapsed ? faChevronLeft : faChevronRight} />
+                    <button className={cx("sidebar-toggle")} onClick={() => setSidebarCollapsed(!sidebarCollapsed)} title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}>
+                        <FontAwesomeIcon icon={faChevronLeft} />
                     </button>
-
                     <div className={cx("sidebar-content")}>
                         {!sidebarCollapsed && (
                             <>
@@ -436,11 +361,11 @@ const StageMilestones: React.FC = () => {
 
                 {showDeleteConfirm && (
                     <div className={cx("modal-overlay")}>
-                        <div className={cx("modal")}>
+                        <div className={cx("modal")}> 
                             <h3>Xác nhận xóa</h3>
                             <p>Bạn có chắc chắn muốn xóa mốc thời gian này? Hành động này không thể hoàn tác.</p>
-                            <div className={cx("modal-actions")}>
-                                <Button primary small onClick={() => handleDeleteMilestone(showDeleteConfirm)}>
+                            <div className={cx("modal-actions")}> 
+                                <Button primary small onClick={() => handleDeleteMilestone(showDeleteConfirm!)}>
                                     Xóa
                                 </Button>
                                 <Button outline small onClick={() => setShowDeleteConfirm(null)}>
