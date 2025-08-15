@@ -460,7 +460,7 @@ const ContractCollection: React.FC = () => {
 
             // Navigate to appropriate stage based on mode
             const targetStage = selectedMode === "basic" ? "basic_info" : "content_draft";
-            navigate(`/contract/draft?draftId=${draft.id}&stage=${targetStage}`);
+            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}`);
 
             logger.info("Created new draft", { mode: selectedMode, draftId: draft.id });
         } catch (error) {
@@ -480,7 +480,7 @@ const ContractCollection: React.FC = () => {
 
             // Navigate to appropriate stage based on mode and template
             const targetStage = selectedMode === "basic" ? "basic_info" : "content_draft";
-            navigate(`/contract/draft?draftId=${draft.id}&stage=${targetStage}`);
+            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}`);
 
             logger.info("Created draft from template", {
                 templateId: template.id,
