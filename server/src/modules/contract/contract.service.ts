@@ -722,6 +722,53 @@ export class ContractService {
         return { format: 'json', data: contract };
     }
 
+    // Controller-facing helpers (stubs) for export & print
+    async exportPdf(id: string): Promise<{ filename: string; contentBase64: string; contentType: string }> {
+        // NOTE: Lightweight placeholder that returns HTML content as a downloadable payload
+        // A real PDF generator (e.g., puppeteer/Playwright) should be integrated later.
+        const contract = await this.contractRepository.findOne({ where: { id } });
+        if (!contract) {
+            throw new NotFoundException('Hợp đồng không tồn tại');
+        }
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>${
+            contract.name || 'contract'
+        }</title></head><body><h1>${contract.name || 'Hợp đồng'}</h1><p>Mã: ${
+            contract.contract_code || ''
+        }</p></body></html>`;
+        return {
+            filename: `${contract.name || 'contract'}.html`,
+            contentBase64: Buffer.from(html, 'utf8').toString('base64'),
+            contentType: 'text/html',
+        };
+    }
+
+    async exportDocx(id: string): Promise<{ filename: string; contentBase64: string; contentType: string }> {
+        const contract = await this.contractRepository.findOne({ where: { id } });
+        if (!contract) {
+            throw new NotFoundException('Hợp đồng không tồn tại');
+        }
+        // Placeholder DOCX export as plain text packaged; real implementation should produce a .docx file
+        const content = `Contract: ${contract.name || ''}\nCode: ${contract.contract_code || ''}`;
+        return {
+            filename: `${contract.name || 'contract'}.txt`,
+            contentBase64: Buffer.from(content, 'utf8').toString('base64'),
+            contentType: 'text/plain',
+        };
+    }
+
+    async generatePrintView(id: string): Promise<{ html: string }> {
+        const contract = await this.contractRepository.findOne({ where: { id } });
+        if (!contract) {
+            throw new NotFoundException('Hợp đồng không tồn tại');
+        }
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>${
+            contract.name || 'contract'
+        }</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:24px}</style></head><body><h1>${
+            contract.name || 'Hợp đồng'
+        }</h1><p>Mã hợp đồng: ${contract.contract_code || ''}</p></body></html>`;
+        return { html };
+    }
+
     // ==================== STATISTICS & ANALYTICS ====================
 
     async getContractStatistics(userId: number): Promise<any> {
@@ -755,5 +802,37 @@ export class ContractService {
                 rejected: rejectedContracts,
             },
         };
+    }
+
+    // ==================== NOTIFICATIONS & REMINDERS (Controller helpers) ====================
+
+    async createNotification(contractId: string, dto: any, userId: number) {
+        // Delegate to NotificationService; ensure contract id and user id present
+        return this.notificationService.createNotification({
+            ...dto,
+            contract_id: contractId,
+            user_id: userId,
+        });
+    }
+
+    async listNotifications(contractId: string) {
+        // As a simple approach, fetch pending and failed notifications and filter by contract
+        const [pending, failed] = await Promise.all([
+            this.notificationService.getPendingNotifications(),
+            this.notificationService.getFailedNotifications(),
+        ]);
+        return [...pending, ...failed].filter((n) => n.contract_id === contractId);
+    }
+
+    async createReminder(contractId: string, dto: any, userId: number) {
+        return this.notificationService.createReminder({
+            ...dto,
+            contract_id: contractId,
+            user_id: userId,
+        });
+    }
+
+    async listReminders(contractId: string) {
+        return this.notificationService.getRemindersByContract(contractId);
     }
 }

@@ -102,7 +102,7 @@ export class ContractController {
 
     @Get(':id/preview')
     async preview(@Param('id') id: string) {
-        return this.contractService.generatePreview(id);
+        return this.contractService.generatePrintView(id);
     }
 
     // ===== VERSIONING =====

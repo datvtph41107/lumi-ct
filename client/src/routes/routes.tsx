@@ -22,6 +22,11 @@ import CreateContractLayout from '~/layouts/CreateContractLayout';
 import ContractDaft from '~/page/Contract/ContractDaft';
 import ContractCollection from '~/page/Contract/ContractCollection';
 
+// New admin pages (placeholders)
+import SystemNotifications from '~/page/admin/SystemNotifications';
+import UserManagement from '~/page/admin/UserManagement';
+import RolePermissionManagement from '~/page/admin/RolePermissionManagement';
+
 // Route interfaces
 interface BaseRoute {
     path: string;
@@ -88,6 +93,42 @@ export const privateRoutes: PrivateRoute[] = [
             roles: [ROLE.ADMIN],
             permissions: [PERMISSION.ADMIN_ACCESS],
             requireAll: false, // Chỉ cần 1 trong 2: role ADMIN HOẶC permission ADMIN_ACCESS
+        },
+    },
+
+    // System Notifications Settings - Admin only
+    {
+        path: '/admin/notifications',
+        component: SystemNotifications,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
+        },
+    },
+
+    // User Management - Admin only
+    {
+        path: '/admin/users',
+        component: UserManagement,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.USER_MANAGEMENT],
+            requireAll: false,
+        },
+    },
+
+    // Roles/Permissions Management - Admin only
+    {
+        path: '/admin/roles-permissions',
+        component: RolePermissionManagement,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
         },
     },
 
