@@ -107,9 +107,10 @@ const ContractDraft = () => {
             case 2:
                 return <Stage2Milestones />;
             case 3:
-                return <Stage1Draft contractType={mode} draftId={draftId} />;
-            case 4:
                 return <StageNotifications />;
+            case 4:
+                return <Stage1Draft contractType={mode} draftId={draftId} />;
+
             // return <Stage4Preview />;
             default:
                 return <Stage1Draft contractType={mode} draftId={draftId} />;
