@@ -7,7 +7,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 import PublicRoute from './components/Auth/PublicRoute';
 import SessionStatus from './components/Auth/SessionStatus';
 import InactiveSessionAlert from './components/Auth/InactiveSessionAlert';
-import './App.scss';
+
 
 // Route configs
 import { publicRoutes, privateRoutes } from './routes/routes';

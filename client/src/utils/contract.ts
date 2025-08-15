@@ -1,4 +1,4 @@
-import type { DateRange, TimeRange } from "~/types";
+import type { DateRange, TimeRange } from "~/types/contract/contract.types";
 
 export const formatDate = (date: Date | null) => {
     if (!date) return "";
