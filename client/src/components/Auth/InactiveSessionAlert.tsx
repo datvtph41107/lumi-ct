@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faClock, faSignOutAlt, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import styles from './IdleWarningModal.module.scss';
@@ -13,37 +13,19 @@ interface IdleWarningModalProps {
 }
 
 const InactiveSessionAlert: React.FC<IdleWarningModalProps> = ({ timeUntilLogout, onContinue, onLogout }) => {
-    const [timeLeft, setTimeLeft] = useState(Math.ceil(timeUntilLogout / 1000));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    // Countdown timer
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    clearInterval(interval);
-                    setIsLoggingOut(true);
-                    onLogout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+    const timeLeftSeconds = Math.ceil(Math.max(0, timeUntilLogout) / 1000);
 
-        return () => clearInterval(interval);
-    }, [onLogout]);
-
-    // Format time display
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    // Get progress percentage
     const getProgressPercentage = () => {
-        const totalTime = 5 * 60; // 5 minutes in seconds
-        const remainingTime = timeLeft;
+        const totalTime = 5 * 60; // 5 minutes in seconds (matches SessionManager warning window)
+        const remainingTime = timeLeftSeconds;
         return ((totalTime - remainingTime) / totalTime) * 100;
     };
 
@@ -69,7 +51,7 @@ const InactiveSessionAlert: React.FC<IdleWarningModalProps> = ({ timeUntilLogout
 
                     <div className={cx('countdown')}>
                         <FontAwesomeIcon icon={faClock} />
-                        <span className={cx('time-display')}>{formatTime(timeLeft)}</span>
+                        <span className={cx('time-display')}>{formatTime(timeLeftSeconds)}</span>
                     </div>
 
                     <div className={cx('progress-bar')}>
@@ -78,8 +60,7 @@ const InactiveSessionAlert: React.FC<IdleWarningModalProps> = ({ timeUntilLogout
 
                     <div className={cx('warning-message')}>
                         <p>
-                            <strong>Lưu ý:</strong> Khi phiên đăng nhập kết thúc, bạn sẽ cần đăng nhập lại và có thể mất
-                            dữ liệu chưa lưu.
+                            <strong>Lưu ý:</strong> Khi phiên đăng nhập kết thúc, bạn sẽ cần đăng nhập lại và có thể mất dữ liệu chưa lưu.
                         </p>
                     </div>
                 </div>

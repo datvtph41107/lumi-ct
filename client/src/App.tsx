@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { BrowserRouter as Router, useRoutes } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
-import { useInactiveTimeout } from './hooks/useInactiveTimeout';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import PublicRoute from './components/Auth/PublicRoute';
 import SessionStatus from './components/Auth/SessionStatus';
@@ -53,17 +53,12 @@ const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: bool
 };
 
 const AppRoutes: React.FC = () => {
-    // Global idle timeout for the entire app
-    useInactiveTimeout({
-        warningTime: 10 * 60 * 1000, // 10 minutes
-        logoutTime: 15 * 60 * 1000, // 15 minutes
+    const { isWarningVisible, timeUntilLogout, continueSession, logoutNow } = useIdleTimeout({
         onWarning: () => {
-            // Global warning handling
-            console.log('Idle warning triggered');
+            // could add analytics/log here
         },
         onLogout: () => {
-            // Global logout handling
-            console.log('Auto logout triggered');
+            // optional cleanup
         },
     });
 
@@ -103,16 +98,14 @@ const AppRoutes: React.FC = () => {
 
     return (
         <>
-            {/* Global Components */}
-            <InactiveSessionAlert
-                timeUntilLogout={300000} // 5 phút = 300000ms
-                onContinue={() => {
-                    console.log('Tiếp tục phiên');
-                }}
-                onLogout={() => {
-                    console.log('Đăng xuất');
-                }}
-            />
+            {/* Global idle warning modal */}
+            {isWarningVisible && (
+                <InactiveSessionAlert
+                    timeUntilLogout={timeUntilLogout}
+                    onContinue={continueSession}
+                    onLogout={logoutNow}
+                />
+            )}
             <SessionStatus />
             {elements}
         </>
