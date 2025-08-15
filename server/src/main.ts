@@ -12,9 +12,7 @@ async function bootstrap() {
     const config = new DocumentBuilder().setTitle('Contract Management API').setVersion('0.1').build();
     const document = SwaggerModule.createDocument(app, config);
     app.enableCors({
-        origin: [
-            'http://localhost:5173', // Vite dev server
-        ],
+        origin: [process.env.CLIENT_URL || 'http://localhost:5173'],
         credentials: true, // Important: Allow cookies
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

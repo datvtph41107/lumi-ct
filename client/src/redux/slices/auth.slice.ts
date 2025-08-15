@@ -86,6 +86,7 @@ const { slice, thunks, actions } = createApiSlice({
                 if (response.user) {
                     state.user = response.user;
                 }
+                // Prefer cookie-based refresh; store access token in memory only for requests
                 AuthManager.getInstance().setAccessToken(response.accessToken, response.sessionId);
             })
             .addCase(login.rejected, (state, action) => {
@@ -163,6 +164,10 @@ const { slice, thunks, actions } = createApiSlice({
                 state.sessionId = response.sessionId;
                 state.isSessionValid = true;
                 state.lastActivity = new Date().toISOString();
+                // refresh uses cookie, update in-memory token if provided
+                if ((response as any).accessToken) {
+                    AuthManager.getInstance().setAccessToken((response as any).accessToken, response.sessionId);
+                }
             })
             .addCase(refreshToken.rejected, (state, action) => {
                 state.isTokenRefreshing = false;

@@ -20,6 +20,7 @@ import { ContractVersion } from '@/core/domain/contract/contract-versions.entity
 import { ContractDraftController } from './contract-draft.controller';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
+import { ContractDraftService } from './contract-draft.service';
 
 @Module({
     imports: [
@@ -41,8 +42,9 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
         ContractService,
         AuditLogService,
         CollaboratorService,
+        ContractDraftService,
         { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     ],
-    exports: [ContractService, CollaboratorService, AuditLogService],
+    exports: [ContractService, CollaboratorService, AuditLogService, ContractDraftService],
 })
 export class ContractsModule {}

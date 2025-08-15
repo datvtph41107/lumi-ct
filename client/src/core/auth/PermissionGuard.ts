@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { selectIsPermissionsLoaded } from '~/redux/slices/auth.slice';
-import { authCoreService } from './AuthCoreService';
-import LoadingSpinner from '../UI/LoadingSpinner';
+import { authCoreService } from './AuthCoreSerivce';
+import LoadingSpinner from '~/components/LoadingSpinner';
+
+// Spinner mặc định (không để trong default param)
+const defaultSpinner = <LoadingSpinner size="medium" message="Loading permissions..." />;
 
 interface PermissionGuardProps {
     children: React.ReactNode;
@@ -21,7 +24,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     context = {},
     fallback = null,
     showFallback = false,
-    loadingFallback = <LoadingSpinner />,
+    loadingFallback,
 }) => {
     const isPermissionsLoaded = useSelector(selectIsPermissionsLoaded);
     const [isLoading, setIsLoading] = useState(!isPermissionsLoaded);
@@ -39,12 +42,11 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
                 }
             }
         };
-
         loadPermissions();
     }, [isPermissionsLoaded]);
 
     if (isLoading) {
-        return <>{loadingFallback}</>;
+        return <>{loadingFallback ?? defaultSpinner}</>;
     }
 
     const hasPermission = authCoreService.hasPermission(resource, action, context);
@@ -56,113 +58,39 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     return <>{children}</>;
 };
 
-// Contract-specific permission guards
-export const ContractCreateGuard: React.FC<{
-    children: React.ReactNode;
-    contractType?: string;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractType, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="create"
-        context={{ contractType }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
+// Tạo helper để tránh lặp code cho Contract Guards
+function createContractGuard(action: string) {
+    return ({
+        children,
+        contractId,
+        context = {},
+        fallback,
+        loadingFallback,
+    }: {
+        children: React.ReactNode;
+        contractId?: number;
+        context?: Record<string, any>;
+        fallback?: React.ReactNode;
+        loadingFallback?: React.ReactNode;
+    }) => (
+        <PermissionGuard
+            resource="contract"
+            action={action}
+            context={{ contractId, ...context }}
+            fallback={fallback}
+            loadingFallback={loadingFallback}
+        >
+            {children}
+        </PermissionGuard>
+    );
+}
 
-export const ContractReadGuard: React.FC<{
-    children: React.ReactNode;
-    contractId?: number;
-    context?: Record<string, any>;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractId, context = {}, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="read"
-        context={{ contractId, ...context }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
-
-export const ContractUpdateGuard: React.FC<{
-    children: React.ReactNode;
-    contractId?: number;
-    context?: Record<string, any>;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractId, context = {}, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="update"
-        context={{ contractId, ...context }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
-
-export const ContractDeleteGuard: React.FC<{
-    children: React.ReactNode;
-    contractId?: number;
-    context?: Record<string, any>;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractId, context = {}, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="delete"
-        context={{ contractId, ...context }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
-
-export const ContractApproveGuard: React.FC<{
-    children: React.ReactNode;
-    contractId?: number;
-    context?: Record<string, any>;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractId, context = {}, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="approve"
-        context={{ contractId, ...context }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
-
-export const ContractRejectGuard: React.FC<{
-    children: React.ReactNode;
-    contractId?: number;
-    context?: Record<string, any>;
-    fallback?: React.ReactNode;
-    loadingFallback?: React.ReactNode;
-}> = ({ children, contractId, context = {}, fallback, loadingFallback }) => (
-    <PermissionGuard
-        resource="contract"
-        action="reject"
-        context={{ contractId, ...context }}
-        fallback={fallback}
-        loadingFallback={loadingFallback}
-    >
-        {children}
-    </PermissionGuard>
-);
+export const ContractCreateGuard = createContractGuard('create');
+export const ContractReadGuard = createContractGuard('read');
+export const ContractUpdateGuard = createContractGuard('update');
+export const ContractDeleteGuard = createContractGuard('delete');
+export const ContractApproveGuard = createContractGuard('approve');
+export const ContractRejectGuard = createContractGuard('reject');
 
 export const TemplateManageGuard: React.FC<{
     children: React.ReactNode;
@@ -208,7 +136,7 @@ export const AnalyticsViewGuard: React.FC<{
     </PermissionGuard>
 );
 
-// Role-based guards
+// Role Guards
 export const RoleGuard: React.FC<{
     children: React.ReactNode;
     role: string;
@@ -217,11 +145,9 @@ export const RoleGuard: React.FC<{
     fallback?: React.ReactNode;
 }> = ({ children, role, scope, scopeId, fallback }) => {
     const hasRole = authCoreService.hasRole(role, scope, scopeId);
-
     if (!hasRole) {
         return <>{fallback}</> || null;
     }
-
     return <>{children}</>;
 };
 
