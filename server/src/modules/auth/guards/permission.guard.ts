@@ -1,36 +1,64 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { DataSource } from 'typeorm';
-import { AuthValidatorService } from './validate_req';
-import { HeaderRequest } from '@/core/shared/interface/header-payload-req.interface';
-import { PermissionMetadata, PERMISSIONS_METADATA_KEY } from '@/core/shared/decorators/setmeta.decorator';
-import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
+import { AuthService } from '../services/auth-core.service';
+
+export interface PermissionMetadata {
+    resource: string;
+    action: string;
+    conditions?: Record<string, any>;
+}
+
+export const PERMISSIONS_KEY = 'permissions';
+export const RequirePermissions =
+    (...permissions: PermissionMetadata[]) =>
+    (target: any, key?: string, descriptor?: any) => {
+        Reflect.defineMetadata(PERMISSIONS_KEY, permissions, descriptor.value);
+        return descriptor;
+    };
 
 @Injectable()
-export class PermissionsGuard implements CanActivate {
+export class PermissionGuard implements CanActivate {
     constructor(
-        private readonly reflector: Reflector, // @Anotation..() check exist metadata
-        @Inject('DATA_SOURCE') private readonly db: DataSource,
-        private readonly authValidator: AuthValidatorService,
+        private reflector: Reflector,
+        private authService: AuthService,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const configs = this.reflector.getAllAndOverride<PermissionMetadata[]>(PERMISSIONS_METADATA_KEY, [
+        const requiredPermissions = this.reflector.getAllAndOverride<PermissionMetadata[]>(PERMISSIONS_KEY, [
             context.getHandler(),
             context.getClass(),
         ]);
 
-        if (!configs || configs.length === 0) return true;
-
-        const request = context.switchToHttp().getRequest<HeaderRequest>();
-        const user = request.user;
-
-        for (const config of configs) {
-            const result = await this.authValidator.validateRequestPermissions(user, config, this.db);
-            if (result) return true;
+        if (!requiredPermissions) {
+            return true;
         }
 
-        throw new ForbiddenException(ERROR_MESSAGES.AUTH.FORBIDDEN);
-        // 'Access denied: Missing required permissions or invalid department'
+        const request = context.switchToHttp().getRequest();
+        const user = request.user;
+
+        if (!user) {
+            throw new ForbiddenException('User not authenticated');
+        }
+
+        // Check if user has all required permissions
+        for (const permission of requiredPermissions) {
+            const hasPermission = await this.authService.hasPermission(
+                user.id,
+                permission.resource,
+                permission.action,
+                {
+                    ...permission.conditions,
+                    ...request.body,
+                    ...request.params,
+                    ...request.query,
+                },
+            );
+
+            if (!hasPermission) {
+                throw new ForbiddenException(`Insufficient permissions: ${permission.resource}:${permission.action}`);
+            }
+        }
+
+        return true;
     }
 }

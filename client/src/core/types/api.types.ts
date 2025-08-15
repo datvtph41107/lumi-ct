@@ -1,5 +1,5 @@
-import type { AppDispatch, RootState } from "~/redux";
-import type { User } from "~/types/auth.types";
+import type { AppDispatch, RootState } from '~/redux';
+import type { User } from '~/types/auth/auth.types';
 
 export interface ApiConfig {
     baseURL: string;
@@ -11,7 +11,7 @@ export interface RequestParams {
     [key: string]: string | number | boolean | undefined;
 }
 
-export type ApiMethod = "get" | "post" | "put" | "patch" | "delete";
+export type ApiMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export interface ApiResponse<T> {
     status: number;
@@ -22,7 +22,7 @@ export interface ApiResponse<T> {
 export interface ApiEndpoint<TParams = unknown, TBody = unknown> {
     method: ApiMethod;
     url: string | ((params: TParams) => string);
-    clientType?: "public" | "private";
+    clientType?: 'public' | 'private';
     transformParams?: (params?: TParams) => unknown;
     transformBody?: (body?: TBody) => unknown;
 }
@@ -84,7 +84,7 @@ export interface Contract {
     id: number;
     title: string;
     description: string;
-    status: "active" | "expired" | "pending" | "cancelled";
+    status: 'active' | 'expired' | 'pending' | 'cancelled';
     type: string;
     value: number;
     startDate: string;

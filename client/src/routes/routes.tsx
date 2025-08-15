@@ -1,26 +1,26 @@
-import config from "~/config";
+import config from '~/config';
 
 // Layouts
-import AdminLayout from "~/layouts/AdminLayout";
-import DefaultLayout from "~/layouts/DefaultLayout";
-import LoginLayout from "~/layouts/LoginLayout";
+import AdminLayout from '~/layouts/AdminLayout';
+import DefaultLayout from '~/layouts/DefaultLayout';
+import LoginLayout from '~/layouts/LoginLayout';
 
 // Pages
-import AdminLogin from "~/page/admin/AdminLogin";
-import Login from "~/page/client/Login";
-import Dashboard from "~/page/Dashboard";
-import Admin from "~/page/admin/Admin";
+import AdminLogin from '~/page/admin/AdminLogin';
+import Login from '~/page/client/Login';
+import Dashboard from '~/page/Dashboard';
+import Admin from '~/page/admin/Admin';
 
 // Types
-import { ROLE, PERMISSION } from "~/types/auth.types";
-import type { ComponentType, FC, ReactNode } from "react";
-import type { RouteAccess } from "~/types/auth.types";
-import ContractDetail from "~/page/Contract/ContractDetail";
-import CreateContract from "~/page/Contract/CreateContract";
-import ContractPage from "~/page/Contract/ContractPage";
-import CreateContractLayout from "~/layouts/CreateContractLayout";
-import ContractDaft from "~/page/Contract/ContractDaft";
-import ContractCollection from "~/page/Contract/ContractCollection";
+import { ROLE, PERMISSION } from '~/types/auth/auth.types';
+import type { ComponentType, FC, ReactNode } from 'react';
+import type { RouteAccess } from '~/types/auth/auth.types';
+import ContractDetail from '~/page/Contract/ContractDetail';
+import CreateContract from '~/page/Contract/CreateContract';
+import ContractPage from '~/page/Contract/ContractPage';
+import CreateContractLayout from '~/layouts/CreateContractLayout';
+import ContractDaft from '~/page/Contract/ContractDaft';
+import ContractCollection from '~/page/Contract/ContractCollection';
 
 // Route interfaces
 interface BaseRoute {
@@ -47,14 +47,14 @@ export const publicRoutes: PublicRoute[] = [
         path: config.routes.adminLogin,
         component: AdminLogin,
         layout: LoginLayout,
-        redirectPath: "/dashboard", // Redirect về dashboard chung
+        redirectPath: '/dashboard', // Redirect về dashboard chung
         allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
     },
     {
         path: config.routes.login,
         component: Login,
         layout: LoginLayout,
-        redirectPath: "/dashboard", // Redirect về dashboard chung
+        redirectPath: '/dashboard', // Redirect về dashboard chung
         allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
     },
     // Có thể thêm các public routes khác như forgot-password, register, etc.
@@ -104,7 +104,7 @@ export const privateRoutes: PrivateRoute[] = [
     },
     // Admin User Management - Chỉ Admin
     {
-        path: "/admin/users",
+        path: '/admin/users',
         component: Admin, // Replace with actual UserManagement component
         layout: AdminLayout,
         access: {
@@ -116,7 +116,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     // Admin System Settings - Chỉ Admin
     {
-        path: "/admin/settings",
+        path: '/admin/settings',
         component: Admin, // Replace with actual SystemSettings component
         layout: AdminLayout,
         access: {
@@ -165,7 +165,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     // Manager Routes - Dành cho Manager và Admin
     {
-        path: "/manager/reports",
+        path: '/manager/reports',
         component: Dashboard, // Replace with actual Reports component
         layout: DefaultLayout,
         access: {
@@ -176,7 +176,7 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     {
-        path: "/manager/team",
+        path: '/manager/team',
         component: Dashboard, // Replace with actual TeamManagement component
         layout: DefaultLayout,
         access: {
@@ -188,7 +188,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     // Profile - Tất cả user đều có thể truy cập
     {
-        path: "/profile",
+        path: '/profile',
         component: Dashboard, // Replace with actual Profile component
         layout: DefaultLayout,
         // Không có access restrictions
@@ -196,7 +196,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     // Settings - Tất cả user đều có thể truy cập settings cá nhân
     {
-        path: "/settings",
+        path: '/settings',
         component: Dashboard, // Replace with actual UserSettings component
         layout: DefaultLayout,
         // Không có access restrictions

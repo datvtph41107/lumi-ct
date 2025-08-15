@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, Index, BaseEntity } from 'typeorm';
+import { Entity, Column, Index, BaseEntity, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum ContractStatus {
     DRAFT = 'draft',
@@ -13,11 +13,17 @@ export enum ContractPriority {
     HIGH = 'high',
 }
 
+export enum ContractMode {
+    BASIC = 'basic',
+    EDITOR = 'editor',
+    UPLOAD = 'upload',
+}
+
 @Entity('contracts')
 @Index(['status'])
 @Index(['contract_type'])
 export class Contract extends BaseEntity {
-    @PrimaryColumn({ type: 'char', length: 36 })
+    @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @Column({ type: 'varchar', length: 255 })
@@ -35,17 +41,17 @@ export class Contract extends BaseEntity {
     @Column({ type: 'enum', enum: ContractPriority, default: ContractPriority.MEDIUM })
     priority: ContractPriority;
 
-    @Column({ type: 'char', length: 36 })
-    drafter_id: string;
+    @Column({ type: 'char', length: 36, nullable: true })
+    drafter_id?: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    drafter_name: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    drafter_name?: string;
 
-    @Column({ type: 'char', length: 36 })
-    manager_id: string;
+    @Column({ type: 'char', length: 36, nullable: true })
+    manager_id?: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    manager_name: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    manager_name?: string;
 
     @Column({ type: 'char', length: 36, nullable: true })
     template_id?: string;
@@ -65,8 +71,8 @@ export class Contract extends BaseEntity {
     @Column({ type: 'datetime', nullable: true })
     end_date?: Date;
 
-    @Column({ type: 'varchar', length: 20, nullable: true })
-    mode?: string;
+    @Column({ type: 'enum', enum: ContractMode, nullable: true })
+    mode?: ContractMode;
 
     @Column({ type: 'varchar', length: 50, nullable: true })
     current_stage?: string;

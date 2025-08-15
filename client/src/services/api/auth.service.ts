@@ -1,6 +1,6 @@
-import { BaseService } from "./base.service";
-import type { LoginRequest, LoginResponse, User, RefreshTokenResponse } from "~/types/auth.types";
-import type { ApiResponse } from "~/core/types/api.types";
+import { BaseService } from './base.service';
+import type { LoginRequest, LoginResponse, User, RefreshTokenResponse } from '~/types/auth/auth.types';
+import type { ApiResponse } from '~/core/types/api.types';
 
 export class AuthService extends BaseService {
     constructor() {
@@ -8,27 +8,27 @@ export class AuthService extends BaseService {
     }
 
     async login(body: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-        return this.request.public.post<LoginResponse, LoginRequest>("auth/login", body);
+        return this.request.public.post<LoginResponse, LoginRequest>('auth/login', body);
     }
 
     async getCurrentUser(): Promise<ApiResponse<User>> {
-        return this.request.private.get<User>("auth/me");
+        return this.request.private.get<User>('auth/me');
     }
 
     async logout(): Promise<ApiResponse<void>> {
-        return this.request.private.post<void>("auth/logout");
+        return this.request.private.post<void>('auth/logout');
     }
 
     async verifySession(): Promise<ApiResponse<User>> {
-        return this.request.private.get<User>("auth/verify-session");
+        return this.request.private.get<User>('auth/verify-session');
     }
 
     async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
-        return this.request.private.post<RefreshTokenResponse>("auth/refresh-token");
+        return this.request.private.post<RefreshTokenResponse>('auth/refresh-token');
     }
 
     async updateActivity(): Promise<ApiResponse<void>> {
-        return this.request.private.post<void>("auth/update-activity");
+        return this.request.private.post<void>('auth/update-activity');
     }
 }
 

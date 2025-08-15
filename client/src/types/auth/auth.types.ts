@@ -49,10 +49,10 @@ export interface LoginResponse {
 
 // Role constants - sử dụng string để match với backend
 export const ROLE = {
-    USER: "USER",
-    STAFF: "STAFF",
-    MANAGER: "MANAGER",
-    ADMIN: "ADMIN",
+    USER: 'USER',
+    STAFF: 'STAFF',
+    MANAGER: 'MANAGER',
+    ADMIN: 'ADMIN',
 } as const;
 
 export type Role = (typeof ROLE)[keyof typeof ROLE]; // "USER" | "STAFF" | "MANAGER" | "ADMIN"
@@ -60,27 +60,27 @@ export type Role = (typeof ROLE)[keyof typeof ROLE]; // "USER" | "STAFF" | "MANA
 // Permission constants - match với backend response
 export const PERMISSION = {
     // Basic permissions từ backend
-    APPROVE: "approve",
-    ASSIGN: "assign",
-    READ: "read",
-    WRITE: "write",
-    DELETE: "delete",
+    APPROVE: 'approve',
+    ASSIGN: 'assign',
+    READ: 'read',
+    WRITE: 'write',
+    DELETE: 'delete',
 
     // Contract permissions
-    CONTRACTS_READ: "contracts_read",
-    CONTRACTS_CREATE: "contracts_create",
-    CONTRACTS_UPDATE: "contracts_update",
-    CONTRACTS_DELETE: "contracts_delete",
-    CONTRACTS_MANAGE: "contracts_manage",
+    CONTRACTS_READ: 'contracts_read',
+    CONTRACTS_CREATE: 'contracts_create',
+    CONTRACTS_UPDATE: 'contracts_update',
+    CONTRACTS_DELETE: 'contracts_delete',
+    CONTRACTS_MANAGE: 'contracts_manage',
 
     // Admin permissions
-    ADMIN_ACCESS: "admin_access",
-    USER_MANAGEMENT: "user_management",
-    SYSTEM_SETTINGS: "system_settings",
+    ADMIN_ACCESS: 'admin_access',
+    USER_MANAGEMENT: 'user_management',
+    SYSTEM_SETTINGS: 'system_settings',
 
     // Team permissions
-    TEAM_MANAGEMENT: "team_management",
-    REPORTS_ACCESS: "reports_access",
+    TEAM_MANAGEMENT: 'team_management',
+    REPORTS_ACCESS: 'reports_access',
 } as const;
 
 export type Permission = (typeof PERMISSION)[keyof typeof PERMISSION];
@@ -120,10 +120,10 @@ export interface RefreshTokenResponse {
 
 // Helper type để check user status
 export const USER_STATUS = {
-    ACTIVE: "active",
-    INACTIVE: "inactive",
-    SUSPENDED: "suspended",
-    PENDING: "pending",
+    ACTIVE: 'active',
+    INACTIVE: 'inactive',
+    SUSPENDED: 'suspended',
+    PENDING: 'pending',
 } as const;
 
 export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];

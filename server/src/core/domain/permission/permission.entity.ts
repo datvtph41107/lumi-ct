@@ -1,32 +1,43 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { BaseEntity } from '../base.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany, Index } from 'typeorm';
+import { Role } from './role.entity';
 
-@Entity('user_permissions')
-export class UserPermission extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+@Entity('permissions')
+@Index(['resource', 'action'], { unique: true })
+export class Permission {
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    @Column({ type: 'bigint' })
-    user_id: number;
+    @Column({ name: 'resource', type: 'varchar', length: 100 })
+    resource: string;
 
-    @Column({ default: false })
-    create_contract: boolean;
+    @Column({ name: 'action', type: 'varchar', length: 100 })
+    action: string;
 
-    @Column({ default: false })
-    create_report: boolean;
+    @Column({ name: 'display_name', type: 'varchar', length: 200 })
+    display_name: string;
 
-    @Column({ default: true })
-    read: boolean;
+    @Column({ name: 'description', type: 'text', nullable: true })
+    description: string;
 
-    @Column({ default: false })
-    update: boolean;
+    @Column({ name: 'is_system', type: 'boolean', default: false })
+    is_system: boolean;
 
-    @Column({ default: false })
-    delete: boolean;
+    @Column({ name: 'is_active', type: 'boolean', default: true })
+    is_active: boolean;
 
-    @Column({ default: false })
-    approve: boolean;
+    @Column({ name: 'conditions_schema', type: 'jsonb', nullable: true })
+    conditions_schema: any;
 
-    @Column({ default: false })
-    assign: boolean;
+    @Column({ name: 'metadata', type: 'jsonb', nullable: true })
+    metadata: any;
+
+    @CreateDateColumn({ name: 'created_at' })
+    created_at: Date;
+
+    @UpdateDateColumn({ name: 'updated_at' })
+    updated_at: Date;
+
+    // Relations
+    @ManyToMany(() => Role, (role) => role.permissions)
+    roles: Role[];
 }

@@ -1,13 +1,13 @@
-import type React from "react";
-import { useNavigate } from "react-router-dom";
+import type React from 'react';
+import { useNavigate } from 'react-router-dom';
 // import { useAuth } from "~/hooks/useAuth";
-import { ROLE } from "~/types/auth.types";
-import classNames from "classnames/bind";
-import styles from "./Unauthorized.module.scss";
+import { ROLE } from '~/types/auth/auth.types';
+import classNames from 'classnames/bind';
+import styles from './Unauthorized.module.scss';
 
 // Font Awesome
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 
 const cx = classNames.bind(styles);
 
@@ -38,7 +38,7 @@ const Unauthorized: React.FC = () => {
     // };
 
     return (
-        <div className={cx("wrapper")}>
+        <div className={cx('wrapper')}>
             {/* <div className={cx("container")}>
                 <div>
                     <div className={cx("icon")}>

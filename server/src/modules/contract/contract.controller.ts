@@ -229,6 +229,21 @@ export class ContractController {
         return this.contractService.removeCollaborator(cid, Number(user.sub));
     }
 
+    @Post(':id/transfer-ownership')
+    @UseGuards(CollaboratorGuard)
+    async transferOwnership(
+        @Param('id') id: string,
+        @Body() body: { to_user_id: number },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.transferOwnership(id, body.to_user_id, Number(user.sub));
+    }
+
+    @Get(':id/permissions')
+    async getPermissions(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.getCollaboratorPermissions(id, Number(user.sub));
+    }
+
     // ===== FILE MANAGEMENT =====
     @Post(':id/files')
     @UseGuards(CollaboratorGuard)
@@ -292,8 +307,61 @@ export class ContractController {
 
     // ===== AUDIT & ANALYTICS =====
     @Get(':id/audit')
-    async audit(@Param('id') id: string) {
-        return this.contractService.getAuditLogs(id);
+    async audit(@Param('id') id: string, @Query() query: any) {
+        const filters = {
+            action: query.action,
+            user_id: query.user_id ? parseInt(query.user_id) : undefined,
+            date_from: query.date_from ? new Date(query.date_from) : undefined,
+            date_to: query.date_to ? new Date(query.date_to) : undefined,
+            search: query.search,
+        };
+
+        const pagination = {
+            page: query.page ? parseInt(query.page) : 1,
+            limit: query.limit ? parseInt(query.limit) : 50,
+        };
+
+        return this.contractService.getAuditLogs(id, filters, pagination);
+    }
+
+    @Get(':id/audit/summary')
+    async auditSummary(@Param('id') id: string) {
+        return this.contractService.getAuditSummary(id);
+    }
+
+    @Get('audit/user')
+    async userAuditLogs(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
+        const filters = {
+            action: query.action,
+            date_from: query.date_from ? new Date(query.date_from) : undefined,
+            date_to: query.date_to ? new Date(query.date_to) : undefined,
+            search: query.search,
+        };
+
+        const pagination = {
+            page: query.page ? parseInt(query.page) : 1,
+            limit: query.limit ? parseInt(query.limit) : 50,
+        };
+
+        return this.contractService.getUserAuditLogs(Number(user.sub), filters, pagination);
+    }
+
+    @Get('audit/system')
+    async systemAuditLogs(@Query() query: any) {
+        const filters = {
+            action: query.action,
+            user_id: query.user_id ? parseInt(query.user_id) : undefined,
+            date_from: query.date_from ? new Date(query.date_from) : undefined,
+            date_to: query.date_to ? new Date(query.date_to) : undefined,
+            search: query.search,
+        };
+
+        const pagination = {
+            page: query.page ? parseInt(query.page) : 1,
+            limit: query.limit ? parseInt(query.limit) : 50,
+        };
+
+        return this.contractService.getSystemAuditLogs(filters, pagination);
     }
 
     @Get(':id/analytics')

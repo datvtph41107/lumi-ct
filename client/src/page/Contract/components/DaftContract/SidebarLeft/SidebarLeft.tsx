@@ -1,423 +1,473 @@
-import type React from "react";
-import { useState } from "react";
-import styles from "./SidebarLeft.module.scss";
-import classNames from "classnames/bind";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faPlus,
+    faLightbulb,
+    faSitemap,
+    faFileAlt,
+    faHistory,
+    faRefresh,
     faChevronDown,
-    faChevronUp,
-    faArrowRightArrowLeft,
-    faFileText,
-    faTasks,
-    faMoneyBill,
-    faGavel,
-    faStop,
-    faSignature,
-    faEye,
-    faEyeSlash,
-    faGripVertical,
-    faTrash,
-    faCopy,
-    faSearch,
-    faFilter,
-} from "@fortawesome/free-solid-svg-icons";
-import { FaEllipsisH } from "react-icons/fa";
-import { CONTRACT_TEMPLATES } from "~/types/contract/contract-blocks.types";
-import { useContractEditorStore } from "~/store/contract-editor-store";
-import { useEditorStore } from "~/store/editor-store";
+    faChevronRight,
+    faStar,
+    faUsers,
+    faCalendarAlt,
+    faCheckCircle,
+    faExclamationTriangle,
+    faInfoCircle,
+} from '@fortawesome/free-solid-svg-icons';
+import styles from './SidebarLeft.module.scss';
+import classNames from 'classnames/bind';
 
 const cx = classNames.bind(styles);
 
-const BLOCK_ICONS = {
-    faFileText: faFileText,
-    faTasks: faTasks,
-    faMoneyBill: faMoneyBill,
-    faGavel: faGavel,
-    faStop: faStop,
-    faSignature: faSignature,
-};
+interface SidebarLeftProps {
+    contractId?: string;
+    userId?: number;
+}
 
-const SidebarLeft: React.FC = () => {
-    const { editor } = useEditorStore();
-    const {
-        pages,
-        activePageId,
-        availableBlocks,
-        setActivePage,
-        addPage,
-        duplicatePage,
-        deletePage,
-        togglePageVisibility,
-        insertBlock,
-        updateBlock,
-    } = useContractEditorStore();
+interface Suggestion {
+    id: string;
+    title: string;
+    description: string;
+    type: 'structure' | 'content' | 'legal' | 'format';
+    priority: 'high' | 'medium' | 'low';
+}
 
-    const [expandedSections, setExpandedSections] = useState({
-        blocks: true,
-        navigator: true,
-        styling: false,
-    });
+interface StructureSection {
+    id: string;
+    title: string;
+    expanded: boolean;
+    items: string[];
+}
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<string>("all");
-    const [selectedTemplate, setSelectedTemplate] = useState(CONTRACT_TEMPLATES[0]);
+interface Template {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    rating: number;
+    usageCount: number;
+}
 
-    const toggleSection = (section: keyof typeof expandedSections) => {
-        setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-    };
+interface HistoryItem {
+    id: string;
+    action: string;
+    description: string;
+    timestamp: string;
+    user: string;
+}
 
-    // Lọc khối dựa trên tìm kiếm và danh mục
-    const filteredBlocks = availableBlocks.filter((block) => {
-        const matchesSearch =
-            block.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            block.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === "all" || block.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
+    const [activeTab, setActiveTab] = useState<'suggestions' | 'structure' | 'templates' | 'history'>('suggestions');
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [structure, setStructure] = useState<StructureSection[]>([]);
+    const [templates, setTemplates] = useState<Template[]>([]);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
+    const [loading, setLoading] = useState(false);
 
-    const handleInsertBlock = (blockType: string) => {
-        if (!editor) {
-            console.warn("Trình chỉnh sửa không khả dụng");
-            return;
+    useEffect(() => {
+        loadData();
+    }, [activeTab]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Simulate API calls
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            switch (activeTab) {
+                case 'suggestions':
+                    setSuggestions([
+                        {
+                            id: '1',
+                            title: 'Thêm phần mở đầu',
+                            description: 'Nên có phần giới thiệu về hợp đồng',
+                            type: 'structure',
+                            priority: 'high',
+                        },
+                        {
+                            id: '2',
+                            title: 'Bổ sung điều khoản bảo mật',
+                            description: 'Cần thêm điều khoản về bảo mật thông tin',
+                            type: 'legal',
+                            priority: 'medium',
+                        },
+                        {
+                            id: '3',
+                            title: 'Định dạng lại bảng',
+                            description: 'Bảng thông tin cần được định dạng rõ ràng hơn',
+                            type: 'format',
+                            priority: 'low',
+                        },
+                    ]);
+                    break;
+                case 'structure':
+                    setStructure([
+                        {
+                            id: '1',
+                            title: 'Phần mở đầu',
+                            expanded: true,
+                            items: ['Tiêu đề hợp đồng', 'Thông tin các bên', 'Cơ sở pháp lý'],
+                        },
+                        {
+                            id: '2',
+                            title: 'Nội dung chính',
+                            expanded: false,
+                            items: ['Điều khoản chung', 'Quyền và nghĩa vụ', 'Điều khoản thanh toán'],
+                        },
+                        {
+                            id: '3',
+                            title: 'Phần kết thúc',
+                            expanded: false,
+                            items: ['Điều khoản thi hành', 'Chữ ký các bên', 'Phụ lục'],
+                        },
+                    ]);
+                    break;
+                case 'templates':
+                    setTemplates([
+                        {
+                            id: '1',
+                            name: 'Hợp đồng lao động chuẩn',
+                            description: 'Template cho hợp đồng lao động cơ bản',
+                            category: 'employment',
+                            rating: 4.5,
+                            usageCount: 1250,
+                        },
+                        {
+                            id: '2',
+                            name: 'Hợp đồng dịch vụ',
+                            description: 'Template cho hợp đồng cung cấp dịch vụ',
+                            category: 'service',
+                            rating: 4.2,
+                            usageCount: 890,
+                        },
+                        {
+                            id: '3',
+                            name: 'Hợp đồng thuê mướn',
+                            description: 'Template cho hợp đồng thuê tài sản',
+                            category: 'rental',
+                            rating: 4.0,
+                            usageCount: 567,
+                        },
+                    ]);
+                    break;
+                case 'history':
+                    setHistory([
+                        {
+                            id: '1',
+                            action: 'Tạo hợp đồng',
+                            description: 'Đã tạo hợp đồng mới',
+                            timestamp: '2024-01-15 10:30',
+                            user: 'Nguyễn Văn A',
+                        },
+                        {
+                            id: '2',
+                            action: 'Chỉnh sửa nội dung',
+                            description: 'Cập nhật điều khoản thanh toán',
+                            timestamp: '2024-01-15 11:45',
+                            user: 'Nguyễn Văn A',
+                        },
+                        {
+                            id: '3',
+                            action: 'Thêm collaborator',
+                            description: 'Đã thêm Nguyễn Thị B vào dự án',
+                            timestamp: '2024-01-15 14:20',
+                            user: 'Nguyễn Văn A',
+                        },
+                    ]);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
         }
-
-        console.log("Đang chèn khối:", blockType);
-        insertBlock(blockType);
-
-        // Hiển thị thông báo thành công
-        const blockName = availableBlocks.find((b) => b.type === blockType)?.title || "Khối";
-
-        // Thông báo đơn giản
-        alert(`${blockName} đã được chèn thành công!`);
     };
 
-    const handleBlockToggle = (blockId: string) => {
-        const block = availableBlocks.find((b) => b.id === blockId);
-        if (block) {
-            updateBlock(blockId, { isActive: !block.isActive });
+    const handleSuggestionClick = (suggestion: Suggestion) => {
+        // Handle suggestion click
+        console.log('Suggestion clicked:', suggestion);
+    };
+
+    const toggleStructureSection = (sectionId: string) => {
+        setStructure((prev) =>
+            prev.map((section) => (section.id === sectionId ? { ...section, expanded: !section.expanded } : section)),
+        );
+    };
+
+    const handleTemplateUse = (template: Template) => {
+        // Handle template use
+        console.log('Template used:', template);
+    };
+
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'high':
+                return '#e74c3c';
+            case 'medium':
+                return '#f39c12';
+            case 'low':
+                return '#27ae60';
+            default:
+                return '#6c757d';
         }
     };
 
-    const categories = [
-        { value: "all", label: "Tất Cả Khối" },
-        { value: "header", label: "Tiêu Đề" },
-        { value: "content", label: "Nội Dung" },
-        { value: "legal", label: "Pháp Lý" },
-        { value: "signature", label: "Chữ Ký" },
-        { value: "custom", label: "Tùy Chỉnh" },
-    ];
+    const getTypeIcon = (type: string) => {
+        switch (type) {
+            case 'structure':
+                return faSitemap;
+            case 'content':
+                return faFileAlt;
+            case 'legal':
+                return faExclamationTriangle;
+            case 'format':
+                return faInfoCircle;
+            default:
+                return faLightbulb;
+        }
+    };
+
+    const getTypeColor = (type: string) => {
+        switch (type) {
+            case 'structure':
+                return '#3498db';
+            case 'content':
+                return '#27ae60';
+            case 'legal':
+                return '#e74c3c';
+            case 'format':
+                return '#f39c12';
+            default:
+                return '#6c757d';
+        }
+    };
 
     return (
-        <div className={cx("wrapper")}>
-            {/* Phần Khối Hợp Đồng */}
-            <div className={cx("section")}>
-                <div className={cx("header_left")} onClick={() => toggleSection("blocks")}>
-                    <h4>Khối Hợp Đồng</h4>
-                    <div className={cx("header_layer")}>
-                        <button
-                            className={cx("add-btn")}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                // Hiển thị modal hoặc dropdown chọn khối
-                            }}
-                            title="Thêm khối mới"
-                        >
-                            <FontAwesomeIcon icon={faPlus} />
-                        </button>
-                        <div>
-                            <FontAwesomeIcon icon={expandedSections.blocks ? faChevronUp : faChevronDown} />
-                        </div>
-                    </div>
+        <div className={cx('sidebar-left')}>
+            <div className={cx('tab-navigation')}>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'suggestions' })}
+                    onClick={() => setActiveTab('suggestions')}
+                >
+                    <FontAwesomeIcon icon={faLightbulb} />
+                    Gợi ý
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'structure' })}
+                    onClick={() => setActiveTab('structure')}
+                >
+                    <FontAwesomeIcon icon={faSitemap} />
+                    Cấu trúc
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'templates' })}
+                    onClick={() => setActiveTab('templates')}
+                >
+                    <FontAwesomeIcon icon={faFileAlt} />
+                    Template
+                </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'history' })}
+                    onClick={() => setActiveTab('history')}
+                >
+                    <FontAwesomeIcon icon={faHistory} />
+                    Lịch sử
+                </button>
+            </div>
+
+            <div className={cx('tab-content')}>
+                <div className={cx('tab-header')}>
+                    <h3>
+                        {activeTab === 'suggestions' && <FontAwesomeIcon icon={faLightbulb} />}
+                        {activeTab === 'structure' && <FontAwesomeIcon icon={faSitemap} />}
+                        {activeTab === 'templates' && <FontAwesomeIcon icon={faFileAlt} />}
+                        {activeTab === 'history' && <FontAwesomeIcon icon={faHistory} />}
+                        {activeTab === 'suggestions' && 'Gợi ý thông minh'}
+                        {activeTab === 'structure' && 'Cấu trúc hợp đồng'}
+                        {activeTab === 'templates' && 'Template có sẵn'}
+                        {activeTab === 'history' && 'Lịch sử chỉnh sửa'}
+                    </h3>
+                    <button className={cx('refresh-btn')} onClick={loadData}>
+                        <FontAwesomeIcon icon={faRefresh} />
+                    </button>
                 </div>
 
-                {expandedSections.blocks && (
+                {loading ? (
+                    <div className={cx('loading')}>Đang tải...</div>
+                ) : (
                     <>
-                        {/* Bộ Chọn Mẫu */}
-                        <div className={cx("template-box")}>
-                            <div className={cx("template-box_group")}>
-                                <div className={cx("template-box_preview")}></div>
-                                <div className={cx("template-box_title")}>
-                                    <p className={cx("template-label")}>Mẫu</p>
-                                    <p className={cx("template-label-title")}>{selectedTemplate.name}</p>
-                                </div>
-                            </div>
-                            <button className={cx("change-btn")} title="Thay đổi mẫu">
-                                <FontAwesomeIcon className={cx("change-btn-ic")} icon={faArrowRightArrowLeft} />
-                            </button>
-                        </div>
-
-                        {/* Tìm Kiếm và Lọc */}
-                        <div className={cx("block-controls")}>
-                            <div className={cx("search-box")}>
-                                <FontAwesomeIcon icon={faSearch} className={cx("search-icon")} />
-                                <input
-                                    type="text"
-                                    placeholder="Tìm kiếm khối..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className={cx("search-input")}
-                                />
-                            </div>
-
-                            <div className={cx("filter-box")}>
-                                <FontAwesomeIcon icon={faFilter} className={cx("filter-icon")} />
-                                <select
-                                    value={selectedCategory}
-                                    onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className={cx("filter-select")}
-                                >
-                                    {categories.map((cat) => (
-                                        <option key={cat.value} value={cat.value}>
-                                            {cat.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Danh Sách Khối */}
-                        <div className={cx("blocks-container")}>
-                            {filteredBlocks.length > 0 ? (
-                                filteredBlocks
-                                    .sort((a, b) => a.order - b.order)
-                                    .map((block) => (
-                                        <div
-                                            key={block.id}
-                                            className={cx("block-item", {
-                                                inactive: !block.isActive,
-                                                required: block.required,
-                                            })}
-                                        >
-                                            <div className={cx("block-content")}>
-                                                <div className={cx("block-main")}>
-                                                    <div className={cx("drag-handle")}>
-                                                        <FontAwesomeIcon icon={faGripVertical} />
-                                                    </div>
-
-                                                    <span className={cx("block-icon")}>
-                                                        <FontAwesomeIcon
-                                                            icon={BLOCK_ICONS[block.icon as keyof typeof BLOCK_ICONS] || faFileText}
-                                                        />
-                                                    </span>
-
-                                                    <div className={cx("block-info")}>
-                                                        <span className={cx("block-title")}>{block.title}</span>
-                                                        <span className={cx("block-description")}>{block.description}</span>
-                                                        <div className={cx("block-meta")}>
-                                                            <span className={cx("block-category")}>{block.category}</span>
-                                                            {block.required && <span className={cx("required-tag")}>Bắt Buộc</span>}
-                                                        </div>
-                                                    </div>
+                        {/* Suggestions Tab */}
+                        {activeTab === 'suggestions' && (
+                            <div className={cx('suggestions-tab')}>
+                                {suggestions.length > 0 ? (
+                                    <div className={cx('suggestions-list')}>
+                                        {suggestions.map((suggestion) => (
+                                            <div
+                                                key={suggestion.id}
+                                                className={cx('suggestion-item')}
+                                                onClick={() => handleSuggestionClick(suggestion)}
+                                            >
+                                                <div
+                                                    className={cx('suggestion-icon')}
+                                                    style={{
+                                                        backgroundColor: getTypeColor(suggestion.type) + '20',
+                                                        color: getTypeColor(suggestion.type),
+                                                    }}
+                                                >
+                                                    <FontAwesomeIcon icon={getTypeIcon(suggestion.type)} />
                                                 </div>
-
-                                                <div className={cx("block-actions")}>
-                                                    <button
-                                                        className={cx("action-btn", "insert-btn")}
-                                                        onClick={() => handleInsertBlock(block.type)}
-                                                        title="Chèn khối vào trình chỉnh sửa"
-                                                    >
-                                                        <FontAwesomeIcon icon={faPlus} />
-                                                    </button>
-
-                                                    <button
-                                                        className={cx("action-btn")}
-                                                        onClick={() => handleBlockToggle(block.id)}
-                                                        title={block.isActive ? "Ẩn khối" : "Hiện khối"}
-                                                    >
-                                                        <FontAwesomeIcon icon={block.isActive ? faEye : faEyeSlash} />
-                                                    </button>
-
-                                                    <button
-                                                        className={cx("action-btn")}
-                                                        onClick={() => {
-                                                            const newBlock = { ...block, id: `${block.id}-copy-${Date.now()}` };
-                                                            // Thêm logic sao chép
+                                                <div className={cx('suggestion-content')}>
+                                                    <h4>{suggestion.title}</h4>
+                                                    <p>{suggestion.description}</p>
+                                                    <div
+                                                        style={{
+                                                            width: '8px',
+                                                            height: '8px',
+                                                            borderRadius: '50%',
+                                                            backgroundColor: getPriorityColor(suggestion.priority),
+                                                            marginTop: '4px',
                                                         }}
-                                                        title="Sao chép khối"
-                                                    >
-                                                        <FontAwesomeIcon icon={faCopy} />
-                                                    </button>
-
-                                                    {!block.required && (
-                                                        <button
-                                                            className={cx("action-btn", "danger")}
-                                                            onClick={() => {
-                                                                if (window.confirm("Xóa khối này?")) {
-                                                                    // Thêm logic xóa
-                                                                }
-                                                            }}
-                                                            title="Xóa khối"
-                                                        >
-                                                            <FontAwesomeIcon icon={faTrash} />
-                                                        </button>
-                                                    )}
-
-                                                    <FaEllipsisH className={cx("more-options")} />
+                                                    />
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
-                            ) : (
-                                <div className={cx("empty-blocks")}>
-                                    <p>Không tìm thấy khối nào</p>
-                                    <button className={cx("create-block-btn")} onClick={() => setSearchTerm("")}>
-                                        Xóa tìm kiếm
-                                    </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={cx('no-suggestions')}>
+                                        <FontAwesomeIcon icon={faCheckCircle} />
+                                        <p>Không có gợi ý nào</p>
+                                        <small>Hệ thống sẽ phân tích và đưa ra gợi ý khi bạn soạn thảo</small>
+                                    </div>
+                                )}
+
+                                <div className={cx('suggestions-tips')}>
+                                    <h4>Mẹo sử dụng gợi ý</h4>
+                                    <ul>
+                                        <li>Gợi ý dựa trên nội dung bạn đang soạn thảo</li>
+                                        <li>Click vào gợi ý để áp dụng tự động</li>
+                                        <li>Hệ thống học từ cách bạn sử dụng</li>
+                                    </ul>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+
+                        {/* Structure Tab */}
+                        {activeTab === 'structure' && (
+                            <div className={cx('structure-tab')}>
+                                <div className={cx('structure-list')}>
+                                    {structure.map((section) => (
+                                        <div key={section.id} className={cx('structure-section')}>
+                                            <div
+                                                className={cx('section-header')}
+                                                onClick={() => toggleStructureSection(section.id)}
+                                            >
+                                                <FontAwesomeIcon icon={faSitemap} />
+                                                <span>{section.title}</span>
+                                                <FontAwesomeIcon
+                                                    icon={section.expanded ? faChevronDown : faChevronRight}
+                                                    className={cx('expand-icon')}
+                                                />
+                                            </div>
+                                            {section.expanded && (
+                                                <div className={cx('section-items')}>
+                                                    {section.items.map((item, index) => (
+                                                        <div key={index} className={cx('structure-item')}>
+                                                            <span className={cx('item-dot')}>•</span>
+                                                            {item}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className={cx('structure-tips')}>
+                                    <h4>Hướng dẫn cấu trúc</h4>
+                                    <ul>
+                                        <li>Tuân thủ cấu trúc chuẩn của hợp đồng</li>
+                                        <li>Đảm bảo đầy đủ các phần bắt buộc</li>
+                                        <li>Sắp xếp logic và dễ đọc</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Templates Tab */}
+                        {activeTab === 'templates' && (
+                            <div className={cx('templates-tab')}>
+                                <div className={cx('templates-list')}>
+                                    {templates.map((template) => (
+                                        <div key={template.id} className={cx('template-item')}>
+                                            <div className={cx('template-header')}>
+                                                <h4>{template.name}</h4>
+                                                <div className={cx('template-rating')}>
+                                                    <FontAwesomeIcon icon={faStar} />
+                                                    {template.rating}
+                                                </div>
+                                            </div>
+                                            <div className={cx('template-description')}>{template.description}</div>
+                                            <div className={cx('template-stats')}>
+                                                {template.usageCount} lượt sử dụng
+                                            </div>
+                                            <button
+                                                className={cx('use-template-btn')}
+                                                onClick={() => handleTemplateUse(template)}
+                                            >
+                                                Sử dụng template này
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className={cx('template-tips')}>
+                                    <h4>Về template</h4>
+                                    <ul>
+                                        <li>Template được tạo bởi chuyên gia pháp lý</li>
+                                        <li>Có thể tùy chỉnh theo nhu cầu</li>
+                                        <li>Đảm bảo tuân thủ quy định pháp luật</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* History Tab */}
+                        {activeTab === 'history' && (
+                            <div className={cx('history-tab')}>
+                                <div className={cx('history-list')}>
+                                    {history.map((item) => (
+                                        <div key={item.id} className={cx('history-item')}>
+                                            <div
+                                                className={cx('history-icon')}
+                                                style={{ backgroundColor: '#3498db20', color: '#3498db' }}
+                                            >
+                                                <FontAwesomeIcon icon={faHistory} />
+                                            </div>
+                                            <div className={cx('history-content')}>
+                                                <p>
+                                                    <strong>{item.action}</strong>: {item.description}
+                                                </p>
+                                                <small>
+                                                    {item.timestamp} - {item.user}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className={cx('history-tips')}>
+                                    <h4>Về lịch sử</h4>
+                                    <ul>
+                                        <li>Ghi lại mọi thay đổi trong hợp đồng</li>
+                                        <li>Dễ dàng theo dõi và khôi phục</li>
+                                        <li>Đảm bảo tính minh bạch</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
-            </div>
-
-            {/* Phần Điều Hướng */}
-            <div className={cx("section")}>
-                <div className={cx("navigator")}>
-                    <div className={cx("header_left")} onClick={() => toggleSection("navigator")}>
-                        <span className={cx("header_left-navigator")}>Trang</span>
-                        <div className={cx("header_layer")}>
-                            <button
-                                className={cx("add-btn_navigator")}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    addPage();
-                                }}
-                                title="Thêm trang mới"
-                            >
-                                <FontAwesomeIcon icon={faPlus} /> Trang
-                            </button>
-                            <div>
-                                <FontAwesomeIcon icon={expandedSections.navigator ? faChevronUp : faChevronDown} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {expandedSections.navigator && (
-                        <ul className={cx("page-list")}>
-                            {pages
-                                .sort((a, b) => a.order - b.order)
-                                .map((page) => (
-                                    <li
-                                        key={page.id}
-                                        className={cx("page-item", {
-                                            active: page.id === activePageId,
-                                            hidden: page.isHidden,
-                                        })}
-                                        onClick={() => setActivePage(page.id)}
-                                    >
-                                        <div className={cx("left")}>
-                                            <span className={cx("drag-icon")}>
-                                                <FontAwesomeIcon icon={faGripVertical} />
-                                            </span>
-                                            <div className={cx("thumbnail")}>
-                                                <div className={cx("page-preview")}>
-                                                    <div className={cx("preview-lines")}>
-                                                        <div className={cx("preview-line", "title")}></div>
-                                                        <div className={cx("preview-line")}></div>
-                                                        <div className={cx("preview-line")}></div>
-                                                        <div className={cx("preview-line", "short")}></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className={cx("page-info")}>
-                                                <span className={cx("page-name")}>{page.name}</span>
-                                                <span className={cx("page-stats")}>
-                                                    {page.wordCount} từ • {page.blocks.length} khối
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className={cx("right")}>
-                                            <button
-                                                className={cx("page-action")}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    togglePageVisibility(page.id);
-                                                }}
-                                                title={page.isHidden ? "Hiện trang" : "Ẩn trang"}
-                                            >
-                                                <FontAwesomeIcon icon={page.isHidden ? faEyeSlash : faEye} />
-                                            </button>
-
-                                            <button
-                                                className={cx("page-action")}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    duplicatePage(page.id);
-                                                }}
-                                                title="Sao chép trang"
-                                            >
-                                                <FontAwesomeIcon icon={faCopy} />
-                                            </button>
-
-                                            {pages.length > 1 && (
-                                                <button
-                                                    className={cx("page-action", "danger")}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm("Xóa trang này?")) {
-                                                            deletePage(page.id);
-                                                        }
-                                                    }}
-                                                    title="Xóa trang"
-                                                >
-                                                    <FontAwesomeIcon icon={faTrash} />
-                                                </button>
-                                            )}
-
-                                            <FaEllipsisH className={cx("more-options")} />
-                                        </div>
-                                    </li>
-                                ))}
-                        </ul>
-                    )}
-                </div>
-            </div>
-
-            {/* Phần Định Dạng */}
-            <div className={cx("section")}>
-                <div className={cx("styling-section")}>
-                    <div className={cx("header_left")} onClick={() => toggleSection("styling")}>
-                        <span className={cx("header_left-navigator")}>Kiểu Tài Liệu</span>
-                        <div className={cx("header_layer")}>
-                            <FontAwesomeIcon icon={expandedSections.styling ? faChevronUp : faChevronDown} />
-                        </div>
-                    </div>
-
-                    {expandedSections.styling && (
-                        <>
-                            <div className={cx("branding")}>
-                                <div className={cx("logo-placeholder")}>Logo Công Ty</div>
-                                <button className={cx("change-btn")} title="Tải lên logo">
-                                    <FontAwesomeIcon className={cx("change-btn-ic")} icon={faArrowRightArrowLeft} />
-                                </button>
-                            </div>
-
-                            <div className={cx("styling-options")}>
-                                <div className={cx("row")}>
-                                    <label>Kích Thước Trang</label>
-                                    <div className={cx("input-box")}>A4 Dọc</div>
-                                </div>
-                                <div className={cx("row")}>
-                                    <label>Lề Trang</label>
-                                    <div className={cx("input-box")}>Bình Thường</div>
-                                </div>
-                                <div className={cx("row")}>
-                                    <label>Phông Chữ</label>
-                                    <div className={cx("input-box")}>Times New Roman</div>
-                                </div>
-                                <div className={cx("row")}>
-                                    <label>Cỡ Chữ</label>
-                                    <div className={cx("input-box")}>12pt</div>
-                                </div>
-                                <div className={cx("row")}>
-                                    <label>Giãn Dòng</label>
-                                    <div className={cx("input-box")}>1.5</div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </div>
             </div>
         </div>
     );

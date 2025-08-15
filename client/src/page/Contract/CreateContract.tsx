@@ -15,11 +15,10 @@ const logger = Logger.getInstance();
 
 const CreateContract: React.FC = () => {
     const navigate = useNavigate();
-    const { setSelectedMode, resetFlow } = useContractDraftStore();
+    const { initializeFlow, resetFlow } = useContractDraftStore();
     const [selectedOption, setSelectedOption] = useState<ContractCreationMode | null>(null);
 
     useEffect(() => {
-        // Reset flow when component mounts
         resetFlow();
     }, [resetFlow]);
 
@@ -74,12 +73,9 @@ const CreateContract: React.FC = () => {
         logger.info("Selected contract option:", option);
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (selectedOption) {
-            // Set the selected mode in store
-            setSelectedMode(selectedOption);
-
-            // Navigate directly to contract collection for template/draft selection
+            await initializeFlow(selectedOption);
             navigate(routePrivate.ContractCollection);
             logger.info("Navigating to contract collection", { mode: selectedOption });
         }
@@ -92,14 +88,6 @@ const CreateContract: React.FC = () => {
                     <FontAwesomeIcon icon={faArrowLeft} />
                     Quay lại
                 </button>
-                {selectedOption && (
-                    <div className={cx("action-buttons")}>
-                        <button type="button" className={cx("btn", "btn-primary")} onClick={handleContinue}>
-                            Tiếp tục
-                            <FontAwesomeIcon icon={faArrowRight} />
-                        </button>
-                    </div>
-                )}
                 <div className={cx("header-content")}>
                     <h1 className={cx("title")}>Tạo hợp đồng mới</h1>
                     <p className={cx("subtitle")}>Chọn phương thức tạo hợp đồng phù hợp với nhu cầu của bạn</p>
@@ -151,7 +139,6 @@ const CreateContract: React.FC = () => {
                         semiLarge
                         type="button"
                         primary
-                        // className={cx("btn", "btn-primary", { disabled: !selectedOption })}
                         onClick={handleContinue}
                         disabled={!selectedOption}
                         rightIcon={<FontAwesomeIcon icon={faArrowRight} />}

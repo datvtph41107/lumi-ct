@@ -1,9 +1,9 @@
-import { createApiSlice, createBaseApiState, type BaseApiState } from "~/core/http/api/createApiSlice";
-import { AuthManager } from "~/core/http/settings/AuthManager";
-import { SessionManager } from "~/core/http/settings/SessionManager";
-import type { LoginResponse, UserResponse, SessionData } from "~/core/types/api.types";
-import type { User } from "~/types/auth.types";
-import { authService } from "~/services/api/auth.service";
+import { createApiSlice, createBaseApiState, type BaseApiState } from '~/core/http/api/createApiSlice';
+import { AuthManager } from '~/core/http/settings/AuthManager';
+import { SessionManager } from '~/core/http/settings/SessionManager';
+import type { LoginResponse, UserResponse, SessionData } from '~/core/types/api.types';
+import type { User } from '~/types/auth/auth.types';
+import { authService } from '~/services/api/auth.service';
 
 interface AuthState extends BaseApiState {
     user: User | null;
@@ -28,7 +28,7 @@ const initialState: AuthState = createBaseApiState({
 });
 
 const { slice, thunks, actions } = createApiSlice({
-    name: "auth",
+    name: 'auth',
     initialState,
     serviceThunks: {
         service: authService,
@@ -110,7 +110,7 @@ const { slice, thunks, actions } = createApiSlice({
                 state.loading = false;
                 state.error = action.payload as string;
                 const errorMessage = action.payload as string;
-                if (errorMessage?.includes("401") || errorMessage?.includes("unauthorized")) {
+                if (errorMessage?.includes('401') || errorMessage?.includes('unauthorized')) {
                     state.isAuthenticated = false;
                     state.user = null;
                     state.sessionId = null;

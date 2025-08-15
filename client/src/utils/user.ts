@@ -1,4 +1,4 @@
-import type { Permission, Role, RouteAccess, User } from "~/types/auth.types";
+import type { Permission, Role, RouteAccess, User } from '~/types/auth/auth.types';
 
 // Helper function to check user access
 // export function checkUserAccess(user: User, access: RouteAccess): boolean {
@@ -90,26 +90,26 @@ function extractUserPermissions(user: User): Permission[] {
             if (value === true) {
                 // Convert permission keys to our Permission type
                 switch (key) {
-                    case "create_contract":
-                        permissions.push("contracts_create" as Permission);
+                    case 'create_contract':
+                        permissions.push('contracts_create' as Permission);
                         break;
-                    case "create_report":
-                        permissions.push("reports_access" as Permission);
+                    case 'create_report':
+                        permissions.push('reports_access' as Permission);
                         break;
-                    case "read":
-                        permissions.push("read" as Permission);
+                    case 'read':
+                        permissions.push('read' as Permission);
                         break;
-                    case "update":
-                        permissions.push("write" as Permission);
+                    case 'update':
+                        permissions.push('write' as Permission);
                         break;
-                    case "delete":
-                        permissions.push("delete" as Permission);
+                    case 'delete':
+                        permissions.push('delete' as Permission);
                         break;
-                    case "approve":
-                        permissions.push("approve" as Permission);
+                    case 'approve':
+                        permissions.push('approve' as Permission);
                         break;
-                    case "assign":
-                        permissions.push("assign" as Permission);
+                    case 'assign':
+                        permissions.push('assign' as Permission);
                         break;
                 }
             }
@@ -118,11 +118,15 @@ function extractUserPermissions(user: User): Permission[] {
 
     // Add role-based permissions
     switch (user.role) {
-        case "ADMIN":
-            permissions.push("admin_access" as Permission, "user_management" as Permission, "system_settings" as Permission);
+        case 'ADMIN':
+            permissions.push(
+                'admin_access' as Permission,
+                'user_management' as Permission,
+                'system_settings' as Permission,
+            );
             break;
-        case "MANAGER":
-            permissions.push("team_management" as Permission, "contracts_manage" as Permission);
+        case 'MANAGER':
+            permissions.push('team_management' as Permission, 'contracts_manage' as Permission);
             break;
     }
 
@@ -166,15 +170,15 @@ export function hasAnyPermission(user: User | null, permissions: Permission[]): 
  * Get user display name
  */
 export function getUserDisplayName(user: User | null): string {
-    if (!user) return "Unknown User";
-    return user.profile?.name || user.name || user.username || "Unknown User";
+    if (!user) return 'Unknown User';
+    return user.profile?.name || user.name || user.username || 'Unknown User';
 }
 
 /**
  * Check if user is active
  */
 export function isUserActive(user: User | null): boolean {
-    return user?.status === "active";
+    return user?.status === 'active';
 }
 
 /**
@@ -182,10 +186,10 @@ export function isUserActive(user: User | null): boolean {
  */
 export function getRoleDisplayName(role: string): string {
     const roleMap: Record<string, string> = {
-        ADMIN: "Administrator",
-        MANAGER: "Manager",
-        STAFF: "Staff",
-        USER: "User",
+        ADMIN: 'Administrator',
+        MANAGER: 'Manager',
+        STAFF: 'Staff',
+        USER: 'User',
     };
     return roleMap[role] || role;
 }

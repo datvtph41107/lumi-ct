@@ -1,25 +1,29 @@
-import classNames from "classnames/bind";
-import styles from "./Login.module.scss";
-import Form from "~/components/Form";
-import Input from "~/components/Input";
-import type { LoginFormValues } from "~/types/auth.types";
+import classNames from 'classnames/bind';
+import styles from './Login.module.scss';
+import Form from '~/components/Form';
+import Input from '~/components/Input';
+import type { LoginFormValues } from '~/types/auth/auth.types';
 
 const cx = classNames.bind(styles);
 
 const Login = () => {
     const handleSubmit = (data: LoginFormValues) => {
-        console.log("Login submitted:", data);
+        console.log('Login submitted:', data);
     };
 
     return (
-        <div className={cx("wrapper")}>
-            <div className={cx("header")}>
-                <h1 className={cx("logo")}>_contractjob-mng</h1>
+        <div className={cx('wrapper')}>
+            <div className={cx('header')}>
+                <h1 className={cx('logo')}>_contractjob-mng</h1>
             </div>
 
-            <div className={cx("login-container")}>
+            <div className={cx('login-container')}>
                 {/* <h1 className={cx("title")}>Chào mừng bạn trở lại!</h1> */}
-                <Form<LoginFormValues> onSubmit={handleSubmit} defaultValues={{ username: "", password: "" }} className={cx("form")}>
+                <Form<LoginFormValues>
+                    onSubmit={handleSubmit}
+                    defaultValues={{ username: '', password: '' }}
+                    className={cx('form')}
+                >
                     <Input
                         name="username"
                         type="email"
@@ -34,14 +38,14 @@ const Login = () => {
                         label="Mật khẩu"
                         placeholder="your pasword"
                         required="Không được để trống mật khẩu"
-                        minLength={{ value: 6, message: "Ít nhất 6 ký tự" }}
+                        minLength={{ value: 6, message: 'Ít nhất 6 ký tự' }}
                     />
 
-                    <a href="/forgot-password" className={cx("forgot-password")}>
+                    <a href="/forgot-password" className={cx('forgot-password')}>
                         Quên mật khẩu
                     </a>
 
-                    <button type="submit" className={cx("submit-button")}>
+                    <button type="submit" className={cx('submit-button')}>
                         Đăng nhập
                     </button>
                 </Form>

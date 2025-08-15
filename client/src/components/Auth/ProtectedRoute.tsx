@@ -1,173 +1,151 @@
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "~/redux/hooks";
-import { AuthManager } from "~/core/http/settings/AuthManager";
-import { clearAuth, getCurrentUser, verifySession, refreshToken, restoreSession } from "~/redux/slices/auth.slice";
-import type { RouteAccess } from "~/types/auth.types";
-import { checkUserAccess } from "~/utils/user";
-import LoadingSpinner from "../LoadingSpinner";
+import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Navigate, useLocation } from 'react-router-dom';
+import {
+    selectIsAuthenticated,
+    selectIsLoading,
+    selectIsRefreshing,
+    selectUser,
+    selectRedirectPath,
+    clearRedirectPath,
+    getCurrentUser,
+    refreshToken,
+    getUserPermissions,
+    selectIsPermissionsLoaded,
+} from '~/redux/slices/auth.slice';
+import { useIdleTimeout } from '~/hooks/useIdleTimeout';
+import LoadingSpinner from '../LoadingSpinner';
+import InactiveSessionAlert from './InactiveSessionAlert';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    access?: RouteAccess;
+    requiredRole?: string[];
     fallbackPath?: string;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, access, fallbackPath = "/login" }) => {
-    // const dispatch = useAppDispatch();
-    // const location = useLocation();
-    // const { user, isAuthenticated, isSessionValid, tokenExpiry, isTokenRefreshing, loading } = useAppSelector((state) => state.auth);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole = [], fallbackPath = '/login' }) => {
+    const dispatch = useDispatch();
+    const location = useLocation();
 
-    // const [isInitializing, setIsInitializing] = useState(true);
-    // const initializedRef = useRef(false);
+    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const isLoading = useSelector(selectIsLoading);
+    const isRefreshing = useSelector(selectIsRefreshing);
+    const user = useSelector(selectUser);
+    const redirectPath = useSelector(selectRedirectPath);
+    const isPermissionsLoaded = useSelector(selectIsPermissionsLoaded);
 
-    // // initital authen access route
-    // useEffect(() => {
-    //     const initialize = async () => {
-    //         if (initializedRef.current) return;
-    //         initializedRef.current = true;
+    const [isInitializing, setIsInitializing] = useState(true);
+    const [showIdleWarning, setShowIdleWarning] = useState(false);
 
-    //         console.log("[ProtectedRoute] Initializing session...");
-    //         const authManager = AuthManager.getInstance();
+    // Idle timeout hook
+    const { isIdleWarningShown, timeUntilWarning, timeUntilLogout, updateActivity } = useIdleTimeout({
+        warningTime: 10 * 60 * 1000, // 10 minutes
+        logoutTime: 15 * 60 * 1000, // 15 minutes
+        onWarning: () => setShowIdleWarning(true),
+        onLogout: () => {
+            setShowIdleWarning(false);
+        },
+    });
 
-    //         try {
-    //             // Step 1: Verify session with backend
-    //             console.log("[ProtectedRoute] Step 1: Verifying session...");
-    //             const sessionResult = await dispatch(verifySession({})).unwrap();
+    // Initialize authentication
+    useEffect(() => {
+        const initializeAuth = async () => {
+            try {
+                // Try to get current user first
+                await dispatch(getCurrentUser()).unwrap();
+                // Ensure permissions are loaded
+                if (!isPermissionsLoaded) {
+                    await dispatch(getUserPermissions()).unwrap();
+                }
+            } catch (error) {
+                // If getCurrentUser fails, try to refresh token
+                try {
+                    await dispatch(refreshToken()).unwrap();
+                    if (!isPermissionsLoaded) {
+                        await dispatch(getUserPermissions()).unwrap();
+                    }
+                } catch (refreshError) {
+                    // Both failed, user needs to login
+                    // No-op here; Navigate will handle redirect
+                }
+            } finally {
+                setIsInitializing(false);
+            }
+        };
 
-    //             if (!sessionResult.isValid) {
-    //                 console.log("[ProtectedRoute] No valid session found");
-    //                 dispatch(clearAuth({}));
-    //                 return;
-    //             }
+        if (!isAuthenticated && !isLoading) {
+            initializeAuth();
+        } else {
+            // If already authenticated but permissions not loaded
+            if (isAuthenticated && !isPermissionsLoaded) {
+                dispatch(getUserPermissions());
+            }
+            setIsInitializing(false);
+        }
+    }, [dispatch, isAuthenticated, isLoading, isPermissionsLoaded]);
 
-    //             console.log("[ProtectedRoute] Session valid:", sessionResult.sessionId);
+    // Handle idle warning
+    const handleIdleWarningContinue = () => {
+        updateActivity();
+        setShowIdleWarning(false);
+    };
 
-    //             // Step 2: Ensure valid access token
-    //             console.log("[ProtectedRoute] Step 2: Checking access token...");
-    //             const token = await authManager.ensureValidToken();
+    const handleIdleWarningLogout = () => {
+        setShowIdleWarning(false);
+        // Logout will be handled by useIdleTimeout
+    };
 
-    //             if (!token) {
-    //                 console.log("[ProtectedRoute] No valid token, attempting refresh...");
-    //                 try {
-    //                     await dispatch(refreshToken({})).unwrap();
-    //                     console.log("[ProtectedRoute] Token refreshed successfully");
-    //                 } catch (refreshError) {
-    //                     console.error("[ProtectedRoute] Token refresh failed:", refreshError);
-    //                     dispatch(clearAuth({}));
-    //                     return;
-    //                 }
-    //             }
+    // Show loading spinner while initializing or refreshing
+    if (isInitializing || isLoading || isRefreshing) {
+        return (
+            <div className="auth-loading">
+                <LoadingSpinner />
+                <p>Đang kiểm tra xác thực...</p>
+            </div>
+        );
+    }
 
-    //             // Step 3: Restore session state if needed
-    //             if (sessionResult.isValid && !isAuthenticated) {
-    //                 console.log("[ProtectedRoute] Step 3: Restoring session state...");
-    //                 dispatch(
-    //                     restoreSession({
-    //                         sessionId: sessionResult.sessionId,
-    //                         isAuthenticated: true,
-    //                         tokenExpiry: authManager.getTokenExpiry(),
-    //                     }),
-    //                 );
-    //             }
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+        // Save current path for redirect after login
+        if (location.pathname !== '/login') {
+            dispatch(clearRedirectPath());
+        }
 
-    //             // Step 4: Load user data if not present
-    //             if (!user && isAuthenticated) {
-    //                 console.log("[ProtectedRoute] Step 4: Loading user data...");
-    //                 try {
-    //                     await dispatch(getCurrentUser({})).unwrap();
-    //                     console.log("[ProtectedRoute] User data loaded");
-    //                 } catch (userError) {
-    //                     console.error("[ProtectedRoute] Failed to load user:", userError);
-    //                     dispatch(clearAuth({}));
-    //                     return;
-    //                 }
-    //             }
+        return (
+            <Navigate
+                to={fallbackPath}
+                state={{
+                    from: location.pathname,
+                    message: redirectPath ? 'Phiên đăng nhập đã hết hạn' : undefined,
+                }}
+                replace
+            />
+        );
+    }
 
-    //             console.log("[ProtectedRoute] Initialization completed successfully");
-    //         } catch (err) {
-    //             console.error("[ProtectedRoute] Initialization failed:", err);
-    //             dispatch(clearAuth({}));
-    //         } finally {
-    //             setIsInitializing(false);
-    //         }
-    //     };
+    // Check role-based access if required
+    if (requiredRole.length > 0 && user) {
+        const hasRequiredRole = requiredRole.includes(user.role as any);
+        if (!hasRequiredRole) {
+            return <Navigate to="/unauthorized" replace />;
+        }
+    }
 
-    //     initialize();
-    // }, [dispatch, user, isAuthenticated]);
+    return (
+        <>
+            {children}
 
-    // //  useEffect 2 – Lắng nghe sự kiện từ các tab khác hoặc timeout check session idle
-    // useEffect(() => {
-    //     const handleLogout = () => {
-    //         console.log("[ProtectedRoute] Received logout event");
-    //         dispatch(clearAuth({}));
-    //     };
-
-    //     const handleIdleTimeout = () => {
-    //         console.log("[ProtectedRoute] Received idle timeout event");
-    //         dispatch(clearAuth({}));
-    //     };
-
-    //     const handleUnauthorized = () => {
-    //         console.log("[ProtectedRoute] Received unauthorized event");
-    //         dispatch(clearAuth({}));
-    //     };
-
-    //     window.addEventListener("auth:logout", handleLogout);
-    //     window.addEventListener("auth:idle-timeout", handleIdleTimeout);
-    //     window.addEventListener("auth:unauthorized", handleUnauthorized);
-
-    //     return () => {
-    //         window.removeEventListener("auth:logout", handleLogout);
-    //         window.removeEventListener("auth:idle-timeout", handleIdleTimeout);
-    //         window.removeEventListener("auth:unauthorized", handleUnauthorized);
-    //     };
-    // }, [dispatch]);
-
-    // // Auto-refresh token before expiry
-    // useEffect(() => {
-    //     if (!isAuthenticated || !tokenExpiry || isTokenRefreshing) return;
-
-    //     const now = Math.floor(Date.now() / 1000);
-    //     const refreshIn = tokenExpiry - now - 2 * 60; // 2 minutes before expiry
-    //     const remaining = tokenExpiry - now;
-
-    //     console.log(`[ProtectedRoute] Token expires in ${remaining}s → scheduling refresh in ${refreshIn}s`);
-
-    //     if (refreshIn > 0) {
-    //         const timer = setTimeout(async () => {
-    //             try {
-    //                 console.log("[ProtectedRoute] Auto-refreshing access token...");
-    //                 await dispatch(refreshToken({})).unwrap();
-    //                 console.log("[ProtectedRoute] Auto-refresh success");
-    //             } catch (err) {
-    //                 console.error("[ProtectedRoute] Auto-refresh failed:", err);
-    //                 dispatch(clearAuth({}));
-    //             }
-    //         }, refreshIn * 1000);
-
-    //         return () => clearTimeout(timer);
-    //     }
-    // }, [isAuthenticated, tokenExpiry, isTokenRefreshing, dispatch]);
-
-    // console.log(isInitializing, loading, isTokenRefreshing);
-    // if (isInitializing || loading || isTokenRefreshing) {
-    //     return <LoadingSpinner message="Checking session..." />;
-    // }
-
-    // if (!isAuthenticated || !isSessionValid) {
-    //     console.warn("[ProtectedRoute] Not authenticated or invalid session → redirecting to login");
-    //     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
-    // }
-    // console.log(access);
-
-    // if (access && !checkUserAccess(user, access)) {
-    //     console.warn("[ProtectedRoute] Access denied → redirecting to /unauthorized");
-    //     return <Navigate to="/unauthorized" replace />;
-    // }
-
-    return <>{children}</>;
+            {/* Idle Warning Modal */}
+            {showIdleWarning && (
+                <InactiveSessionAlert
+                    timeUntilLogout={timeUntilLogout}
+                    onContinue={handleIdleWarningContinue}
+                    onLogout={handleIdleWarningLogout}
+                />
+            )}
+        </>
+    );
 };
 
 export default ProtectedRoute;
