@@ -22,7 +22,7 @@ const BasicContractForm = () => {
     const { formData, updateFormData } = useContractForm();
     const { currentDraft } = useContractDraftStore();
 
-    const { saveNow, setDirty } = useAutoSave(currentDraft?.id || null, formData || null, { enabled: !!currentDraft });
+    const { saveNow, setDirty } = useAutoSave(currentDraft?.id, formData, { enabled: !!currentDraft });
 
     useEffect(() => {
         console.log("BasicContractForm mounted, current formData:", formData);

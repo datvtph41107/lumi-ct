@@ -232,6 +232,17 @@ export class AuthService {
         await this.sessionRepository.update({ session_id: sessionId }, { last_activity: new Date() });
     }
 
+    async changePassword(userId: number, currentPassword: string, newPassword: string) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) throw new UnauthorizedException('User not found');
+        const ok = await bcrypt.compare(currentPassword, user.password);
+        if (!ok) throw new UnauthorizedException('Current password incorrect');
+        user.password = await bcrypt.hash(newPassword, 12);
+        await this.userRepository.save(user);
+        await this.logoutAllSessions(userId, 'password_changed');
+        return { message: 'Password updated' };
+    }
+
     async getActiveSessions(userId: number): Promise<UserSession[]> {
         return this.sessionRepository.find({
             where: { user_id: userId, is_active: true },

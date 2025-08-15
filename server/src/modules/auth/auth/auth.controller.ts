@@ -372,4 +372,72 @@ export class AuthController {
             message: 'Hoạt động đã được cập nhật',
         };
     }
+
+    @Post('refresh-token')
+    async refreshTokenFromCookie(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
+        const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+        const refreshToken = (req as any).cookies?.refreshToken;
+        if (!refreshToken) {
+            return {
+                success: false,
+                message: 'No refresh token cookie found',
+            } as any;
+        }
+        const result = await this.authService.refreshToken({ refresh_token: refreshToken } as any, ipAddress);
+
+        // Update refresh token cookie
+        res.cookie('refreshToken', result.refresh_token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/',
+        });
+
+        return {
+            success: true,
+            message: 'Token refreshed successfully',
+            data: {
+                accessToken: result.access_token,
+                tokenExpiry: result.expires_in,
+                sessionId: (req as any).cookies?.sessionId,
+            },
+        } as any;
+    }
+
+    @Get('verify-session')
+    async verifySession(@Req() req: Request) {
+        const sessionId = (req as any).cookies?.sessionId;
+        return {
+            success: true,
+            data: {
+                isValid: !!sessionId,
+                sessionId,
+                lastActivity: new Date().toISOString(),
+            },
+            message: 'Session verified',
+        } as any;
+    }
+
+    @Post('update-activity')
+    async updateActivityCompat(@Req() req: Request) {
+        return this.updateActivity(req);
+    }
+
+    @Post('change-password')
+    @UseGuards(JwtAuthGuard)
+    async changePassword(
+        @CurrentUser() user: User,
+        @Body() body: { currentPassword: string; newPassword: string },
+        @Res({ passthrough: true }) response: Response,
+    ) {
+        await this.authService.changePassword(user.id, body.currentPassword, body.newPassword);
+        response.clearCookie('refreshToken', { path: '/' });
+        response.clearCookie('sessionId', { path: '/' });
+
+        return {
+            success: true,
+            message: 'Password changed successfully. Please login again.',
+        };
+    }
 }

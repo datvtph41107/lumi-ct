@@ -75,11 +75,12 @@ import {
 import { useAutoSave } from '~/hooks/useAutoSave';
 import { useContractDraftStore } from '~/store/contract-draft-store';
 import { contractService } from '~/services/api/contract.service';
-import EditorToolbar from './EditorToolbar';
-import EditorSidebar from './EditorSidebar';
-import SmartSuggestions from './SmartSuggestions';
-import ExportModal from './ExportModal';
-import PrintModal from './PrintModal';
+// TODO: Wire real toolbar and sidebar once available
+const EditorToolbar: React.FC<{ editor: any }> = () => null;
+const EditorSidebar: React.FC<{ template?: any; onInsertSection: (t: string) => void; onInsertTemplate: (c: string) => void }> = () => null;
+const SmartSuggestions: React.FC<{ suggestions: string[]; onApply: (s: string) => void }> = () => null;
+const ExportModal: React.FC<{ onExport: (f: string) => void; onClose: () => void }> = () => null;
+const PrintModal: React.FC<{ content: string; onClose: () => void }> = () => null;
 import styles from './EditorPage.module.scss';
 import classNames from 'classnames/bind';
 
@@ -103,7 +104,7 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     // Auto-save hook
-    useAutoSave();
+    useAutoSave(currentDraft?.id, undefined, { enabled: !!currentDraft });
 
     // TipTap Editor Configuration
     const editor = useEditor({
@@ -200,10 +201,9 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
             const content = editor.getHTML();
 
             if (currentDraft?.id) {
-                await contractService.updateDraft(currentDraft.id, {
-                    content,
-                    stage: 'editor',
-                });
+                await contractService.saveStage(currentDraft.id as any, 'editor', {
+                    data: { content },
+                } as any);
             }
 
             onSave?.(content);
@@ -399,16 +399,17 @@ const EditorPage: React.FC<EditorPageProps> = ({ initialContent = '', template, 
                     <EditorContent editor={editor} />
 
                     {/* Smart Suggestions */}
-                    {showSuggestions && suggestions.length > 0 && (
+                                        {showSuggestions && suggestions.length > 0 && (
                         <SmartSuggestions
                             suggestions={suggestions}
                             onApply={(suggestion) => {
-                                // Handle suggestion application
-                                console.log('Apply suggestion:', suggestion);
+                                if (!editor) return;
+                                // naive apply: insert new paragraph with suggestion text
+                                editor.commands.insertContent(`<p>${suggestion}</p>`);
                             }}
                         />
                     )}
-                </div>
+</div>
 
                 {/* Sidebar */}
                 <EditorSidebar

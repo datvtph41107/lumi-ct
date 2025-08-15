@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { selectIsPermissionsLoaded } from '~/redux/slices/auth.slice';
-import { authCoreService } from './AuthCoreService';
+import { authCoreService } from './AuthCoreSerivce';
 import LoadingSpinner from '../UI/LoadingSpinner';
 
 interface PermissionGuardProps {
