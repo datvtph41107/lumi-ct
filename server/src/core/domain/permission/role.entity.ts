@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { BaseEntity } from '../base.entity';
-import { Permission } from './permission.entity';
 
 @Entity('roles')
 @Index(['name'], { unique: true })
@@ -8,7 +7,7 @@ export class Role extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'varchar', length: 100 })
+    @Column({ type: 'varchar', length: 100, unique: true })
     name: string;
 
     @Column({ type: 'varchar', length: 150, nullable: true })
@@ -26,7 +25,24 @@ export class Role extends BaseEntity {
     @Column({ type: 'int', default: 1 })
     priority: number;
 
-    @ManyToMany(() => Permission, { cascade: true })
-    @JoinTable({ name: 'role_permissions' })
-    permissions: Permission[];
+    @Column({ type: 'varchar', length: 50, default: 'global' })
+    scope: string; // global, department, contract
+
+    @Column({ type: 'bigint', nullable: true })
+    scope_id?: number; // department_id or contract_id
+
+    @Column({ type: 'json', nullable: true })
+    permissions?: string[]; // Array of permission strings (resource:action)
+
+    @Column({ type: 'json', nullable: true })
+    conditions?: Record<string, any>; // Role-specific conditions
+
+    @Column({ type: 'json', nullable: true })
+    metadata?: Record<string, any>; // Additional role metadata
+
+    @Column({ type: 'char', length: 36, nullable: true })
+    created_by?: string;
+
+    @Column({ type: 'char', length: 36, nullable: true })
+    updated_by?: string;
 }

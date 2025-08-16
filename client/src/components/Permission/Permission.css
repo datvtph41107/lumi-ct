@@ -1,0 +1,236 @@
+/* Permission Status Component */
+.permission-status {
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    background-color: #f8fafc;
+}
+
+.permission-summary {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.role-info,
+.permissions-count {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.label {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.value {
+    font-size: 1rem;
+    color: #1e293b;
+    font-weight: 600;
+}
+
+.permission-details {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+}
+
+.permission-details h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.permissions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.permission-item {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+/* Permission Check Component */
+.permission-check {
+    display: inline;
+}
+
+/* Permission Debug Component */
+.permission-debug {
+    background-color: #fefefe;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.875rem;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.debug-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.125rem;
+}
+
+.debug-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.refresh-btn,
+.expand-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover,
+.expand-btn:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.debug-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.debug-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    color: #dc2626;
+    margin-bottom: 1rem;
+}
+
+.debug-details {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+}
+
+.detail-section {
+    margin-bottom: 1.5rem;
+}
+
+.detail-section h4 {
+    margin: 0 0 0.75rem 0;
+    color: #374151;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.roles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.role-item {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.role-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.role-name {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.role-status {
+    font-size: 1rem;
+}
+
+.role-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.permission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.permission-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.permission-status {
+    font-size: 1rem;
+}
+
+.permission-details {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .permission-summary {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .debug-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .debug-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .debug-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
