@@ -1,10 +1,8 @@
-"use client";
-
-import type React from "react";
-import { useState } from "react";
-import classNames from "classnames/bind";
-import styles from "./GlobalNotificationSettings.module.scss";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import type React from 'react';
+import { useState } from 'react';
+import classNames from 'classnames/bind';
+import styles from './GlobalNotificationSettings.module.scss';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faToggleOn,
     faToggleOff,
@@ -15,11 +13,11 @@ import {
     faClock,
     faUsers,
     faExclamationTriangle,
-} from "@fortawesome/free-solid-svg-icons";
-import Button from "~/components/Button";
-import Input from "~/components/Input";
-import ControllerDropdown from "~/components/Form/ControllerValid/ControllerDropdown";
-import type { GlobalNotificationSettings } from "~/types/notifications.types";
+} from '@fortawesome/free-solid-svg-icons';
+import Button from '~/components/Button';
+import Input from '~/components/Input';
+import ControllerDropdown from '~/components/Form/ControllerValid/ControllerDropdown';
+import type { GlobalNotificationSettings } from '~/types/notifications.types';
 
 const cx = classNames.bind(styles);
 
@@ -31,28 +29,33 @@ interface GlobalNotificationSettingsProps {
 const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ settings, onSettingsChange }) => {
     const [localSettings, setLocalSettings] = useState(settings);
 
+    // Keep local state in sync when parent updates settings (e.g., after load)
+    React.useEffect(() => {
+        setLocalSettings(settings);
+    }, [settings]);
+
     const timezoneOptions = [
-        { value: "Asia/Ho_Chi_Minh", label: "Việt Nam (UTC+7)" },
-        { value: "Asia/Bangkok", label: "Bangkok (UTC+7)" },
-        { value: "Asia/Singapore", label: "Singapore (UTC+8)" },
-        { value: "Asia/Tokyo", label: "Tokyo (UTC+9)" },
-        { value: "UTC", label: "UTC (UTC+0)" },
+        { value: 'Asia/Ho_Chi_Minh', label: 'Việt Nam (UTC+7)' },
+        { value: 'Asia/Bangkok', label: 'Bangkok (UTC+7)' },
+        { value: 'Asia/Singapore', label: 'Singapore (UTC+8)' },
+        { value: 'Asia/Tokyo', label: 'Tokyo (UTC+9)' },
+        { value: 'UTC', label: 'UTC (UTC+0)' },
     ];
 
     const timeUnitOptions = [
-        { value: "minutes", label: "Phút" },
-        { value: "hours", label: "Giờ" },
-        { value: "days", label: "Ngày" },
+        { value: 'minutes', label: 'Phút' },
+        { value: 'hours', label: 'Giờ' },
+        { value: 'days', label: 'Ngày' },
     ];
 
     const weekDays = [
-        { value: 0, label: "Chủ nhật" },
-        { value: 1, label: "Thứ hai" },
-        { value: 2, label: "Thứ ba" },
-        { value: 3, label: "Thứ tư" },
-        { value: 4, label: "Thứ năm" },
-        { value: 5, label: "Thứ sáu" },
-        { value: 6, label: "Thứ bảy" },
+        { value: 0, label: 'Chủ nhật' },
+        { value: 1, label: 'Thứ hai' },
+        { value: 2, label: 'Thứ ba' },
+        { value: 3, label: 'Thứ tư' },
+        { value: 4, label: 'Thứ năm' },
+        { value: 5, label: 'Thứ sáu' },
+        { value: 6, label: 'Thứ bảy' },
     ];
 
     const handleToggle = (field: keyof GlobalNotificationSettings) => {
@@ -101,36 +104,39 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
         const currentDays = localSettings.workingHours.workingDays;
         const newDays = currentDays.includes(day) ? currentDays.filter((d) => d !== day) : [...currentDays, day].sort();
 
-        handleInputChange("workingDays", newDays, "workingHours");
+        handleInputChange('workingDays', newDays, 'workingHours');
     };
 
     const handleRecipientsChange = (value: string) => {
         const recipients = value
-            .split(",")
+            .split(',')
             .map((email) => email.trim())
             .filter((email) => email);
-        handleInputChange("defaultRecipients", recipients);
+        handleInputChange('defaultRecipients', recipients);
     };
 
     return (
-        <div className={cx("global-settings")}>
-            <div className={cx("settings-section")}>
+        <div className={cx('global-settings')}>
+            <div className={cx('settings-section')}>
                 <h3>
                     <FontAwesomeIcon icon={faBell} />
                     Loại thông báo
                 </h3>
                 <p>Chọn các kênh thông báo bạn muốn sử dụng</p>
 
-                <div className={cx("toggle-group")}>
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
-                            <FontAwesomeIcon icon={faEnvelope} className={cx("toggle-icon", "email")} />
+                <div className={cx('toggle-group')}>
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
+                            <FontAwesomeIcon icon={faEnvelope} className={cx('toggle-icon', 'email')} />
                             <div>
                                 <h4>Email</h4>
                                 <p>Gửi thông báo qua email</p>
                             </div>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleToggle("enableEmailNotifications")}>
+                        <button
+                            className={cx('toggle-button')}
+                            onClick={() => handleToggle('enableEmailNotifications')}
+                        >
                             <FontAwesomeIcon
                                 icon={localSettings.enableEmailNotifications ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.enableEmailNotifications })}
@@ -138,15 +144,15 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                         </button>
                     </div>
 
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
-                            <FontAwesomeIcon icon={faMobile} className={cx("toggle-icon", "sms")} />
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
+                            <FontAwesomeIcon icon={faMobile} className={cx('toggle-icon', 'sms')} />
                             <div>
                                 <h4>SMS</h4>
                                 <p>Gửi tin nhắn SMS</p>
                             </div>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleToggle("enableSMSNotifications")}>
+                        <button className={cx('toggle-button')} onClick={() => handleToggle('enableSMSNotifications')}>
                             <FontAwesomeIcon
                                 icon={localSettings.enableSMSNotifications ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.enableSMSNotifications })}
@@ -154,15 +160,18 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                         </button>
                     </div>
 
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
-                            <FontAwesomeIcon icon={faDesktop} className={cx("toggle-icon", "inapp")} />
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
+                            <FontAwesomeIcon icon={faDesktop} className={cx('toggle-icon', 'inapp')} />
                             <div>
                                 <h4>In-App</h4>
                                 <p>Hiển thị thông báo trong ứng dụng</p>
                             </div>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleToggle("enableInAppNotifications")}>
+                        <button
+                            className={cx('toggle-button')}
+                            onClick={() => handleToggle('enableInAppNotifications')}
+                        >
                             <FontAwesomeIcon
                                 icon={localSettings.enableInAppNotifications ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.enableInAppNotifications })}
@@ -170,15 +179,15 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                         </button>
                     </div>
 
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
-                            <FontAwesomeIcon icon={faBell} className={cx("toggle-icon", "push")} />
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
+                            <FontAwesomeIcon icon={faBell} className={cx('toggle-icon', 'push')} />
                             <div>
                                 <h4>Push Notification</h4>
                                 <p>Gửi thông báo đẩy</p>
                             </div>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleToggle("enablePushNotifications")}>
+                        <button className={cx('toggle-button')} onClick={() => handleToggle('enablePushNotifications')}>
                             <FontAwesomeIcon
                                 icon={localSettings.enablePushNotifications ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.enablePushNotifications })}
@@ -188,7 +197,7 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                 </div>
             </div>
 
-            <div className={cx("settings-section")}>
+            <div className={cx('settings-section')}>
                 <h3>
                     <FontAwesomeIcon icon={faUsers} />
                     Người nhận mặc định
@@ -198,25 +207,25 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                 <Input
                     name="defaultRecipients"
                     placeholder="email1@example.com, email2@example.com"
-                    value={localSettings.defaultRecipients.join(", ")}
+                    value={localSettings.defaultRecipients.join(', ')}
                     onChange={handleRecipientsChange}
                 />
             </div>
 
-            <div className={cx("settings-section")}>
+            <div className={cx('settings-section')}>
                 <h3>
                     <FontAwesomeIcon icon={faClock} />
                     Giờ làm việc
                 </h3>
                 <p>Thiết lập giờ làm việc để tối ưu hóa thời gian gửi thông báo</p>
 
-                <div className={cx("grid-cols-3")}>
+                <div className={cx('grid-cols-3')}>
                     <Input
                         name="workingStart"
                         label="Giờ bắt đầu"
                         type="time"
                         value={localSettings.workingHours.start}
-                        onChange={(value) => handleInputChange("start", value, "workingHours")}
+                        onChange={(value) => handleInputChange('start', value, 'workingHours')}
                     />
 
                     <Input
@@ -224,7 +233,7 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                         label="Giờ kết thúc"
                         type="time"
                         value={localSettings.workingHours.end}
-                        onChange={(value) => handleInputChange("end", value, "workingHours")}
+                        onChange={(value) => handleInputChange('end', value, 'workingHours')}
                     />
 
                     <ControllerDropdown
@@ -232,15 +241,15 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                         label="Múi giờ"
                         options={timezoneOptions}
                         value={localSettings.workingHours.timezone}
-                        onChange={(value) => handleInputChange("timezone", value, "workingHours")}
+                        onChange={(value) => handleInputChange('timezone', value, 'workingHours')}
                     />
                 </div>
 
-                <div className={cx("working-days")}>
+                <div className={cx('working-days')}>
                     <label>Ngày làm việc</label>
-                    <div className={cx("days-grid")}>
+                    <div className={cx('days-grid')}>
                         {weekDays.map((day) => (
-                            <label key={day.value} className={cx("day-checkbox")}>
+                            <label key={day.value} className={cx('day-checkbox')}>
                                 <input
                                     type="checkbox"
                                     // checked={localSettings.workingHours.workingDays.includes(day.value) ?? false}
@@ -253,19 +262,22 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                 </div>
             </div>
 
-            <div className={cx("settings-section")}>
+            <div className={cx('settings-section')}>
                 <h3>
                     <FontAwesomeIcon icon={faClock} />
                     Giờ yên tĩnh
                 </h3>
                 <p>Không gửi thông báo trong khoảng thời gian này</p>
 
-                <div className={cx("quiet-hours")}>
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
+                <div className={cx('quiet-hours')}>
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
                             <h4>Bật giờ yên tĩnh</h4>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleNestedToggle("quietHours", "enabled")}>
+                        <button
+                            className={cx('toggle-button')}
+                            onClick={() => handleNestedToggle('quietHours', 'enabled')}
+                        >
                             <FontAwesomeIcon
                                 icon={localSettings.quietHours?.enabled ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.quietHours?.enabled })}
@@ -274,13 +286,13 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                     </div>
 
                     {localSettings.quietHours?.enabled && (
-                        <div className={cx("grid-cols-2")}>
+                        <div className={cx('grid-cols-2')}>
                             <Input
                                 name="quietStart"
                                 label="Bắt đầu"
                                 type="time"
                                 value={localSettings.quietHours.start}
-                                onChange={(value) => handleInputChange("start", value, "quietHours")}
+                                onChange={(value) => handleInputChange('start', value, 'quietHours')}
                             />
 
                             <Input
@@ -288,26 +300,29 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                                 label="Kết thúc"
                                 type="time"
                                 value={localSettings.quietHours.end}
-                                onChange={(value) => handleInputChange("end", value, "quietHours")}
+                                onChange={(value) => handleInputChange('end', value, 'quietHours')}
                             />
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className={cx("settings-section")}>
+            <div className={cx('settings-section')}>
                 <h3>
                     <FontAwesomeIcon icon={faExclamationTriangle} />
                     Quy tắc leo thang
                 </h3>
                 <p>Tự động leo thang thông báo khi không có phản hồi</p>
 
-                <div className={cx("escalation-rules")}>
-                    <div className={cx("toggle-item")}>
-                        <div className={cx("toggle-info")}>
+                <div className={cx('escalation-rules')}>
+                    <div className={cx('toggle-item')}>
+                        <div className={cx('toggle-info')}>
                             <h4>Bật leo thang tự động</h4>
                         </div>
-                        <button className={cx("toggle-button")} onClick={() => handleNestedToggle("escalationRules", "enabled")}>
+                        <button
+                            className={cx('toggle-button')}
+                            onClick={() => handleNestedToggle('escalationRules', 'enabled')}
+                        >
                             <FontAwesomeIcon
                                 icon={localSettings.escalationRules?.enabled ? faToggleOn : faToggleOff}
                                 className={cx({ active: localSettings.escalationRules?.enabled })}
@@ -316,15 +331,17 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                     </div>
 
                     {localSettings.escalationRules?.enabled && (
-                        <div className={cx("escalation-config")}>
-                            <div className={cx("grid-cols-2")}>
+                        <div className={cx('escalation-config')}>
+                            <div className={cx('grid-cols-2')}>
                                 <Input
                                     name="escalateValue"
                                     label="Leo thang sau"
                                     type="number"
                                     min="1"
                                     value={localSettings.escalationRules.escalateAfter.value}
-                                    onChange={(value) => handleInputChange("value", Number(value), "escalationRules.escalateAfter")}
+                                    onChange={(value) =>
+                                        handleInputChange('value', Number(value), 'escalationRules.escalateAfter')
+                                    }
                                 />
 
                                 <ControllerDropdown
@@ -332,7 +349,9 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                                     label="Đơn vị"
                                     options={timeUnitOptions}
                                     value={localSettings.escalationRules.escalateAfter.unit}
-                                    onChange={(value) => handleInputChange("unit", value, "escalationRules.escalateAfter")}
+                                    onChange={(value) =>
+                                        handleInputChange('unit', value, 'escalationRules.escalateAfter')
+                                    }
                                 />
                             </div>
 
@@ -340,13 +359,13 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                                 name="escalateTo"
                                 label="Leo thang đến (email, cách nhau bằng dấu phẩy)"
                                 placeholder="manager@example.com, admin@example.com"
-                                value={localSettings.escalationRules.escalateTo.join(", ")}
+                                value={localSettings.escalationRules.escalateTo.join(', ')}
                                 onChange={(value) => {
                                     const emails = value
-                                        .split(",")
+                                        .split(',')
                                         .map((email) => email.trim())
                                         .filter((email) => email);
-                                    handleInputChange("escalateTo", emails, "escalationRules");
+                                    handleInputChange('escalateTo', emails, 'escalationRules');
                                 }}
                             />
                         </div>
@@ -354,7 +373,7 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                 </div>
             </div>
 
-            <div className={cx("settings-actions")}>
+            <div className={cx('settings-actions')}>
                 <Button
                     outline
                     onClick={() => {
@@ -366,21 +385,21 @@ const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ setti
                             enablePushNotifications: true,
                             defaultRecipients: [],
                             workingHours: {
-                                start: "09:00",
-                                end: "17:00",
-                                timezone: "Asia/Ho_Chi_Minh",
+                                start: '09:00',
+                                end: '17:00',
+                                timezone: 'Asia/Ho_Chi_Minh',
                                 workingDays: [1, 2, 3, 4, 5],
                             },
                             quietHours: {
                                 enabled: false,
-                                start: "22:00",
-                                end: "08:00",
+                                start: '22:00',
+                                end: '08:00',
                             },
                             escalationRules: {
                                 enabled: false,
                                 escalateAfter: {
                                     value: 24,
-                                    unit: "hours",
+                                    unit: 'hours',
                                 },
                                 escalateTo: [],
                             },

@@ -84,7 +84,7 @@ const ContractDraft = () => {
     useEffect(() => {
         if (currentStep < 1 || currentStep > 4) {
             goToStep(1);
-            navigate(`/${routePrivate.createContract}`);
+            navigate(routePrivate.createContract);
         }
     }, [currentStep, goToStep, navigate]);
 
@@ -93,7 +93,7 @@ const ContractDraft = () => {
     //         for (let i = 1; i < currentStep; i++) {
     //             if (!validateStep(i)) {
     //                 goToStep(i);
-    //                 navigate(`/${routePrivate.createContract}`);
+    //                 navigate(routePrivate.createContract);
     //                 return;
     //             }
     //         }

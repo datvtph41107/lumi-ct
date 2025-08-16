@@ -1,27 +1,19 @@
-// import { Controller, Get, Param, Post, Body, Patch } from '@nestjs/common';
-// import { NotificationService } from './notification.service';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { NotificationService } from './notification.service';
+import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 
-// @Controller('notifications')
-// export class NotificationController {
-//     constructor(private readonly service: NotificationService) {}
+@Controller('notifications')
+@UseGuards(AuthGuardAccess)
+export class NotificationController {
+    constructor(private readonly service: NotificationService) {}
 
-//     @Get(':userId')
-//     getByUser(@Param('userId') userId: number) {
-//         return this.service.findByUser(userId);
-//     }
+    @Get('settings')
+    getGlobalSettings() {
+        return this.service.getGlobalSettings();
+    }
 
-//     @Get(':userId/unread-count')
-//     getUnreadCount(@Param('userId') userId: number) {
-//         return this.service.countUnread(userId);
-//     }
-
-//     @Post()
-//     create(@Body() body: { userId: number; title: string; content?: string }) {
-//         return this.service.create(body.userId, body.title, body.content);
-//     }
-
-//     @Patch(':id/read')
-//     markAsRead(@Param('id') id: number) {
-//         return this.service.markAsRead(id);
-//     }
-// }
+    @Put('settings')
+    updateGlobalSettings(@Body() body: any) {
+        return this.service.updateGlobalSettings(body);
+    }
+}
