@@ -17,6 +17,8 @@ import {
 import { Milestone, MilestoneStatus } from '@/core/domain/contract/contract-milestones.entity';
 import { Task, TaskStatus } from '@/core/domain/contract/contract-taks.entity';
 import { Contract, ContractStatus } from '@/core/domain/contract/contract.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
 
 export interface CreateNotificationDto {
     contract_id: string;
@@ -60,6 +62,7 @@ export class NotificationService {
     constructor(
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         @Inject('LOGGER') private readonly logger: LoggerTypes,
+        @InjectRepository(SystemNotificationSettings) private readonly sysRepo: Repository<SystemNotificationSettings>,
     ) {
         this.notificationRepo = this.db.getRepository(ContractNotification);
         this.reminderRepo = this.db.getRepository(ContractReminder);
@@ -715,25 +718,47 @@ export class NotificationService {
         await new Promise((r) => setTimeout(r, 25));
     }
 
-    // ===== GLOBAL SETTINGS (IN-MEMORY, CAN BE MOVED TO DB) =====
-    private globalSettings: any = {
-        enableEmailNotifications: true,
-        enableSMSNotifications: false,
-        enableInAppNotifications: true,
-        enablePushNotifications: true,
-        defaultRecipients: [],
-        workingHours: { start: '09:00', end: '17:00', timezone: 'Asia/Ho_Chi_Minh', workingDays: [1, 2, 3, 4, 5] },
-        quietHours: { enabled: false, start: '22:00', end: '08:00' },
-        escalationRules: { enabled: false, escalateAfter: { value: 24, unit: 'hours' }, escalateTo: [] },
-    };
-
-    getGlobalSettings() {
-        return this.globalSettings;
+    // ===== GLOBAL SETTINGS (DB-backed with default fallback) =====
+    async getGlobalSettings() {
+        let settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
+        if (!settings || settings.length === 0) {
+            return {
+                enableEmailNotifications: true,
+                enableSMSNotifications: false,
+                enableInAppNotifications: true,
+                enablePushNotifications: true,
+                workingHours: { start: '09:00', end: '17:00', timezone: 'Asia/Ho_Chi_Minh', workingDays: [1, 2, 3, 4, 5] },
+                quietHours: { enabled: false, start: '22:00', end: '08:00' },
+                escalationRules: { enabled: false, escalateAfter: { value: 24, unit: 'hours' }, escalateTo: [] },
+                defaultRecipients: [],
+            };
+        }
+        const s = settings[0];
+        return {
+            enableEmailNotifications: s.enable_email_notifications,
+            enableSMSNotifications: s.enable_sms_notifications,
+            enableInAppNotifications: s.enable_inapp_notifications,
+            enablePushNotifications: s.enable_push_notifications,
+            workingHours: s.working_hours,
+            quietHours: s.quiet_hours,
+            escalationRules: s.escalation_rules,
+            defaultRecipients: s.default_recipients || [],
+        };
     }
 
-    updateGlobalSettings(settings: any) {
-        this.globalSettings = { ...this.globalSettings, ...settings };
-        this.logger.APP.info('[Notifications] global settings updated');
-        return this.globalSettings;
+    async updateGlobalSettings(input: any) {
+        const entity = this.sysRepo.create({
+            enable_email_notifications: !!input.enableEmailNotifications,
+            enable_sms_notifications: !!input.enableSMSNotifications,
+            enable_inapp_notifications: !!input.enableInAppNotifications,
+            enable_push_notifications: !!input.enablePushNotifications,
+            working_hours: input.workingHours,
+            quiet_hours: input.quietHours,
+            escalation_rules: input.escalationRules,
+            default_recipients: input.defaultRecipients || [],
+        });
+        const saved = await this.sysRepo.save(entity);
+        this.logger.APP.info('[Notifications] global settings updated', { id: saved.id });
+        return this.getGlobalSettings();
     }
 }

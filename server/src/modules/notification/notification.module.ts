@@ -6,9 +6,11 @@ import { NotificationService } from '../notification/notification.service';
 import { LoggerModule } from '@/core/shared/logger/logger.module';
 import { DatabaseModule } from '@/providers/database';
 import { NotificationController } from './notification.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
 
 @Module({
-    imports: [LoggerModule, DatabaseModule, ContractModule],
+    imports: [LoggerModule, DatabaseModule, ContractModule, TypeOrmModule.forFeature([SystemNotificationSettings])],
     controllers: [NotificationController],
     providers: [
         NotificationService,
