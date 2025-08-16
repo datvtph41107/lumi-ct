@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { authCoreService } from './AuthCoreSerivce';
 import LoadingSpinner from '~/components/LoadingSpinner';
 
@@ -13,6 +13,7 @@ interface PermissionGuardProps {
     fallback?: React.ReactNode;
     showFallback?: boolean;
     loadingFallback?: React.ReactNode;
+    onPermissionDenied?: () => void;
 }
 
 const PermissionGuard: React.FC<PermissionGuardProps> = ({
@@ -23,17 +24,24 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     fallback = null,
     showFallback = false,
     loadingFallback,
+    onPermissionDenied,
 }) => {
     const [isLoading, setIsLoading] = useState(!authCoreService.isPermissionsLoaded());
+    const [error, setError] = useState<string | null>(null);
+
+    // Memoize context to avoid unnecessary re-renders
+    const memoizedContext = useMemo(() => context, [JSON.stringify(context)]);
 
     useEffect(() => {
         const loadPermissions = async () => {
             if (!authCoreService.isPermissionsLoaded()) {
                 setIsLoading(true);
+                setError(null);
                 try {
                     await authCoreService.loadUserPermissions();
                 } catch (error) {
                     console.error('Failed to load permissions:', error);
+                    setError('Failed to load permissions. Please try again.');
                 } finally {
                     setIsLoading(false);
                 }
@@ -42,13 +50,36 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
         loadPermissions();
     }, []);
 
+    // Show loading state
     if (isLoading) {
         return <>{loadingFallback ?? defaultSpinner}</>;
     }
 
-    const hasPermission = authCoreService.hasPermission(resource, action, context);
+    // Show error state
+    if (error) {
+        return (
+            <div className="flex items-center justify-center min-h-[200px]">
+                <div className="text-center">
+                    <p className="text-red-600 mb-2">{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const hasPermission = authCoreService.hasPermission(resource, action, memoizedContext);
 
     if (!hasPermission) {
+        // Call callback if provided
+        if (onPermissionDenied) {
+            onPermissionDenied();
+        }
+        
         return showFallback ? <>{fallback}</> : null;
     }
 
@@ -63,12 +94,14 @@ function createContractGuard(action: string) {
         context = {},
         fallback,
         loadingFallback,
+        onPermissionDenied,
     }: {
         children: React.ReactNode;
         contractId?: number;
         context?: Record<string, any>;
         fallback?: React.ReactNode;
         loadingFallback?: React.ReactNode;
+        onPermissionDenied?: () => void;
     }) => (
         <PermissionGuard
             resource="contract"
@@ -76,6 +109,7 @@ function createContractGuard(action: string) {
             context={{ contractId, ...context }}
             fallback={fallback}
             loadingFallback={loadingFallback}
+            onPermissionDenied={onPermissionDenied}
         >
             {children}
         </PermissionGuard>
@@ -93,8 +127,15 @@ export const TemplateManageGuard: React.FC<{
     children: React.ReactNode;
     fallback?: React.ReactNode;
     loadingFallback?: React.ReactNode;
-}> = ({ children, fallback, loadingFallback }) => (
-    <PermissionGuard resource="template" action="manage" fallback={fallback} loadingFallback={loadingFallback}>
+    onPermissionDenied?: () => void;
+}> = ({ children, fallback, loadingFallback, onPermissionDenied }) => (
+    <PermissionGuard 
+        resource="template" 
+        action="manage" 
+        fallback={fallback} 
+        loadingFallback={loadingFallback}
+        onPermissionDenied={onPermissionDenied}
+    >
         {children}
     </PermissionGuard>
 );
@@ -104,13 +145,15 @@ export const DashboardViewGuard: React.FC<{
     dashboardType?: string;
     fallback?: React.ReactNode;
     loadingFallback?: React.ReactNode;
-}> = ({ children, dashboardType, fallback, loadingFallback }) => (
+    onPermissionDenied?: () => void;
+}> = ({ children, dashboardType, fallback, loadingFallback, onPermissionDenied }) => (
     <PermissionGuard
         resource="dashboard"
         action="view"
         context={{ dashboardType }}
         fallback={fallback}
         loadingFallback={loadingFallback}
+        onPermissionDenied={onPermissionDenied}
     >
         {children}
     </PermissionGuard>
@@ -121,29 +164,38 @@ export const AnalyticsViewGuard: React.FC<{
     analyticsType?: string;
     fallback?: React.ReactNode;
     loadingFallback?: React.ReactNode;
-}> = ({ children, analyticsType, fallback, loadingFallback }) => (
+    onPermissionDenied?: () => void;
+}> = ({ children, analyticsType, fallback, loadingFallback, onPermissionDenied }) => (
     <PermissionGuard
         resource="dashboard"
         action="analytics"
         context={{ analyticsType }}
         fallback={fallback}
         loadingFallback={loadingFallback}
+        onPermissionDenied={onPermissionDenied}
     >
         {children}
     </PermissionGuard>
 );
 
-// Role Guards
+// Role Guards with improved error handling
 export const RoleGuard: React.FC<{
     children: React.ReactNode;
     role: string;
     scope?: string;
     scopeId?: number;
     fallback?: React.ReactNode;
-}> = ({ children, role, scope, scopeId, fallback }) => {
+    onRoleDenied?: () => void;
+}> = ({ children, role, scope, scopeId, fallback, onRoleDenied }) => {
     const hasRole = authCoreService.hasRole(role, scope, scopeId);
+    
     if (!hasRole) {
-        return <>{fallback}</> || null;
+        // Call callback if provided
+        if (onRoleDenied) {
+            onRoleDenied();
+        }
+        
+        return <>{fallback || null}</>;
     }
     return <>{children}</>;
 };
@@ -151,8 +203,9 @@ export const RoleGuard: React.FC<{
 export const ContractManagerGuard: React.FC<{
     children: React.ReactNode;
     fallback?: React.ReactNode;
-}> = ({ children, fallback }) => (
-    <RoleGuard role="contract_manager" fallback={fallback}>
+    onRoleDenied?: () => void;
+}> = ({ children, fallback, onRoleDenied }) => (
+    <RoleGuard role="contract_manager" fallback={fallback} onRoleDenied={onRoleDenied}>
         {children}
     </RoleGuard>
 );
@@ -160,8 +213,9 @@ export const ContractManagerGuard: React.FC<{
 export const AccountingStaffGuard: React.FC<{
     children: React.ReactNode;
     fallback?: React.ReactNode;
-}> = ({ children, fallback }) => (
-    <RoleGuard role="accounting_staff" fallback={fallback}>
+    onRoleDenied?: () => void;
+}> = ({ children, fallback, onRoleDenied }) => (
+    <RoleGuard role="accounting_staff" fallback={fallback} onRoleDenied={onRoleDenied}>
         {children}
     </RoleGuard>
 );
@@ -169,8 +223,9 @@ export const AccountingStaffGuard: React.FC<{
 export const HRStaffGuard: React.FC<{
     children: React.ReactNode;
     fallback?: React.ReactNode;
-}> = ({ children, fallback }) => (
-    <RoleGuard role="hr_staff" fallback={fallback}>
+    onRoleDenied?: () => void;
+}> = ({ children, fallback, onRoleDenied }) => (
+    <RoleGuard role="hr_staff" fallback={fallback} onRoleDenied={onRoleDenied}>
         {children}
     </RoleGuard>
 );

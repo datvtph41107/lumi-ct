@@ -3,10 +3,34 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+
+    &--overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(2px);
+        z-index: 1000;
+        min-height: 100%;
+    }
+
+    &--fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+    }
 }
 
 .loading-spinner {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 
@@ -15,6 +39,13 @@
         border-top: 2px solid #3498db;
         border-radius: 50%;
         animation: spin 1s linear infinite;
+    }
+
+    // Size variants
+    &--xs .spinner {
+        width: 16px;
+        height: 16px;
+        border-width: 1px;
     }
 
     &--small .spinner {
@@ -31,6 +62,42 @@
         width: 60px;
         height: 60px;
     }
+
+    &--xl .spinner {
+        width: 80px;
+        height: 80px;
+        border-width: 3px;
+    }
+
+    // Color variants
+    &--primary .spinner {
+        border-top-color: #3498db;
+    }
+
+    &--secondary .spinner {
+        border-top-color: #6c757d;
+    }
+
+    &--success .spinner {
+        border-top-color: #28a745;
+    }
+
+    &--warning .spinner {
+        border-top-color: #ffc107;
+    }
+
+    &--error .spinner {
+        border-top-color: #dc3545;
+    }
+
+    .message {
+        margin-top: 0.75rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+        text-align: center;
+        max-width: 300px;
+        line-height: 1.4;
+    }
 }
 
 @keyframes spin {
@@ -39,5 +106,25 @@
     }
     100% {
         transform: rotate(360deg);
+    }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+    .loading-spinner-container {
+        &--overlay,
+        &--fullscreen {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+    }
+
+    .loading-spinner {
+        .spinner {
+            border-color: #374151;
+        }
+
+        .message {
+            color: #d1d5db;
+        }
     }
 }
