@@ -10,6 +10,7 @@ import type { PublicRoute as PublicRouteType, PrivateRoute as PrivateRouteType }
 import Unauthorized from './page/Unauthorized/Unauthorized';
 import NotFound from './page/404Page';
 import DefaultLayout from './layouts/DefaultLayout';
+import { PermissionGuard } from './core/permissions';
 
 const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: boolean) => {
     const Page = route.component;
@@ -19,12 +20,21 @@ const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: bool
         const privateRoute = route as PrivateRouteType;
         const fallbackPath = route.path.includes('/admin') ? '/admin/login' : '/login';
         const requiredRole = privateRoute.access?.roles || [];
+        const requiredPermissions = privateRoute.access?.permissions || [];
+        const requireAll = privateRoute.access?.requireAll || false;
 
         return (
             <ProtectedRoute fallbackPath={fallbackPath} requiredRole={requiredRole}>
-                <LayoutComp>
-                    <Page />
-                </LayoutComp>
+                <PermissionGuard
+                    permissions={requiredPermissions}
+                    roles={requiredRole}
+                    requireAll={requireAll}
+                    fallback={<Unauthorized />}
+                >
+                    <LayoutComp>
+                        <Page />
+                    </LayoutComp>
+                </PermissionGuard>
             </ProtectedRoute>
         );
     }
@@ -64,21 +74,13 @@ const AppRoutes: React.FC = () => {
 
         {
             path: '/unauthorized',
-            element: (
-                // <Layout>
-                <Unauthorized />
-                // </Layout>
-            ),
+            element: <Unauthorized />,
         },
 
         // 404
         {
             path: '*',
-            element: (
-                // <Layout>
-                <NotFound />
-                // </Layout>
-            ),
+            element: <NotFound />,
         },
     ]);
 

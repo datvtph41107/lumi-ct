@@ -21,15 +21,25 @@ import CreateContractLayout from '~/layouts/CreateContractLayout';
 import ContractDaft from '~/page/Contract/ContractDaft';
 import ContractCollection from '~/page/Contract/ContractCollection';
 
-// New admin pages (placeholders)
+// Admin pages
 import SystemNotifications from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
 import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
+import AdminDashboard from '~/page/admin/AdminDashboard';
+import AuditLog from '~/page/admin/AuditLog';
+
+// Contract pages
+import ContractTemplates from '~/page/Contract/ContractTemplates';
+import ContractReports from '~/page/Contract/ContractReports';
+
+// Profile & Settings
+import UserProfile from '~/page/Profile/UserProfile';
+import UserSettings from '~/page/Settings/UserSettings';
 
 // Route interfaces
 interface BaseRoute {
     path: string;
-    component: FC; // hoặc React.ComponentType<unknown>
+    component: FC;
     layout?: ComponentType<{ children: ReactNode }> | null;
 }
 
@@ -44,35 +54,26 @@ interface PrivateRoute extends BaseRoute {
 
 /**
  * Public Routes - Không cần đăng nhập
- * Nếu user đã đăng nhập và truy cập các route này, sẽ redirect về dashboard
  */
 export const publicRoutes: PublicRoute[] = [
     {
         path: config.routes.adminLogin,
         component: AdminLogin,
         layout: LoginLayout,
-        redirectPath: '/dashboard', // Redirect về dashboard chung
-        allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
+        redirectPath: '/dashboard',
+        allowedWhenAuthenticated: false,
     },
     {
         path: config.routes.login,
         component: Login,
         layout: LoginLayout,
-        redirectPath: '/dashboard', // Redirect về dashboard chung
-        allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
+        redirectPath: '/dashboard',
+        allowedWhenAuthenticated: false,
     },
-    // Có thể thêm các public routes khác như forgot-password, register, etc.
-    // {
-    //   path: "/forgot-password",
-    //   component: ForgotPassword,
-    //   layout: LoginLayout,
-    //   allowedWhenAuthenticated: true, // Cho phép truy cập khi đã đăng nhập
-    // },
 ];
 
 /**
  * Protected Routes - Cần đăng nhập
- * Mặc định tất cả đều cần authentication, chỉ cần định nghĩa access nếu có yêu cầu đặc biệt
  */
 export const privateRoutes: PrivateRoute[] = [
     // Dashboard chung - Tất cả user đã đăng nhập đều có thể truy cập
@@ -80,25 +81,31 @@ export const privateRoutes: PrivateRoute[] = [
         path: config.routePrivate.dashboard,
         component: Dashboard,
         layout: DefaultLayout,
-        // Không có access restrictions - chỉ cần đăng nhập
     },
 
-    // Admin Panel - Chỉ dành cho Admin hoặc có quyền admin access
-    // {
-
-    // System Notifications Settings - Admin only
+    // Admin Routes
     {
-        path: '/admin/notifications',
-        component: SystemNotifications,
+        path: '/admin',
+        component: AdminDashboard,
         layout: AdminLayout,
         access: {
             roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            permissions: [PERMISSION.ADMIN_ACCESS],
             requireAll: false,
         },
     },
 
-    // User Management - Admin only
+    {
+        path: '/admin/dashboard',
+        component: AdminDashboard,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.ADMIN_ACCESS],
+            requireAll: false,
+        },
+    },
+
     {
         path: '/admin/users',
         component: UserManagement,
@@ -110,7 +117,6 @@ export const privateRoutes: PrivateRoute[] = [
         },
     },
 
-    // Roles/Permissions Management - Admin only
     {
         path: '/admin/roles-permissions',
         component: RolePermissionManagement,
@@ -123,44 +129,49 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     {
+        path: '/admin/notifications',
+        component: SystemNotifications,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
+        },
+    },
+
+    {
+        path: '/admin/audit-log',
+        component: AuditLog,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
+        },
+    },
+
+    // Contract Routes
+    {
         path: config.routePrivate.contract,
         component: ContractDaft,
         layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
     },
 
     {
         path: config.routePrivate.ContractCollection,
         component: ContractCollection,
         layout: CreateContractLayout,
-    },
-    // Admin User Management - Chỉ Admin
-    {
-        path: '/admin/users',
-        component: UserManagement, // Replace with actual UserManagement component
-        layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.USER_MANAGEMENT],
-            requireAll: false, // Chỉ cần 1 trong 2
+            permissions: [PERMISSION.CONTRACTS_READ],
         },
     },
 
-    // Admin System Settings - Chỉ Admin
-    // {
-    //     path: '/admin/settings',
-    //     component: Admin, // Replace with actual SystemSettings component
-    //     layout: AdminLayout,
-    //     access: {
-    //         roles: [ROLE.ADMIN],
-    //         permissions: [PERMISSION.SYSTEM_SETTINGS],
-    //         requireAll: false,
-    //     },
-    // },
-
-    // Contract Routes - Dựa trên permissions
     {
         path: config.routePrivate.contractPages,
-        component: ContractPage, // Replace with actual Contracts component
+        component: ContractPage,
         layout: DefaultLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_READ],
@@ -169,7 +180,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     {
         path: config.routePrivate.createContract,
-        component: CreateContract, // Replace with actual CreateContract component
+        component: CreateContract,
         layout: CreateContractLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_CREATE],
@@ -178,7 +189,7 @@ export const privateRoutes: PrivateRoute[] = [
 
     {
         path: config.routePrivate.contractDetail,
-        component: ContractDetail, // Replace with actual ContractDetail component
+        component: ContractDetail,
         layout: DefaultLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_READ],
@@ -186,29 +197,38 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     {
-        path: config.routePrivate.contractTypes,
-        component: Dashboard, // Replace with actual ContractTypeManager component
+        path: '/contracts/templates',
+        component: ContractTemplates,
         layout: DefaultLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_MANAGE],
         },
     },
 
-    // Manager Routes - Dành cho Manager và Admin
+    {
+        path: '/contracts/reports',
+        component: ContractReports,
+        layout: DefaultLayout,
+        access: {
+            permissions: [PERMISSION.REPORTS_ACCESS],
+        },
+    },
+
+    // Manager Routes
     {
         path: '/manager/reports',
-        component: Dashboard, // Replace with actual Reports component
+        component: ContractReports,
         layout: DefaultLayout,
         access: {
             roles: [ROLE.MANAGER, ROLE.ADMIN],
             permissions: [PERMISSION.REPORTS_ACCESS],
-            requireAll: false, // Có role HOẶC có permission
+            requireAll: false,
         },
     },
 
     {
         path: '/manager/team',
-        component: Dashboard, // Replace with actual TeamManagement component
+        component: UserManagement,
         layout: DefaultLayout,
         access: {
             roles: [ROLE.MANAGER, ROLE.ADMIN],
@@ -217,20 +237,17 @@ export const privateRoutes: PrivateRoute[] = [
         },
     },
 
-    // Profile - Tất cả user đều có thể truy cập
+    // Profile & Settings
     {
         path: '/profile',
-        component: Dashboard, // Replace with actual Profile component
+        component: UserProfile,
         layout: DefaultLayout,
-        // Không có access restrictions
     },
 
-    // Settings - Tất cả user đều có thể truy cập settings cá nhân
     {
         path: '/settings',
-        component: Dashboard, // Replace with actual UserSettings component
+        component: UserSettings,
         layout: DefaultLayout,
-        // Không có access restrictions
     },
 ];
 
