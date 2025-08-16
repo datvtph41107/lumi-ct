@@ -13,6 +13,23 @@ class NotificationSettingsService extends BaseService {
             settings,
         );
     }
+
+    // Contract-level notifications
+    async createContractNotification(contractId: string, payload: any) {
+        return this.request.private.post<any, any>(`/contracts/${contractId}/notifications`, payload);
+    }
+
+    async listContractNotifications(contractId: string) {
+        return this.request.private.get<any>(`/contracts/${contractId}/notifications`);
+    }
+
+    async createContractReminder(contractId: string, payload: any) {
+        return this.request.private.post<any, any>(`/contracts/${contractId}/reminders`, payload);
+    }
+
+    async listContractReminders(contractId: string) {
+        return this.request.private.get<any>(`/contracts/${contractId}/reminders`);
+    }
 }
 
 export const notificationSettingsService = new NotificationSettingsService();
