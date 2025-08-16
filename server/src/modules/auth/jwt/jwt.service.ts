@@ -145,7 +145,7 @@ export class TokenService {
             }
 
             const now = new Date();
-            const lastActivity = new Date(session.lastActivity);
+            const lastActivity = new Date(session.last_activity);
             const timeDiff = (now.getTime() - lastActivity.getTime()) / (1000 * 60); // minutes
 
             if (timeDiff > this.sessionTimeoutMinutes) {
@@ -157,7 +157,7 @@ export class TokenService {
             return {
                 userId: payload.sub,
                 sessionId: payload.sessionId,
-                lastActivity: session.lastActivity,
+                lastActivity: session.last_activity,
             };
         } catch (err) {
             this.logger.APP.error(`verifyRefreshToken error: ${err}`);
@@ -187,7 +187,7 @@ export class TokenService {
             const repo = this.db.getRepository(UserSession);
             await repo.save(
                 repo.create({
-                    sessionId,
+                    session_id: sessionId,
                     userId,
                     jti,
                     createdAt: new Date(),
@@ -203,14 +203,14 @@ export class TokenService {
     private async getSession(sessionId: string): Promise<UserSession | null> {
         const repo = this.db.getRepository(UserSession);
         return repo.findOne({
-            where: { sessionId, isActive: true },
+            where: { session_id: sessionId, is_active: true },
         });
     }
 
     private async updateSessionActivity(sessionId: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ sessionId, isActive: true }, { lastActivity: new Date() });
+            await repo.update({ session_id: sessionId, is_active: true }, { last_activity: new Date() });
         } catch (error) {
             this.logger.APP.error(`Update session activity error: ${error}`);
         }
@@ -219,7 +219,7 @@ export class TokenService {
     private async revokeSession(sessionId: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ sessionId }, { isActive: false, revokedAt: new Date() });
+            await repo.update({ session_id: sessionId }, { is_active: false, logout_at: new Date() });
         } catch (error) {
             this.logger.APP.error(`Revoke session error: ${error}`);
         }
@@ -228,7 +228,7 @@ export class TokenService {
     private async revokeSessionByJti(jti: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ jti }, { isActive: false, revokedAt: new Date() });
+            await repo.update({ refresh_token: jti }, { is_active: false, logout_at: new Date() });
         } catch (error) {
             this.logger.APP.error(`Revoke session by jti error: ${error}`);
         }
@@ -273,7 +273,7 @@ export class TokenService {
                 const result = await sessionRepo
                     .createQueryBuilder()
                     .update()
-                    .set({ isActive: false, revokedAt: new Date() })
+                    .set({ is_active: false, logout_at: new Date() })
                     .where('lastActivity < :date AND isActive = true', { date: sessionExpiredDate })
                     .limit(batchSize)
                     .execute();
@@ -307,8 +307,8 @@ export class TokenService {
         const revokedTokenRepo = this.db.getRepository(RevokedToken);
 
         const [activeSessions, expiredSessions, revokedTokens] = await Promise.all([
-            sessionRepo.count({ where: { isActive: true } }),
-            sessionRepo.count({ where: { isActive: false } }),
+            sessionRepo.count({ where: { is_active: true } }),
+            sessionRepo.count({ where: { is_active: false } }),
             revokedTokenRepo.count(),
         ]);
 

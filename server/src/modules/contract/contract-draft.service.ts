@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable, Inject } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { Contract, ContractMode, ContractPriority, ContractStatus } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
+import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 interface ListQuery {
     search?: string;
@@ -15,16 +15,17 @@ interface ListQuery {
 @Injectable()
 export class ContractDraftService {
     constructor(
-        @InjectRepository(Contract)
-        private readonly contractRepo: Repository<Contract>,
-        @InjectRepository(ContractDraft)
-        private readonly draftRepo: Repository<ContractDraft>,
+        @Inject('LOGGER') private readonly logger: LoggerTypes,
+        @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
     async listDrafts(query: ListQuery, userId: number) {
+        const contractRepo = this.db.getRepository(Contract);
+        const draftRepo = this.db.getRepository(ContractDraft);
+
         const page = Number(query.page || 1);
         const limit = Math.min(Number(query.limit || 20), 100);
-        const qb = this.contractRepo
+        const qb = contractRepo
             .createQueryBuilder('c')
             .where('c.deleted_at IS NULL')
             .andWhere('c.status = :status', { status: ContractStatus.DRAFT })
@@ -49,7 +50,7 @@ export class ContractDraftService {
 
         const data = await Promise.all(
             rows.map(async (c) => {
-                const latestStage = await this.draftRepo.findOne({
+                const latestStage = await draftRepo.findOne({
                     where: { contract_id: c.id },
                     order: { created_at: 'DESC' as any },
                 });
@@ -70,9 +71,12 @@ export class ContractDraftService {
     }
 
     async getDraft(id: string) {
-        const c = await this.contractRepo.findOne({ where: { id } });
+        const contractRepo = this.db.getRepository(Contract);
+        const draftRepo = this.db.getRepository(ContractDraft);
+
+        const c = await contractRepo.findOne({ where: { id } });
         if (!c) return null;
-        const latestStage = await this.draftRepo.findOne({
+        const latestStage = await draftRepo.findOne({
             where: { contract_id: id },
             order: { created_at: 'DESC' as any },
         });
@@ -92,7 +96,10 @@ export class ContractDraftService {
         },
         userId: number,
     ) {
-        const contract = this.contractRepo.create({
+        const contractRepo = this.db.getRepository(Contract);
+        const draftRepo = this.db.getRepository(ContractDraft);
+
+        const contract = contractRepo.create({
             name: payload.name || 'Untitled Contract',
             contract_code: payload.contract_code,
             contract_type: payload.contract_type || 'custom',
@@ -102,93 +109,110 @@ export class ContractDraftService {
             template_id: payload.template_id,
             status: ContractStatus.DRAFT,
             is_draft: true,
-            auto_save_enabled: true,
             created_by: String(userId),
             updated_by: String(userId),
         });
-        const saved = await this.contractRepo.save(contract);
 
-        if (payload.initialData) {
-            const draft = this.draftRepo.create({
-                contract_id: saved.id,
-                stage: 'content_draft',
-                data: payload.initialData,
-                version: 1,
-                created_by: userId,
-            });
-            await this.draftRepo.save(draft);
-        }
+        const savedContract = await contractRepo.save(contract);
 
-        return this.getDraft(saved.id);
-    }
-
-    async updateDraft(id: string, updates: any, userId: number) {
-        // Update contract basic fields if present
-        const contract = await this.contractRepo.findOne({ where: { id } });
-        if (!contract) return null;
-
-        if (updates?.contractData?.name) {
-            contract.name = updates.contractData.name;
-        }
-        contract.updated_by = String(userId);
-        contract.last_auto_save = new Date();
-        await this.contractRepo.save(contract);
-
-        // Save stage payload if provided
-        const stage = updates?.flow?.currentStage || 'content_draft';
-        const data = updates?.contractData || updates;
-        if (data) {
-            await this.saveStage(id, stage, { data }, userId);
-        }
-        return this.getDraft(id);
-    }
-
-    async deleteDraft(id: string, userId: number) {
-        await this.contractRepo.update({ id }, { deleted_at: new Date(), deleted_by: String(userId) });
-        return { ok: true };
-    }
-
-    async saveStage(contractId: string, stage: string, payload: { data: any }, userId: number) {
-        const draft = this.draftRepo.create({
-            contract_id: contractId,
-            stage,
-            data: payload.data,
+        const draft = draftRepo.create({
+            contract_id: savedContract.id,
+            stage: 'draft',
+            data: payload.initialData || {},
             version: 1,
             created_by: userId,
         });
-        await this.draftRepo.save(draft);
-        await this.contractRepo.update({ id: contractId }, { last_auto_save: new Date(), updated_by: String(userId) });
-        return { ok: true };
+
+        await draftRepo.save(draft);
+
+        return this.toClientDraftShape(savedContract, draft);
     }
 
-    private toClientDraftShape(contract: Contract, latestStage?: ContractDraft | undefined) {
+    async updateDraft(
+        id: string,
+        payload: {
+            name?: string;
+            contract_code?: string;
+            contract_type?: string;
+            category?: string;
+            priority?: ContractPriority;
+            mode?: ContractMode;
+            template_id?: string;
+            data?: any;
+        },
+        userId: number,
+    ) {
+        const contractRepo = this.db.getRepository(Contract);
+        const draftRepo = this.db.getRepository(ContractDraft);
+
+        const contract = await contractRepo.findOne({ where: { id } });
+        if (!contract) {
+            throw new Error('Contract not found');
+        }
+
+        // Update contract
+        Object.assign(contract, payload, { updated_by: String(userId) });
+        const updatedContract = await contractRepo.save(contract);
+
+        // Create new draft version
+        const latestDraft = await draftRepo.findOne({
+            where: { contract_id: id },
+            order: { version: 'DESC' as any },
+        });
+
+        const newVersion = (latestDraft?.version || 0) + 1;
+        const draft = draftRepo.create({
+            contract_id: id,
+            stage: 'draft',
+            data: payload.data || latestDraft?.data || {},
+            version: newVersion,
+            created_by: userId,
+        });
+
+        await draftRepo.save(draft);
+
+        return this.toClientDraftShape(updatedContract, draft);
+    }
+
+    async deleteDraft(id: string, userId: number) {
+        const contractRepo = this.db.getRepository(Contract);
+        const draftRepo = this.db.getRepository(ContractDraft);
+
+        const contract = await contractRepo.findOne({ where: { id } });
+        if (!contract) {
+            throw new Error('Contract not found');
+        }
+
+        // Soft delete contract
+        contract.deleted_at = new Date();
+        contract.deleted_by = String(userId);
+        await contractRepo.save(contract);
+
+        // Delete all drafts
+        await draftRepo.delete({ contract_id: id });
+
+        return { success: true };
+    }
+
+    private toClientDraftShape(contract: Contract, draft?: ContractDraft) {
         return {
             id: contract.id,
-            isDraft: contract.is_draft,
-            contractData: {
-                name: contract.name,
-                contractCode: contract.contract_code,
-                contractType: (contract.contract_type as any) || 'custom',
-                category: (contract.category as any) || 'business',
-                priority: (contract.priority as any) || 'medium',
-                structure: (latestStage?.data?.structure as any) || undefined,
-                notes: contract.notes,
-                tags: contract.tags || [],
-                content: { mode: (contract.mode as any) || 'basic', templateId: contract.template_id },
-                createdAt: (contract as any).created_at || new Date().toISOString(),
-                updatedAt: (contract as any).updated_at || new Date().toISOString(),
-            },
-            flow: {
-                id: contract.id,
-                currentStage: contract.current_stage || 'template_selection',
-                selectedMode: (contract.mode as any) || 'basic',
-                selectedTemplate: contract.template_id ? { id: contract.template_id } : null,
-                stageValidations: {},
-                canProceedToNext: true,
-                autoSaveEnabled: contract.auto_save_enabled,
-                lastAutoSave: contract.last_auto_save,
-            },
-            createdBy: contract.created_by,
+            name: contract.name,
+            contract_code: contract.contract_code,
+            contract_type: contract.contract_type,
+            category: contract.category,
+            priority: contract.priority,
+            mode: contract.mode,
+            template_id: contract.template_id,
+            status: contract.status,
+            is_draft: contract.is_draft,
+            created_at: new Date(),
+            updated_at: new Date(),
+            created_by: contract.created_by,
+            updated_by: contract.updated_by,
+            current_stage: draft?.stage || 'draft',
+            current_data: draft?.data || {},
+            current_version: draft?.version || 1,
         };
     }
 }

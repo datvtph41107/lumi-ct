@@ -1,5 +1,5 @@
 import { Department } from '@/core/domain/department';
-import { UserPermission } from '@/core/domain/permission';
+import { Permission } from '@/core/domain/permission/permission.entity';
 import { User } from '@/core/domain/user';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
@@ -37,12 +37,11 @@ export class UserService {
         try {
             const userRepo = this.db.getRepository(User);
             const departmentRepo = this.db.getRepository(Department);
-            const permissionRepo = queryRunner.manager.getRepository(UserPermission);
+            const permissionRepo = queryRunner.manager.getRepository(Permission);
 
             if (creator.roles?.includes(Role.MANAGER)) {
                 if (req.department_id !== creator.department?.id) {
                     throw new ForbiddenException(ERROR_MESSAGES.AUTH.FORBIDDEN);
-                    // 'Manager can only create staff in their own department'
                 }
             }
 
@@ -117,11 +116,73 @@ export class UserService {
             const users = await userRepo.find({
                 where: { role: Role.STAFF, department_id: creator.department?.id },
             });
-            if (users) {
+            
+            if (!users || users.length === 0) {
                 throw new ConflictException('No staff of this department');
             }
+            
+            return users;
         } catch (error) {
             this.logger.APP.error('Get All Staff of depart error: ' + error);
+            throw error;
+        }
+    }
+
+    async getUserById(userId: number) {
+        try {
+            const userRepo = this.db.getRepository(User);
+            const user = await userRepo.findOne({
+                where: { id: userId },
+            });
+            
+            if (!user) {
+                throw new BadRequestException('User not found');
+            }
+            
+            return user;
+        } catch (error) {
+            this.logger.APP.error('Get user by ID error: ' + error);
+            throw error;
+        }
+    }
+
+    async updateUser(userId: number, updateData: Partial<User>) {
+        try {
+            const userRepo = this.db.getRepository(User);
+            const user = await userRepo.findOne({
+                where: { id: userId },
+            });
+            
+            if (!user) {
+                throw new BadRequestException('User not found');
+            }
+            
+            Object.assign(user, updateData);
+            const updatedUser = await userRepo.save(user);
+            
+            return updatedUser;
+        } catch (error) {
+            this.logger.APP.error('Update user error: ' + error);
+            throw error;
+        }
+    }
+
+    async deleteUser(userId: number) {
+        try {
+            const userRepo = this.db.getRepository(User);
+            const user = await userRepo.findOne({
+                where: { id: userId },
+            });
+            
+            if (!user) {
+                throw new BadRequestException('User not found');
+            }
+            
+            await userRepo.remove(user);
+            
+            return { message: 'User deleted successfully' };
+        } catch (error) {
+            this.logger.APP.error('Delete user error: ' + error);
             throw error;
         }
     }

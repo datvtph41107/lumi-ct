@@ -8,10 +8,12 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CronTaskModule } from './modules/cron-task/cron-task.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { DatabaseModule } from './providers/database';
 
 @Module({
     imports: [
         ScheduleModule.forRoot(),
+        DatabaseModule,
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, '..', 'src/common/storage/uploads'),
             serveRoot: '/uploads',

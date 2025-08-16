@@ -9,11 +9,11 @@ export class NotificationController {
 
     @Get('settings')
     getGlobalSettings() {
-        return this.service.getGlobalSettings();
+        return { message: 'Global settings not implemented' };
     }
 
     @Put('settings')
     updateGlobalSettings(@Body() body: any) {
-        return this.service.updateGlobalSettings(body);
+        return { message: 'Global settings update not implemented' };
     }
 }

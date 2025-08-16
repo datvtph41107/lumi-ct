@@ -1,5 +1,5 @@
 import { Injectable, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
@@ -112,10 +112,8 @@ export class AuditLogService {
             });
         }
 
-        // Get total count
         const total = await queryBuilder.getCount();
 
-        // Get paginated results
         const logs = await queryBuilder.orderBy('audit.created_at', 'DESC').skip(offset).take(limit).getMany();
 
         // Map to include user details (placeholder)
@@ -129,7 +127,7 @@ export class AuditLogService {
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
             user_email: log.user_id ? `user${log.user_id}@example.com` : undefined,
-            user_avatar: null,
+            user_avatar: undefined,
         }));
 
         return {
@@ -187,7 +185,7 @@ export class AuditLogService {
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
             user_email: log.user_id ? `user${log.user_id}@example.com` : undefined,
-            user_avatar: null,
+            user_avatar: undefined,
         }));
 
         return {
@@ -248,7 +246,7 @@ export class AuditLogService {
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
             user_email: log.user_id ? `user${log.user_id}@example.com` : undefined,
-            user_avatar: null,
+            user_avatar: undefined,
         }));
 
         return {
@@ -278,7 +276,7 @@ export class AuditLogService {
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
             user_email: log.user_id ? `user${log.user_id}@example.com` : undefined,
-            user_avatar: null,
+            user_avatar: undefined,
         };
     }
 
@@ -315,7 +313,7 @@ export class AuditLogService {
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
             user_email: log.user_id ? `user${log.user_id}@example.com` : undefined,
-            user_avatar: null,
+            user_avatar: undefined,
         }));
 
         const top_users = Object.entries(user_actions)

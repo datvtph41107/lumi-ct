@@ -39,17 +39,17 @@ export class ContractController {
     // ===== CONTRACT CRUD =====
     @Post()
     async create(@Body() body: CreateContractDto, @CurrentUser() user: HeaderUserPayload) {
-        return this.contractService.create(body, { userId: Number(user.sub) });
+        return this.contractService.createContract(body, Number(user.sub));
     }
 
     @Get()
     async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
-        return this.contractService.listContracts(query, Number(user.sub));
+        return this.contractService.getContracts(query, { page: 1, limit: 10 }, Number(user.sub));
     }
 
     @Get(':id')
-    async get(@Param('id') id: string) {
-        return this.contractService.getContract(id);
+    async get(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.getContractById(id, Number(user.sub));
     }
 
     @Patch(':id')

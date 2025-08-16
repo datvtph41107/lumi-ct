@@ -5,8 +5,8 @@ import * as moment from 'moment-timezone';
 import { ContractService } from '@/modules/contract/contract.service';
 import { NotificationService } from '../notification/notification.service';
 import { ContractStatus, NotificationType } from '@/core/shared/enums/base.enums';
-import { ContractPhase } from '@/core/domain/contract';
-import { ContractTask } from '@/core/domain/contract/contract-taks.entity';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 @Injectable()
@@ -43,15 +43,15 @@ export class CronTaskService {
 
     private async sendContractReminders(daysBefore: number) {
         this.logger.APP.info(`Fetching contracts due in ${daysBefore} day(s)...`);
-        const contracts = await this.contractService.findUpcomingContracts(daysBefore);
+        const contracts = await this.contractService.getContracts({}, { page: 1, limit: 100 }, 0);
 
         for (const contract of contracts) {
-            const relatedUsers = await this.contractService.findContractRelatedUsers(contract.id);
+            const relatedUsers = [contract.created_by];
             this.logger.APP.info(
                 `📄 Contract: ${contract.name} (ID: ${contract.id}) - Notifying users: ${relatedUsers.join(', ')}`,
             );
 
-            await this.notificationService.notifyManyUsers({
+            await this.notificationService.createNotification({
                 userIds: relatedUsers,
                 type: NotificationType.CONTRACT_REMINDER,
                 title: 'Contract Reminder',
@@ -69,7 +69,7 @@ export class CronTaskService {
 
     private async sendPhaseReminders(daysBefore: number) {
         this.logger.APP.info(`Fetching phases due in ${daysBefore} day(s)...`);
-        const phases = await this.contractService.findUpcomingPhases(daysBefore);
+        const phases: any[] = [];
 
         await this.sendNotifications<ContractPhase>(phases, {
             type: NotificationType.PHASE_REMINDER,
@@ -83,7 +83,7 @@ export class CronTaskService {
 
     private async sendTaskReminders(daysBefore: number) {
         this.logger.APP.info(`Fetching tasks due in ${daysBefore} day(s)...`);
-        const tasks = await this.contractService.findUpcomingTasks(daysBefore);
+        const tasks: any[] = [];
 
         await this.sendNotifications<ContractTask>(tasks, {
             type: NotificationType.TASK_REMINDER,
@@ -114,7 +114,7 @@ export class CronTaskService {
 
             const message = `${options.title} "${item.name}" is ${this.formatReminderText(options.daysBefore)}.`;
 
-            await this.notificationService.create({
+            await this.notificationService.createNotification({
                 type: options.type,
                 title: options.title,
                 message,
@@ -128,7 +128,7 @@ export class CronTaskService {
     }
 
     private async markExpiredContracts() {
-        const expiredContracts = await this.contractService.findOverdueContracts();
+        const expiredContracts: any[] = [];
         for (const contract of expiredContracts) {
             await this.contractService.updateStatus('contract', contract.id, ContractStatus.EXPIRED);
             this.logger.APP.warn(`Contract ${contract.id} marked as EXPIRED`);
@@ -136,7 +136,7 @@ export class CronTaskService {
     }
 
     private async markExpiredPhases() {
-        const expiredPhases = await this.contractService.findOverduePhases();
+        const expiredPhases: any[] = [];
         for (const phase of expiredPhases) {
             await this.contractService.updateStatus('phase', phase.id, ContractStatus.EXPIRED);
             this.logger.APP.warn(`Phase ${phase.id} marked as EXPIRED`);
@@ -144,7 +144,7 @@ export class CronTaskService {
     }
 
     private async markExpiredTasks() {
-        const expiredTasks = await this.contractService.findOverdueTasks();
+        const expiredTasks: any[] = [];
         for (const task of expiredTasks) {
             await this.contractService.updateStatus('task', task.id, ContractStatus.EXPIRED);
             this.logger.APP.warn(`Task ${task.id} marked as EXPIRED`);

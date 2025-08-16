@@ -1,28 +1,27 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User } from '../../core/domain/user/user.entity';
-import { UserSession } from '../../core/domain/auth/user-session.entity';
+import { UserSession } from '../../core/domain/user/user-session.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 @Injectable()
 export class AuthService {
     constructor(
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-        @InjectRepository(UserSession)
-        private readonly sessionRepository: Repository<UserSession>,
+        @Inject('LOGGER') private readonly logger: LoggerTypes,
+        @Inject('DATA_SOURCE') private readonly db: DataSource,
         private readonly jwtService: JwtService,
     ) {}
 
-    async validateUser(email: string, password: string): Promise<User> {
-        const user = await this.userRepository.findOne({ where: { email } });
+    async validateUser(username: string, password: string): Promise<User> {
+        const userRepo = this.db.getRepository(User);
+        const user = await userRepo.findOne({ where: { username } });
         if (user && (await bcrypt.compare(password, user.password))) {
             return user;
         }
@@ -30,17 +29,20 @@ export class AuthService {
     }
 
     async login(loginDto: LoginDto, ipAddress: string, userAgent: string): Promise<any> {
-        const { email, password, rememberMe = false } = loginDto;
+        const { username, password, rememberMe = false } = loginDto;
 
         // Validate user
-        const user = await this.validateUser(email, password);
+        const user = await this.validateUser(username, password);
         if (!user) {
-            throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+            throw new UnauthorizedException('Username hoặc mật khẩu không đúng');
         }
 
         if (!user.is_active) {
             throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
         }
+
+        const userRepo = this.db.getRepository(User);
+        const sessionRepo = this.db.getRepository(UserSession);
 
         // Generate session
         const sessionId = uuidv4();
@@ -53,7 +55,7 @@ export class AuthService {
         expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 30 : 7));
 
         // Create session
-        const session = this.sessionRepository.create({
+        const session = sessionRepo.create({
             user_id: user.id,
             session_id: sessionId,
             refresh_token: refreshToken,
@@ -65,21 +67,20 @@ export class AuthService {
             last_activity: new Date(),
         });
 
-        await this.sessionRepository.save(session);
+        await sessionRepo.save(session);
 
         // Update user last login
-        await this.userRepository.update(user.id, {
-            last_login_at: new Date(),
+        await userRepo.update(user.id, {
+            remember_token: refreshToken,
         });
 
         return {
             user: {
                 id: user.id,
-                email: user.email,
                 username: user.username,
-                full_name: user.full_name,
+                name: user.name,
                 role: user.role,
-                avatar: user.avatar,
+                department_id: user.department_id,
             },
             access_token: accessToken,
             refresh_token: refreshToken,
@@ -90,101 +91,105 @@ export class AuthService {
     }
 
     async register(registerDto: RegisterDto): Promise<any> {
-        const { email, username, password, full_name } = registerDto;
+        const { username, password, name } = registerDto;
+
+        const userRepo = this.db.getRepository(User);
 
         // Check if user exists
-        const existingUser = await this.userRepository.findOne({
-            where: [{ email }, { username }],
+        const existingUser = await userRepo.findOne({
+            where: { username },
         });
 
         if (existingUser) {
-            throw new BadRequestException('Email hoặc tên đăng nhập đã tồn tại');
+            throw new BadRequestException('Username đã tồn tại');
         }
 
         // Hash password
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create user
-        const user = this.userRepository.create({
-            email,
+        const user = userRepo.create({
             username,
             password: hashedPassword,
-            full_name,
-            role: 'user',
+            name,
+            role: 'staff',
             is_active: true,
         });
 
-        const savedUser = await this.userRepository.save(user);
+        const savedUser = await userRepo.save(user);
 
         return {
+            message: 'Đăng ký thành công',
             user: {
                 id: savedUser.id,
-                email: savedUser.email,
                 username: savedUser.username,
-                full_name: savedUser.full_name,
+                name: savedUser.name,
                 role: savedUser.role,
             },
-            message: 'Đăng ký thành công',
         };
     }
 
     async refreshToken(refreshTokenDto: RefreshTokenDto, ipAddress: string): Promise<any> {
-        const { refresh_token } = refreshTokenDto;
+        const { refresh_token, session_id } = refreshTokenDto;
 
-        // Find session by refresh token
-        const session = await this.sessionRepository.findOne({
-            where: { refresh_token, is_active: true },
-            relations: ['user'],
+        const sessionRepo = this.db.getRepository(UserSession);
+        const userRepo = this.db.getRepository(User);
+
+        // Find session
+        const session = await sessionRepo.findOne({
+            where: { session_id, refresh_token },
         });
 
-        if (!session) {
-            throw new UnauthorizedException('Refresh token không hợp lệ');
+        if (!session || !session.is_active || session.expires_at < new Date()) {
+            throw new UnauthorizedException('Invalid refresh token');
         }
 
-        if (session.expires_at < new Date()) {
-            await this.invalidateSession(session.id, 'expired');
-            throw new UnauthorizedException('Refresh token đã hết hạn');
-        }
+        // Get user
+        const user = await userRepo.findOne({
+            where: { id: session.user_id },
+        });
 
-        // Check if user is still active
-        if (!session.user.is_active) {
-            await this.invalidateSession(session.id, 'user_inactive');
-            throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
+        if (!user || !user.is_active) {
+            throw new UnauthorizedException('User not found or inactive');
         }
 
         // Generate new tokens
-        const newAccessToken = this.generateAccessToken(session.user, session.session_id);
+        const newAccessToken = this.generateAccessToken(user, session_id);
         const newRefreshToken = this.generateRefreshToken();
 
         // Update session
         session.refresh_token = newRefreshToken;
         session.access_token_hash = this.hashToken(newAccessToken);
         session.last_activity = new Date();
-        session.ip_address = ipAddress;
-
-        await this.sessionRepository.save(session);
+        await sessionRepo.save(session);
 
         return {
             access_token: newAccessToken,
             refresh_token: newRefreshToken,
-            expires_in: 15 * 60, // 15 minutes
-            user: {
-                id: session.user.id,
-                email: session.user.email,
-                username: session.user.username,
-                full_name: session.user.full_name,
-                role: session.user.role,
-                avatar: session.user.avatar,
-            },
+            expires_in: 15 * 60,
         };
     }
 
-    async logout(sessionId: string, reason: string = 'user_logout'): Promise<void> {
-        await this.invalidateSession(sessionId, reason);
+    async logout(sessionId: string, userId: number): Promise<any> {
+        const sessionRepo = this.db.getRepository(UserSession);
+
+        const session = await sessionRepo.findOne({
+            where: { session_id: sessionId, user_id: userId },
+        });
+
+        if (session) {
+            session.is_active = false;
+            session.logout_at = new Date();
+            session.logout_reason = 'user_logout';
+            await sessionRepo.save(session);
+        }
+
+        return { message: 'Đăng xuất thành công' };
     }
 
     async logoutAllSessions(userId: number, reason: string = 'user_logout_all'): Promise<void> {
-        await this.sessionRepository.update(
+        const sessionRepo = this.db.getRepository(UserSession);
+        await sessionRepo.update(
             { user_id: userId, is_active: true },
             {
                 is_active: false,
@@ -195,7 +200,10 @@ export class AuthService {
     }
 
     async validateSession(sessionId: string, accessToken: string): Promise<User> {
-        const session = await this.sessionRepository.findOne({
+        const sessionRepo = this.db.getRepository(UserSession);
+        const userRepo = this.db.getRepository(User);
+
+        const session = await sessionRepo.findOne({
             where: { session_id: sessionId, is_active: true },
             relations: ['user'],
         });
@@ -223,35 +231,39 @@ export class AuthService {
 
         // Update last activity
         session.last_activity = new Date();
-        await this.sessionRepository.save(session);
+        await sessionRepo.save(session);
 
         return session.user;
     }
 
     async updateActivity(sessionId: string): Promise<void> {
-        await this.sessionRepository.update({ session_id: sessionId }, { last_activity: new Date() });
+        const sessionRepo = this.db.getRepository(UserSession);
+        await sessionRepo.update({ session_id: sessionId }, { last_activity: new Date() });
     }
 
     async changePassword(userId: number, currentPassword: string, newPassword: string) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
+        const userRepo = this.db.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: userId } });
         if (!user) throw new UnauthorizedException('User not found');
         const ok = await bcrypt.compare(currentPassword, user.password);
         if (!ok) throw new UnauthorizedException('Current password incorrect');
         user.password = await bcrypt.hash(newPassword, 12);
-        await this.userRepository.save(user);
+        await userRepo.save(user);
         await this.logoutAllSessions(userId, 'password_changed');
         return { message: 'Password updated' };
     }
 
     async getActiveSessions(userId: number): Promise<UserSession[]> {
-        return this.sessionRepository.find({
+        const sessionRepo = this.db.getRepository(UserSession);
+        return sessionRepo.find({
             where: { user_id: userId, is_active: true },
             order: { last_activity: 'DESC' },
         });
     }
 
     async cleanupExpiredSessions(): Promise<void> {
-        await this.sessionRepository.update(
+        const sessionRepo = this.db.getRepository(UserSession);
+        await sessionRepo.update(
             {
                 is_active: true,
                 expires_at: new Date(),
@@ -267,12 +279,14 @@ export class AuthService {
     private generateAccessToken(user: User, sessionId: string): string {
         const payload = {
             sub: user.id,
-            email: user.email,
+            username: user.username,
             role: user.role,
             session_id: sessionId,
         };
 
-        return this.jwtService.sign(payload);
+        return this.jwtService.sign(payload, {
+            expiresIn: '15m',
+        });
     }
 
     private generateRefreshToken(): string {
@@ -285,21 +299,14 @@ export class AuthService {
 
     private extractDeviceInfo(userAgent: string): any {
         // Simple device info extraction
-        const isMobile = /Mobile|Android|iPhone|iPad/.test(userAgent);
-        const isTablet = /Tablet|iPad/.test(userAgent);
-        const browser = this.extractBrowser(userAgent);
-        const os = this.extractOS(userAgent);
-
         return {
-            is_mobile: isMobile,
-            is_tablet: isTablet,
-            browser,
-            os,
             user_agent: userAgent,
+            browser: this.getBrowserInfo(userAgent),
+            os: this.getOSInfo(userAgent),
         };
     }
 
-    private extractBrowser(userAgent: string): string {
+    private getBrowserInfo(userAgent: string): string {
         if (userAgent.includes('Chrome')) return 'Chrome';
         if (userAgent.includes('Firefox')) return 'Firefox';
         if (userAgent.includes('Safari')) return 'Safari';
@@ -307,7 +314,7 @@ export class AuthService {
         return 'Unknown';
     }
 
-    private extractOS(userAgent: string): string {
+    private getOSInfo(userAgent: string): string {
         if (userAgent.includes('Windows')) return 'Windows';
         if (userAgent.includes('Mac')) return 'macOS';
         if (userAgent.includes('Linux')) return 'Linux';
@@ -317,7 +324,8 @@ export class AuthService {
     }
 
     private async invalidateSession(sessionId: string, reason: string): Promise<void> {
-        await this.sessionRepository.update(
+        const sessionRepo = this.db.getRepository(UserSession);
+        await sessionRepo.update(
             { session_id: sessionId },
             {
                 is_active: false,
