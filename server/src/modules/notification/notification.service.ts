@@ -714,4 +714,26 @@ export class NotificationService {
         this.logger.APP.info('[WEBHOOK] posting', { url });
         await new Promise((r) => setTimeout(r, 25));
     }
+
+    // ===== GLOBAL SETTINGS (IN-MEMORY, CAN BE MOVED TO DB) =====
+    private globalSettings: any = {
+        enableEmailNotifications: true,
+        enableSMSNotifications: false,
+        enableInAppNotifications: true,
+        enablePushNotifications: true,
+        defaultRecipients: [],
+        workingHours: { start: '09:00', end: '17:00', timezone: 'Asia/Ho_Chi_Minh', workingDays: [1, 2, 3, 4, 5] },
+        quietHours: { enabled: false, start: '22:00', end: '08:00' },
+        escalationRules: { enabled: false, escalateAfter: { value: 24, unit: 'hours' }, escalateTo: [] },
+    };
+
+    getGlobalSettings() {
+        return this.globalSettings;
+    }
+
+    updateGlobalSettings(settings: any) {
+        this.globalSettings = { ...this.globalSettings, ...settings };
+        this.logger.APP.info('[Notifications] global settings updated');
+        return this.globalSettings;
+    }
 }

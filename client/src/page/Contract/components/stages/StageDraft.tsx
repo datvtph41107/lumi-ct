@@ -1,4 +1,4 @@
-daimport type React from "react";
+import type React from "react";
 import { useEffect } from "react";
 import styles from "./StageDraft.module.scss";
 import { useNavigate, useLocation } from "react-router-dom";
