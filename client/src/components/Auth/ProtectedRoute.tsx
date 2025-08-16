@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 import {
     selectIsAuthenticated,
@@ -14,6 +14,7 @@ import {
     selectIsPermissionsLoaded,
 } from '~/redux/slices/auth.slice';
 import LoadingSpinner from '../LoadingSpinner';
+import { useAppDispatch } from '~/redux/hooks';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -22,7 +23,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole = [], fallbackPath = '/login' }) => {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const location = useLocation();
 
     const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -38,15 +39,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                await dispatch(getCurrentUser()).unwrap();
+                await dispatch(getCurrentUser(undefined)).unwrap();
                 if (!isPermissionsLoaded) {
-                    await dispatch(getUserPermissions()).unwrap();
+                    await dispatch(getUserPermissions(undefined)).unwrap();
                 }
             } catch (error) {
                 try {
-                    await dispatch(refreshToken()).unwrap();
+                    await dispatch(refreshToken(undefined)).unwrap();
                     if (!isPermissionsLoaded) {
-                        await dispatch(getUserPermissions()).unwrap();
+                        await dispatch(getUserPermissions(undefined)).unwrap();
                     }
                 } catch (refreshError) {
                     // No-op; Navigate will handle redirect
@@ -60,7 +61,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
             initializeAuth();
         } else {
             if (isAuthenticated && !isPermissionsLoaded) {
-                dispatch(getUserPermissions());
+                dispatch(getUserPermissions(undefined));
             }
             setIsInitializing(false);
         }

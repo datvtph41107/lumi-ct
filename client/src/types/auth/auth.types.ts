@@ -31,21 +31,18 @@ export interface LoginRequest {
     is_manager_login?: boolean;
 }
 
+export type LoginCredentials = LoginRequest;
+export interface RegisterData {
+    username: string;
+    password: string;
+    email?: string;
+}
+
 export interface LoginResponse {
     user: User;
     accessToken: string;
     tokenExpiry: number;
 }
-
-// export interface AuthState {
-//     user: User | null;
-//     token: string | null;
-//     isAuthenticated: boolean;
-//     isLoading: boolean;
-//     error: string | null;
-//     lastActivity: number | null;
-//     tokenExpiry: number | null;
-// }
 
 // Role constants - sử dụng string để match với backend
 export const ROLE = {

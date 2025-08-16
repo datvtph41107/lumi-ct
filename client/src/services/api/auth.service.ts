@@ -1,6 +1,7 @@
 import { BaseService } from './base.service';
 import type { LoginRequest, LoginResponse, User, RefreshTokenResponse } from '~/types/auth/auth.types';
 import type { ApiResponse } from '~/core/types/api.types';
+import type { UserPermissions } from '~/types/auth/permissions.types';
 
 export class AuthService extends BaseService {
     constructor() {
@@ -29,6 +30,10 @@ export class AuthService extends BaseService {
 
     async updateActivity(): Promise<ApiResponse<void>> {
         return this.request.private.post<void>('auth/update-activity');
+    }
+
+    async getUserPermissions(): Promise<ApiResponse<UserPermissions>> {
+        return this.request.private.get<UserPermissions>('auth/permissions');
     }
 }
 
