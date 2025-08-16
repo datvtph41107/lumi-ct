@@ -17,6 +17,9 @@ export class User extends BaseEntity {
     @Column()
     username: string;
 
+    @Column({ nullable: true })
+    email?: string; // only for notifications, not for login
+
     @Column()
     password: string;
 
