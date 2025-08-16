@@ -23,6 +23,7 @@ import ContractCollection from '~/page/Contract/ContractCollection';
 
 // New admin pages (placeholders)
 import SystemNotifications from '~/page/admin/SystemNotifications';
+import SystemNotificationsQueue from '~/page/admin/SystemNotifications/index';
 import UserManagement from '~/page/admin/UserManagement';
 import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
 
@@ -109,6 +110,18 @@ export const privateRoutes: PrivateRoute[] = [
             requireAll: false,
         },
     },
+
+    // System Notifications Queue - Admin only
+    {
+        path: '/admin/notifications/queue',
+        component: SystemNotificationsQueue,
+        layout: AdminLayout,
+        access: {
+            roles: [ROLE.ADMIN],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
+        },
+    }
 
     // Roles/Permissions Management - Admin only
     {
