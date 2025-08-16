@@ -31,6 +31,11 @@ interface GlobalNotificationSettingsProps {
 const NotificationSettings: React.FC<GlobalNotificationSettingsProps> = ({ settings, onSettingsChange }) => {
     const [localSettings, setLocalSettings] = useState(settings);
 
+    // Keep local state in sync when parent updates settings (e.g., after load)
+    React.useEffect(() => {
+        setLocalSettings(settings);
+    }, [settings]);
+
     const timezoneOptions = [
         { value: "Asia/Ho_Chi_Minh", label: "Việt Nam (UTC+7)" },
         { value: "Asia/Bangkok", label: "Bangkok (UTC+7)" },

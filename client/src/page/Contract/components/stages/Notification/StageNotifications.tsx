@@ -12,6 +12,7 @@ import type {
     GlobalNotificationSettings as GlobalSettings,
 } from '~/types/notifications.types';
 import { useContractStore } from '~/store/contract-store';
+import { notificationSettingsService } from '~/services/api/notification-settings.service';
 
 const cx = classNames.bind(styles);
 
@@ -27,11 +28,12 @@ const defaultGlobal: GlobalSettings = {
 };
 
 const StageNotifications: React.FC = () => {
-    const { currentStep, goToStep } = useContractStore();
+    const { currentStep, goToStep, currentContract } = useContractStore();
     const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(defaultGlobal);
     const [contractRules, setContractRules] = useState<ContractNotificationRule[]>([]);
     const [milestoneRules, setMilestoneRules] = useState<MilestoneNotificationRule[]>([]);
     const [taskRules, setTaskRules] = useState<TaskNotificationRule[]>([]);
+    const [saving, setSaving] = useState(false);
 
     const availableContractEvents = [
         { value: 'start', label: 'Bắt đầu hợp đồng' },
@@ -52,6 +54,57 @@ const StageNotifications: React.FC = () => {
         { value: 'completed', label: 'Hoàn thành' },
         { value: 'assigned', label: 'Được giao' },
     ];
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            // Save global settings (best-effort)
+            await notificationSettingsService.updateSettings(globalSettings);
+
+            // If contract is available, create notifications/reminders based on rules (best-effort/mocked payload)
+            const contractId = (currentContract as any)?.id;
+            if (contractId) {
+                for (const r of contractRules) {
+                    await notificationSettingsService.createContractNotification(contractId, {
+                        type: 'contract_rule',
+                        channel: (r.types || ['email'])[0],
+                        title: r.name,
+                        message: r.customMessage || 'Contract event notification',
+                        scheduled_at: null,
+                        metadata: { trigger: r.trigger, timing: r.timing, frequency: r.frequency, events: r.events },
+                    });
+                }
+                for (const r of milestoneRules) {
+                    await notificationSettingsService.createContractReminder(contractId, {
+                        type: 'milestone',
+                        title: r.name,
+                        message: r.customMessage || 'Milestone reminder',
+                        trigger_date: new Date(),
+                        frequency: r.frequency || 'once',
+                        notification_channels: r.types,
+                        recipients: [],
+                        metadata: { events: r.events, timing: r.timing },
+                    });
+                }
+                for (const r of taskRules) {
+                    await notificationSettingsService.createContractReminder(contractId, {
+                        type: 'task',
+                        title: r.name,
+                        message: r.customMessage || 'Task reminder',
+                        trigger_date: new Date(),
+                        frequency: r.frequency || 'once',
+                        notification_channels: r.types,
+                        recipients: [],
+                        metadata: { events: r.events, timing: r.timing },
+                    });
+                }
+            }
+
+            goToStep(currentStep + 1);
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className={cx('container')}>
@@ -120,8 +173,8 @@ const StageNotifications: React.FC = () => {
                         <Button outline onClick={() => goToStep(Math.max(1, currentStep - 1))}>
                             Quay lại
                         </Button>
-                        <Button primary onClick={() => goToStep(currentStep + 1)}>
-                            Lưu và xem trước
+                        <Button primary onClick={handleSave}>
+                            {saving ? 'Đang lưu...' : 'Lưu và xem trước'}
                         </Button>
                     </div>
                 </div>

@@ -1,9 +1,9 @@
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { Body, Controller, Get, Inject, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
-import { UpdateManagerRequest } from '@/core/dto/manager/update-manager.request';
+import { AuthCoreService } from '../auth/auth/auth-core.service';
 
 @Controller('admin')
 @UseGuards(AuthGuardAccess)
@@ -11,8 +11,10 @@ export class AdminController {
     constructor(
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         private readonly adminService: AdminService,
+        private readonly authCore: AuthCoreService,
     ) {}
 
+    // ==== Departments (existing) ====
     @Get('departments')
     async getAllDepartments() {
         const result = await this.adminService.getAllDepartments();
@@ -27,7 +29,7 @@ export class AdminController {
     }
 
     @Put('departments/:id')
-    async updateManagerDepartment(@Param('id', ParseIntPipe) idDepartment: number, @Body() req: UpdateManagerRequest) {
+    async updateManagerDepartment(@Param('id') idDepartment: number, @Body() req: any) {
         this.logger.APP.info('Parameters: ', idDepartment);
         const result = await this.adminService.updateManagerDepartment(idDepartment, req.id_manager);
         return result;
@@ -36,65 +38,95 @@ export class AdminController {
     @Post('departments/manager')
     async createManagerUser(@Body() req: CreateUserRequest) {
         this.logger.APP.info('Create department Req -> data: ' + JSON.stringify(req));
-
         const result = await this.adminService.createManagerUser(req);
         return result;
     }
 
-    // @Patch('departments/:id')
-    // updateDepartment(@Param('id') id: string, @Body() dto: UpdateDepartmentDto) {
-    //     return `Cập nhật phòng ban ${id}`;
-    // }
+    // ==== Users management ====
+    @Get('users')
+    async listUsers(@Query() query: any) {
+        // TODO: replace with real repo query (search/role/departmentId)
+        return { data: [], total: 0 };
+    }
 
-    // @Delete('departments/:id')
-    // deleteDepartment(@Param('id') id: string) {
-    //     return `Xóa phòng ban ${id}`;
-    // }
+    @Post('users')
+    async createUser(@Body() body: any) {
+        // TODO: implement real create
+        return { id: Date.now(), ...body };
+    }
 
-    // // ------------------ Department Users ------------------
-    // @Post('departments/:id/users')
-    // addUserToDepartment(@Param('id') deptId: string, @Body() dto: CreateUserDto) {
-    //     return `Thêm người dùng vào phòng ban ${deptId}`;
-    // }
+    @Put('users/:id')
+    async updateUser(@Param('id') id: string, @Body() body: any) {
+        // TODO: implement real update
+        return { id, ...body };
+    }
 
-    // @Get('departments/:id/users')
-    // getUsersInDepartment(@Param('id') deptId: string) {
-    //     return `Danh sách người dùng trong phòng ban ${deptId}`;
-    // }
+    @Delete('users/:id')
+    async deactivateUser(@Param('id') id: string) {
+        // TODO: implement deactivate
+        return { success: true };
+    }
 
-    // @Get('departments/:deptId/users/:uid')
-    // getUserDetail(@Param('deptId') deptId: string, @Param('uid') uid: string) {
-    //     return `Thông tin người dùng ${uid} trong phòng ban ${deptId}`;
-    // }
+    @Get('users/:id/roles')
+    async getUserRoles(@Param('id') id: string) {
+        const roles = await this.authCore.getUserRoles(Number(id));
+        return { roles: roles.map((r) => r.role?.name || '') };
+    }
 
-    // @Patch('departments/:deptId/users/:uid')
-    // updateUser(@Param('deptId') deptId: string, @Param('uid') uid: string, @Body() dto: UpdateUserDto) {
-    //     return `Cập nhật người dùng ${uid} trong phòng ban ${deptId}`;
-    // }
+    @Post('users/:id/roles')
+    async assignUserRoles(@Param('id') id: string, @Body() body: { roles: Array<{ roleId: string; scope?: string; scopeId?: number }> }) {
+        await this.authCore.updateUserRoles(Number(id), body.roles || []);
+        return { success: true };
+    }
 
-    // @Delete('departments/:deptId/users/:uid')
-    // deleteUser(@Param('deptId') deptId: string, @Param('uid') uid: string) {
-    //     return `Xóa người dùng ${uid} khỏi phòng ban ${deptId}`;
-    // }
+    @Get('users/:id/permissions')
+    async getEffectivePermissions(@Param('id') id: string) {
+        const perms = await this.authCore.getUserPermissions(Number(id));
+        return { permissions: (perms?.permissions || []).map((p) => ({ resource: p.resource, action: p.action, conditions: p.conditions_schema })) };
+    }
 
-    // // ------------------ Permissions ------------------
-    // @Post('users/:id/permissions')
-    // assignPermissions(@Param('id') userId: string, @Body() dto: AssignPermissionsDto) {
-    //     return `Cấp quyền cho người dùng ${userId}`;
-    // }
+    // ==== Roles & permissions ====
+    @Get('roles')
+    async listRoles() {
+        // TODO: fetch from role repo; simplified response
+        return { data: [], total: 0 };
+    }
 
-    // @Get('users/:id/permissions')
-    // getPermissions(@Param('id') userId: string) {
-    //     return `Danh sách quyền của người dùng ${userId}`;
-    // }
+    @Post('roles')
+    async createRole(@Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>) {
+        // TODO: implement real create
+        return { id: body.name || `role-${Date.now()}`, ...body };
+    }
 
-    // @Patch('users/:id/permissions')
-    // updatePermissions(@Param('id') userId: string, @Body() dto: AssignPermissionsDto) {
-    //     return `Cập nhật quyền của người dùng ${userId}`;
-    // }
+    @Put('roles/:id')
+    async updateRole(@Param('id') id: string, @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>) {
+        // TODO: implement real update
+        return { id, ...body };
+    }
 
-    // @Delete('users/:id/permissions/:permId')
-    // revokePermission(@Param('id') userId: string, @Param('permId') permId: string) {
-    //     return `Thu hồi quyền ${permId} của người dùng ${userId}`;
-    // }
+    @Delete('roles/:id')
+    async deleteRole(@Param('id') id: string) {
+        // TODO: implement real delete
+        return { success: true };
+    }
+
+    @Get('roles/:id/permissions')
+    async getRolePermissions(@Param('id') id: string) {
+        // TODO: fetch role->permissions mapping
+        return { permissions: [] };
+    }
+
+    @Put('roles/:id/permissions')
+    async setRolePermissions(@Param('id') id: string, @Body() body: { permissions: Array<{ resource: string; action: string; conditions?: any }> }) {
+        // TODO: assign permissions to role
+        return { success: true };
+    }
+
+    @Get('permissions/catalog')
+    async getPermissionCatalog() {
+        return {
+            resources: ['contract', 'template', 'dashboard', 'audit', 'user', 'notification'],
+            actions: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'export', 'manage', 'analytics', 'view'],
+        };
+    }
 }
