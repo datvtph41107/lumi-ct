@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { BaseEntity } from '../base.entity';
-import { Permission } from './permission.entity';
 
 @Entity('roles')
 @Index(['name'], { unique: true })
@@ -25,8 +24,4 @@ export class Role extends BaseEntity {
 
     @Column({ type: 'int', default: 1 })
     priority: number;
-
-    @ManyToMany(() => Permission, { cascade: true })
-    @JoinTable({ name: 'role_permissions' })
-    permissions: Permission[];
 }

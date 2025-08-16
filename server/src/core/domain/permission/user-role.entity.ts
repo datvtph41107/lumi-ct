@@ -1,7 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, Index, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { BaseEntity } from '../base.entity';
-import { Role } from './role.entity';
-import { User } from '../user/user.entity';
 
 @Entity('user_roles')
 @Index(['user_id'])
@@ -31,12 +29,4 @@ export class UserRole extends BaseEntity {
 
     @Column({ type: 'boolean', default: true })
     is_active: boolean;
-
-    @ManyToOne(() => Role, { eager: true })
-    @JoinColumn({ name: 'role_id' })
-    role: Role;
-
-    @ManyToOne(() => User)
-    @JoinColumn({ name: 'user_id' })
-    user: User;
 }
