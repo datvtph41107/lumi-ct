@@ -144,16 +144,6 @@ export class ContractService {
     async getContract(id: number, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({
             where: { id },
-            relations: [
-                'template',
-                'current_content',
-                'current_version',
-                'milestones',
-                'tasks',
-                'files',
-                'collaborators',
-                'collaborators.user',
-            ],
         });
 
         if (!contract) {
@@ -177,7 +167,6 @@ export class ContractService {
     async updateContract(id: number, updateDto: UpdateContractDto, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({
             where: { id },
-            relations: ['current_content', 'current_version'],
         });
 
         if (!contract) {
@@ -524,7 +513,6 @@ export class ContractService {
     async updateMilestone(milestoneId: number, updateData: any, userId: number): Promise<Milestone> {
         const milestone = await this.milestoneRepository.findOne({
             where: { id: milestoneId },
-            relations: ['contract'],
         });
 
         if (!milestone) {
@@ -557,7 +545,6 @@ export class ContractService {
     async deleteMilestone(milestoneId: number, userId: number): Promise<void> {
         const milestone = await this.milestoneRepository.findOne({
             where: { id: milestoneId },
-            relations: ['contract'],
         });
 
         if (!milestone) {
@@ -658,7 +645,6 @@ export class ContractService {
     async deleteFile(fileId: number, userId: number): Promise<void> {
         const file = await this.fileRepository.findOne({
             where: { id: fileId },
-            relations: ['contract'],
         });
 
         if (!file) {
