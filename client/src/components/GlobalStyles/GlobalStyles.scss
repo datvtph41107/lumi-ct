@@ -45,7 +45,7 @@
 html {
     font-size: 62.5%;
     overflow-x: hidden;
-    font-family: "Inter", sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 
 body {
@@ -108,18 +108,15 @@ html *::-webkit-scrollbar-track {
         padding-bottom: 1rem;
     }
 
-    .layout,
+    /* Keep layout and main visible; hide chrome around the editor */
     .layout-head,
-    .main,
     .sidebar-left,
     .sidebar-right,
-    .page-wrapper,
     .page-tag,
     .page-control,
     .print-button,
     .print-area,
     .toolbar {
-        overflow: hidden;
         display: none !important;
     }
 }
@@ -179,7 +176,7 @@ html *::-webkit-scrollbar-track {
     }
 
     /* Task list specific styles */
-    ul[data-type="taskList"] {
+    ul[data-type='taskList'] {
         list-style: none;
         margin-left: 0;
         padding: 0;
@@ -199,11 +196,11 @@ html *::-webkit-scrollbar-track {
             }
         }
 
-        input[type="checkbox"] {
+        input[type='checkbox'] {
             cursor: pointer;
         }
 
-        ul[data-types="taskList"] {
+        ul[data-types='taskList'] {
             margin: 0;
         }
     }
@@ -238,7 +235,7 @@ html *::-webkit-scrollbar-track {
 
         .selectedCell:after {
             background: var(--gray-2);
-            content: "";
+            content: '';
             left: 0;
             right: 0;
             top: 0;

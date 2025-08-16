@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { selectIsPermissionsLoaded } from '~/redux/slices/auth.slice';
 import { authCoreService } from './AuthCoreSerivce';
 import LoadingSpinner from '~/components/LoadingSpinner';
 
@@ -26,12 +24,11 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
     showFallback = false,
     loadingFallback,
 }) => {
-    const isPermissionsLoaded = useSelector(selectIsPermissionsLoaded);
-    const [isLoading, setIsLoading] = useState(!isPermissionsLoaded);
+    const [isLoading, setIsLoading] = useState(!authCoreService.isPermissionsLoaded());
 
     useEffect(() => {
         const loadPermissions = async () => {
-            if (!isPermissionsLoaded) {
+            if (!authCoreService.isPermissionsLoaded()) {
                 setIsLoading(true);
                 try {
                     await authCoreService.loadUserPermissions();
@@ -43,7 +40,7 @@ const PermissionGuard: React.FC<PermissionGuardProps> = ({
             }
         };
         loadPermissions();
-    }, [isPermissionsLoaded]);
+    }, []);
 
     if (isLoading) {
         return <>{loadingFallback ?? defaultSpinner}</>;

@@ -1,237 +1,166 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-    updateLastActivity,
-    setIdleWarningShown,
-    logout,
-    selectLastActivity,
-    selectIdleTimeout,
-    selectIsIdleWarningShown,
-    selectIsAuthenticated,
-} from '~/redux/slices/auth.slice';
+import { updateLastActivity, logout } from '~/redux/slices/auth.slice';
+import { useAppDispatch, useAppSelector } from '~/redux/hooks';
+import { SessionManager } from '~/core/http/settings/SessionManager';
 
 interface UseIdleTimeoutOptions {
-    warningTime?: number; // Time before showing warning (default: 10 minutes)
-    logoutTime?: number; // Time before auto logout (default: 15 minutes)
     onWarning?: () => void;
     onLogout?: () => void;
 }
 
-export const useIdleTimeout = (options: UseIdleTimeoutOptions = {}) => {
-    const dispatch = useDispatch();
+export const useInactiveTimeout = (options: UseIdleTimeoutOptions = {}) => {
+    const dispatch = useAppDispatch();
     const navigate = useNavigate();
 
-    const lastActivity = useSelector(selectLastActivity);
-    const idleTimeout = useSelector(selectIdleTimeout);
-    const isIdleWarningShown = useSelector(selectIsIdleWarningShown);
-    const isAuthenticated = useSelector(selectIsAuthenticated);
+    const { isAuthenticated } = useAppSelector((state) => state.auth);
 
-    const warningTime = options.warningTime || 10 * 60 * 1000; // 10 minutes
-    const logoutTime = options.logoutTime || 15 * 60 * 1000; // 15 minutes
+    const [isWarningVisible, setIsWarningVisible] = useState(false);
+    const [timeUntilLogout, setTimeUntilLogout] = useState<number>(0);
 
-    const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const logoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const activityCheckRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const warningDeadlineRef = useRef<number | null>(null);
+    const hasLoggedOutRef = useRef<boolean>(false);
 
-    // Update activity on user interaction
-    const updateActivity = useCallback(() => {
-        if (isAuthenticated) {
-            dispatch(updateLastActivity());
+    const clearCountdown = useCallback(() => {
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
         }
-    }, [dispatch, isAuthenticated]);
+        warningDeadlineRef.current = null;
+        setTimeUntilLogout(0);
+    }, []);
 
-    // Show idle warning
-    const showIdleWarning = useCallback(() => {
-        if (!isIdleWarningShown && isAuthenticated) {
-            dispatch(setIdleWarningShown(true));
-            options.onWarning?.();
+    const startCountdown = useCallback(
+        (initialRemainingMs: number) => {
+            warningDeadlineRef.current = Date.now() + initialRemainingMs;
+            setTimeUntilLogout(initialRemainingMs);
 
-            // Show browser notification if supported
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('Phiên đăng nhập sắp hết hạn', {
-                    body: 'Bạn sẽ bị đăng xuất trong 5 phút nữa nếu không hoạt động.',
-                    icon: '/favicon.ico',
-                    tag: 'idle-warning',
-                });
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
             }
-        }
-    }, [dispatch, isIdleWarningShown, isAuthenticated, options]);
+            countdownIntervalRef.current = setInterval(() => {
+                const deadline = warningDeadlineRef.current ?? Date.now();
+                const remaining = Math.max(0, deadline - Date.now());
+                setTimeUntilLogout(remaining);
+                if (remaining <= 0) {
+                    clearCountdown();
+                    // Fallback in case the SessionManager event is missed
+                    void performLogout('idle');
+                }
+            }, 1000);
+        },
+        [clearCountdown],
+    );
 
-    // Auto logout
-    const performLogout = useCallback(async () => {
-        if (isAuthenticated) {
+    const continueSession = useCallback(() => {
+        SessionManager.getInstance().extendSession();
+        setIsWarningVisible(false);
+        clearCountdown();
+        dispatch(updateLastActivity());
+        if ('Notification' in window && Notification.permission === 'default') {
+            try {
+                void Notification.requestPermission();
+            } catch {}
+        }
+    }, [dispatch, clearCountdown]);
+
+    const performLogout = useCallback(
+        async (reason: 'idle' | 'manual' | 'broadcast' | 'api-timeout' | 'browser-timeout' = 'manual') => {
+            if (hasLoggedOutRef.current) return;
+            hasLoggedOutRef.current = true;
+            setIsWarningVisible(false);
+            clearCountdown();
+
             try {
                 await dispatch(logout()).unwrap();
+            } catch {
+                // ignore and continue navigation
+            } finally {
                 options.onLogout?.();
+                try {
+                    SessionManager.getInstance().clearSession();
+                } catch {}
                 navigate('/login', {
+                    replace: true,
                     state: {
-                        message: 'Phiên đăng nhập đã hết hạn do không hoạt động',
-                        from: window.location.pathname,
+                        message:
+                            reason === 'idle' || reason === 'api-timeout' || reason === 'browser-timeout'
+                                ? 'Phiên đăng nhập đã hết hạn do không hoạt động'
+                                : undefined,
                     },
                 });
-            } catch (error) {
-                console.error('Auto logout failed:', error);
-                // Force clear auth state even if API fails
-                dispatch(logout());
-                navigate('/login');
             }
-        }
-    }, [dispatch, isAuthenticated, navigate, options]);
+        },
+        [dispatch, navigate, options, clearCountdown],
+    );
 
-    // Reset timeouts
-    const resetTimeouts = useCallback(() => {
-        // Clear existing timeouts
-        if (warningTimeoutRef.current) {
-            clearTimeout(warningTimeoutRef.current);
-        }
-        if (logoutTimeoutRef.current) {
-            clearTimeout(logoutTimeoutRef.current);
-        }
+    const logoutNow = useCallback(() => {
+        try {
+            SessionManager.getInstance().broadcastLogout('manual');
+        } catch {}
+        void performLogout('manual');
+    }, [performLogout]);
 
-        if (isAuthenticated) {
-            const timeSinceLastActivity = Date.now() - lastActivity;
-            const remainingWarningTime = Math.max(0, warningTime - timeSinceLastActivity);
-            const remainingLogoutTime = Math.max(0, logoutTime - timeSinceLastActivity);
-
-            // Set warning timeout
-            if (remainingWarningTime > 0) {
-                warningTimeoutRef.current = setTimeout(showIdleWarning, remainingWarningTime);
-            } else if (!isIdleWarningShown) {
-                // Show warning immediately if already past warning time
-                showIdleWarning();
-            }
-
-            // Set logout timeout
-            if (remainingLogoutTime > 0) {
-                logoutTimeoutRef.current = setTimeout(performLogout, remainingLogoutTime);
-            } else {
-                // Logout immediately if already past logout time
-                performLogout();
-            }
-        }
-    }, [isAuthenticated, lastActivity, warningTime, logoutTime, isIdleWarningShown, showIdleWarning, performLogout]);
-
-    // Activity check interval
-    const startActivityCheck = useCallback(() => {
-        if (activityCheckRef.current) {
-            clearInterval(activityCheckRef.current);
-        }
-
-        if (isAuthenticated) {
-            // Check activity every 30 seconds
-            activityCheckRef.current = setInterval(() => {
-                const timeSinceLastActivity = Date.now() - lastActivity;
-
-                if (timeSinceLastActivity >= logoutTime) {
-                    performLogout();
-                } else if (timeSinceLastActivity >= warningTime && !isIdleWarningShown) {
-                    showIdleWarning();
-                }
-            }, 30000); // 30 seconds
-        }
-    }, [isAuthenticated, lastActivity, warningTime, logoutTime, isIdleWarningShown, showIdleWarning, performLogout]);
-
-    // Event listeners for user activity
     useEffect(() => {
         if (!isAuthenticated) {
+            setIsWarningVisible(false);
+            clearCountdown();
+            hasLoggedOutRef.current = false;
             return;
         }
 
-        const events = [
-            'mousedown',
-            'mousemove',
-            'keypress',
-            'scroll',
-            'touchstart',
-            'click',
-            'focus',
-            'visibilitychange',
-        ];
-
-        const handleActivity = () => {
-            updateActivity();
-            resetTimeouts();
-        };
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                // User returned to the page
-                updateActivity();
-                resetTimeouts();
-            } else {
-                // User left the page - start logout timer
-                if (logoutTimeoutRef.current) {
-                    clearTimeout(logoutTimeoutRef.current);
-                }
-                logoutTimeoutRef.current = setTimeout(performLogout, 5 * 60 * 1000); // 5 minutes when page is hidden
+        const handleIdleWarning = (ev: Event) => {
+            const event = ev as CustomEvent<{
+                message: string;
+                timeoutType: 'api' | 'browser';
+                remainingTime: number;
+            }>;
+            setIsWarningVisible(true);
+            startCountdown(event.detail?.remainingTime ?? 5 * 60 * 1000);
+            options.onWarning?.();
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    new Notification('Phiên đăng nhập sắp hết hạn', {
+                        body: 'Bạn sẽ bị đăng xuất trong ít phút nếu không hoạt động.',
+                        tag: 'idle-warning',
+                    });
+                } catch {}
             }
         };
 
-        // Add event listeners
-        events.forEach((event) => {
-            if (event === 'visibilitychange') {
-                document.addEventListener(event, handleVisibilityChange);
-            } else {
-                document.addEventListener(event, handleActivity, true);
-            }
-        });
+        const handleIdleWarningCleared = () => {
+            setIsWarningVisible(false);
+            clearCountdown();
+        };
 
-        // Start activity check
-        startActivityCheck();
+        const handleIdleTimeout = () => {
+            void performLogout('idle');
+        };
 
-        // Initial timeout setup
-        resetTimeouts();
+        const handleBroadcastLogout = (ev: Event) => {
+            const event = ev as CustomEvent<{ reason: 'manual' | 'idle' | 'api-timeout' | 'browser-timeout' }>;
+            const reason = event.detail?.reason ?? 'manual';
+            void performLogout(reason);
+        };
 
-        // Cleanup
+        window.addEventListener('auth:idle-warning', handleIdleWarning as EventListener);
+        window.addEventListener('auth:idle-warning-cleared', handleIdleWarningCleared as EventListener);
+        window.addEventListener('auth:idle-timeout', handleIdleTimeout as EventListener);
+        window.addEventListener('auth:logout', handleBroadcastLogout as EventListener);
+
         return () => {
-            events.forEach((event) => {
-                if (event === 'visibilitychange') {
-                    document.removeEventListener(event, handleVisibilityChange);
-                } else {
-                    document.removeEventListener(event, handleActivity, true);
-                }
-            });
-
-            if (activityCheckRef.current) {
-                clearInterval(activityCheckRef.current);
-            }
-            if (warningTimeoutRef.current) {
-                clearTimeout(warningTimeoutRef.current);
-            }
-            if (logoutTimeoutRef.current) {
-                clearTimeout(logoutTimeoutRef.current);
-            }
+            window.removeEventListener('auth:idle-warning', handleIdleWarning as EventListener);
+            window.removeEventListener('auth:idle-warning-cleared', handleIdleWarningCleared as EventListener);
+            window.removeEventListener('auth:idle-timeout', handleIdleTimeout as EventListener);
+            window.removeEventListener('auth:logout', handleBroadcastLogout as EventListener);
         };
-    }, [isAuthenticated, updateActivity, resetTimeouts, startActivityCheck, performLogout]);
+    }, [isAuthenticated, startCountdown, clearCountdown, performLogout, options]);
 
-    // Reset timeouts when authentication state changes
-    useEffect(() => {
-        if (isAuthenticated) {
-            resetTimeouts();
-            startActivityCheck();
-        } else {
-            // Clear all timeouts when not authenticated
-            if (warningTimeoutRef.current) {
-                clearTimeout(warningTimeoutRef.current);
-            }
-            if (logoutTimeoutRef.current) {
-                clearTimeout(logoutTimeoutRef.current);
-            }
-            if (activityCheckRef.current) {
-                clearInterval(activityCheckRef.current);
-            }
-        }
-    }, [isAuthenticated, resetTimeouts, startActivityCheck]);
-
-    // Return functions for manual control
     return {
-        updateActivity,
-        showIdleWarning,
-        performLogout,
-        resetTimeouts,
-        isIdleWarningShown,
-        timeUntilWarning: Math.max(0, warningTime - (Date.now() - lastActivity)),
-        timeUntilLogout: Math.max(0, logoutTime - (Date.now() - lastActivity)),
+        isWarningVisible,
+        timeUntilLogout,
+        continueSession,
+        logoutNow,
     };
 };

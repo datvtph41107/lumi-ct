@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faExclamationTriangle, faClock, faSignOutAlt, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
-import styles from './IdleWarningModal.module.scss';
-import classNames from 'classnames/bind';
-
-const cx = classNames.bind(styles);
 
 interface IdleWarningModalProps {
     timeUntilLogout: number;
@@ -12,11 +8,41 @@ interface IdleWarningModalProps {
     onLogout: () => void;
 }
 
+const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+};
+
+const modalStyle: React.CSSProperties = {
+    background: '#fff',
+    borderRadius: 8,
+    padding: 20,
+    width: 420,
+    boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+};
+
+const headerStyle: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 };
+const actionsStyle: React.CSSProperties = { display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' };
+const progressWrap: React.CSSProperties = {
+    width: '100%',
+    height: 6,
+    background: '#eee',
+    borderRadius: 999,
+    overflow: 'hidden',
+};
+
 const InactiveSessionAlert: React.FC<IdleWarningModalProps> = ({ timeUntilLogout, onContinue, onLogout }) => {
     const [timeLeft, setTimeLeft] = useState(Math.ceil(timeUntilLogout / 1000));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    // Countdown timer
     useEffect(() => {
         const interval = setInterval(() => {
             setTimeLeft((prev) => {
@@ -29,79 +55,51 @@ const InactiveSessionAlert: React.FC<IdleWarningModalProps> = ({ timeUntilLogout
                 return prev - 1;
             });
         }, 1000);
-
         return () => clearInterval(interval);
     }, [onLogout]);
 
-    // Format time display
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    // Get progress percentage
     const getProgressPercentage = () => {
         const totalTime = 5 * 60; // 5 minutes in seconds
         const remainingTime = timeLeft;
         return ((totalTime - remainingTime) / totalTime) * 100;
     };
 
-    const handleContinue = () => {
-        onContinue();
-    };
-
-    const handleLogout = () => {
-        setIsLoggingOut(true);
-        onLogout();
-    };
-
     return (
-        <div className={cx('idle-warning-overlay')}>
-            <div className={cx('idle-warning-modal')}>
-                <div className={cx('modal-header')}>
-                    <FontAwesomeIcon icon={faExclamationTriangle} className={cx('warning-icon')} />
-                    <h3>Phiên đăng nhập sắp hết hạn</h3>
+        <div style={overlayStyle}>
+            <div style={modalStyle}>
+                <div style={headerStyle}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} color="#d97706" />
+                    <h3 style={{ margin: 0 }}>Phiên đăng nhập sắp hết hạn</h3>
                 </div>
-
-                <div className={cx('modal-body')}>
-                    <p>Bạn đã không hoạt động trong một thời gian. Phiên đăng nhập sẽ tự động kết thúc trong:</p>
-
-                    <div className={cx('countdown')}>
-                        <FontAwesomeIcon icon={faClock} />
-                        <span className={cx('time-display')}>{formatTime(timeLeft)}</span>
-                    </div>
-
-                    <div className={cx('progress-bar')}>
-                        <div className={cx('progress-fill')} style={{ width: `${getProgressPercentage()}%` }} />
-                    </div>
-
-                    <div className={cx('warning-message')}>
-                        <p>
-                            <strong>Lưu ý:</strong> Khi phiên đăng nhập kết thúc, bạn sẽ cần đăng nhập lại và có thể mất
-                            dữ liệu chưa lưu.
-                        </p>
-                    </div>
+                <p>Bạn đã không hoạt động trong một thời gian. Phiên đăng nhập sẽ tự động kết thúc trong:</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
+                    <FontAwesomeIcon icon={faClock} />
+                    <strong>{formatTime(timeLeft)}</strong>
                 </div>
-
-                <div className={cx('modal-actions')}>
-                    <button className={cx('continue-btn')} onClick={handleContinue} disabled={isLoggingOut}>
-                        <FontAwesomeIcon icon={faCheckCircle} />
-                        Tiếp tục phiên đăng nhập
+                <div style={progressWrap}>
+                    <div style={{ width: `${getProgressPercentage()}%`, height: '100%', background: '#ef4444' }} />
+                </div>
+                <div style={actionsStyle}>
+                    <button onClick={onContinue} disabled={isLoggingOut} style={{ padding: '8px 12px' }}>
+                        <FontAwesomeIcon icon={faCheckCircle} /> Tiếp tục
                     </button>
-
-                    <button className={cx('logout-btn')} onClick={handleLogout} disabled={isLoggingOut}>
-                        <FontAwesomeIcon icon={faSignOutAlt} />
-                        Đăng xuất ngay
+                    <button
+                        onClick={() => {
+                            setIsLoggingOut(true);
+                            onLogout();
+                        }}
+                        disabled={isLoggingOut}
+                        style={{ padding: '8px 12px' }}
+                    >
+                        <FontAwesomeIcon icon={faSignOutAlt} /> Đăng xuất
                     </button>
                 </div>
-
-                {isLoggingOut && (
-                    <div className={cx('logout-overlay')}>
-                        <div className={cx('logout-spinner')}></div>
-                        <p>Đang đăng xuất...</p>
-                    </div>
-                )}
             </div>
         </div>
     );

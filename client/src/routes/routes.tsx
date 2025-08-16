@@ -136,7 +136,7 @@ export const privateRoutes: PrivateRoute[] = [
     // Admin User Management - Chỉ Admin
     {
         path: '/admin/users',
-        component: Admin, // Replace with actual UserManagement component
+        component: UserManagement, // Replace with actual UserManagement component
         layout: AdminLayout,
         access: {
             roles: [ROLE.ADMIN],
@@ -146,16 +146,16 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     // Admin System Settings - Chỉ Admin
-    {
-        path: '/admin/settings',
-        component: Admin, // Replace with actual SystemSettings component
-        layout: AdminLayout,
-        access: {
-            roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.SYSTEM_SETTINGS],
-            requireAll: false,
-        },
-    },
+    // {
+    //     path: '/admin/settings',
+    //     component: Admin, // Replace with actual SystemSettings component
+    //     layout: AdminLayout,
+    //     access: {
+    //         roles: [ROLE.ADMIN],
+    //         permissions: [PERMISSION.SYSTEM_SETTINGS],
+    //         requireAll: false,
+    //     },
+    // },
 
     // Contract Routes - Dựa trên permissions
     {
