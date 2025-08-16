@@ -723,7 +723,10 @@ export class ContractService {
     }
 
     // Controller-facing helpers (stubs) for export & print
-    async exportPdf(id: string): Promise<{ filename: string; contentBase64: string; contentType: string }> {
+    async exportPdf(
+        id: string,
+        userId?: number,
+    ): Promise<{ filename: string; contentBase64: string; contentType: string }> {
         // NOTE: Lightweight placeholder that returns HTML content as a downloadable payload
         // A real PDF generator (e.g., puppeteer/Playwright) should be integrated later.
         const contract = await this.contractRepository.findOne({ where: { id } });
@@ -735,6 +738,10 @@ export class ContractService {
         }</title></head><body><h1>${contract.name || 'Hợp đồng'}</h1><p>Mã: ${
             contract.contract_code || ''
         }</p></body></html>`;
+        // Audit
+        try {
+            await this.auditLogService.create({ contract_id: contract.id, user_id: userId, action: 'EXPORT_PDF' });
+        } catch {}
         return {
             filename: `${contract.name || 'contract'}.html`,
             contentBase64: Buffer.from(html, 'utf8').toString('base64'),
@@ -742,13 +749,20 @@ export class ContractService {
         };
     }
 
-    async exportDocx(id: string): Promise<{ filename: string; contentBase64: string; contentType: string }> {
+    async exportDocx(
+        id: string,
+        userId?: number,
+    ): Promise<{ filename: string; contentBase64: string; contentType: string }> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) {
             throw new NotFoundException('Hợp đồng không tồn tại');
         }
         // Placeholder DOCX export as plain text packaged; real implementation should produce a .docx file
         const content = `Contract: ${contract.name || ''}\nCode: ${contract.contract_code || ''}`;
+        // Audit
+        try {
+            await this.auditLogService.create({ contract_id: contract.id, user_id: userId, action: 'EXPORT_DOCX' });
+        } catch {}
         return {
             filename: `${contract.name || 'contract'}.txt`,
             contentBase64: Buffer.from(content, 'utf8').toString('base64'),
@@ -756,7 +770,7 @@ export class ContractService {
         };
     }
 
-    async generatePrintView(id: string): Promise<{ html: string }> {
+    async generatePrintView(id: string, userId?: number): Promise<{ html: string }> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) {
             throw new NotFoundException('Hợp đồng không tồn tại');
@@ -766,6 +780,10 @@ export class ContractService {
         }</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:24px}</style></head><body><h1>${
             contract.name || 'Hợp đồng'
         }</h1><p>Mã hợp đồng: ${contract.contract_code || ''}</p></body></html>`;
+        // Audit
+        try {
+            await this.auditLogService.create({ contract_id: contract.id, user_id: userId, action: 'PRINT_CONTRACT' });
+        } catch {}
         return { html };
     }
 

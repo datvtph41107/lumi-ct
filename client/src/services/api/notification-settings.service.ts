@@ -30,6 +30,19 @@ class NotificationSettingsService extends BaseService {
     async listContractReminders(contractId: string) {
         return this.request.private.get<any>(`/contracts/${contractId}/reminders`);
     }
+
+    // System notifications queue
+    async listPendingNotifications() {
+        return this.request.private.get<any>('/notifications/pending');
+    }
+
+    async listFailedNotifications() {
+        return this.request.private.get<any>('/notifications/failed');
+    }
+
+    async retryNotification(id: string) {
+        return this.request.private.post<{ success: boolean }>(`/notifications/${id}/retry`);
+    }
 }
 
 export const notificationSettingsService = new NotificationSettingsService();
