@@ -287,3 +287,36 @@ export interface Contract {
     contract_code?: string;
     name?: string;
 }
+
+export interface CreateContractDto {
+	name: string;
+	contract_code?: string;
+	contract_type: string;
+	category?: string;
+	priority?: Priority;
+	mode?: 'basic' | 'editor' | 'upload';
+	template_id?: string;
+}
+
+export interface UpdateContractDto {
+	name?: string;
+	contract_code?: string;
+	contract_type?: string;
+	category?: string;
+	priority?: Priority;
+	status?: ContractStatus;
+}
+
+export interface ContractFilters {
+	status?: string;
+	type?: string;
+	search?: string;
+}
+
+export interface ContractPagination {
+	page?: number;
+	limit?: number;
+}
+
+// UI aliases to support existing components
+export type { Milestone, Task } from './contract.types';

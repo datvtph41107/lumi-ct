@@ -1,4 +1,4 @@
-import type { Milestone, Task } from "../types/milestone.types";
+import type { Milestone, Task } from "~/types/milestones";
 
 // Format date (dd/mm/yyyy) and optional time
 export const formatDateTime = (date: Date | string | null, includeTime = false): string => {

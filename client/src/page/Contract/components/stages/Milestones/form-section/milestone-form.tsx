@@ -4,7 +4,7 @@ import { faCalendarAlt, faPlus, faCheck } from "@fortawesome/free-solid-svg-icon
 import DatePicker from "../../../../../../components/DateRangePicker/DatePicker/DatePicker";
 import Dropdown from "../../../Dropdown/Dropdown";
 import { MILESTONE_TYPES, PRIORITY_OPTIONS, EMPLOYEES } from "~/constants/milestone.constants";
-import type { MilestoneFormData } from "~/types/milestone.types";
+import type { MilestoneFormData } from "~/types/contract/contract.types";
 import classNames from "classnames/bind";
 import styles from "./MilestoneForm.module.scss";
 

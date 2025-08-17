@@ -6,11 +6,22 @@ import { faCalendarAlt, faPlus, faCheck } from "@fortawesome/free-solid-svg-icon
 import DatePicker from "../../../Dropdown/Dropdown";
 import SidebarDropdown from "../../../Dropdown/Dropdown";
 import { PRIORITY_OPTIONS, EMPLOYEES, TASK_TAGS } from "~/constants/milestone.constants";
-import type { TaskFormData, Milestone } from "~/types/milestone.types";
+import type { Milestone } from "~/types/milestones";
 import classNames from "classnames/bind";
 import styles from "./task-form.module.scss";
 
 const cx = classNames.bind(styles);
+
+interface TaskFormData {
+	title: string;
+	description: string;
+	assignee: string;
+	dueDate: Date | null;
+	priority: "low" | "medium" | "high" | "critical";
+	estimatedHours: number;
+	milestoneId: number;
+	tags: string[];
+}
 
 interface TaskFormProps {
     milestones: Milestone[];
