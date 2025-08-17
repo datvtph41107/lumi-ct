@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '~/services/api/auth.service';
-import type { User, LoginCredentials, RegisterData } from '~/types/auth/auth.types';
+import type { User, LoginCredentials } from '~/types/auth/auth.types';
 
 interface AuthContextType {
     user: User | null;
@@ -8,7 +8,7 @@ interface AuthContextType {
     isLoading: boolean;
     error: string | null;
     login: (credentials: LoginCredentials) => Promise<void>;
-    register: (data: RegisterData) => Promise<void>;
+    // register method removed - users are created by administrators only
     logout: () => Promise<void>;
     refreshToken: () => Promise<void>;
     clearError: () => void;
@@ -63,23 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const register = async (data: RegisterData) => {
-        try {
-            setIsLoading(true);
-            setError(null);
-
-            const response = await authService.register(data);
-            setUser(response.data.user);
-            setIsAuthenticated(true);
-
-            // Token will be automatically set as httpOnly cookie by the server
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Đăng ký thất bại');
-            throw err;
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // register function removed - users are created by administrators only
 
     const logout = async () => {
         try {
@@ -113,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading,
         error,
         login,
-        register,
+        // register removed from context value
         logout,
         refreshToken,
         clearError,

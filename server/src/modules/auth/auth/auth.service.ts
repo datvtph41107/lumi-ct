@@ -8,7 +8,7 @@ import * as crypto from 'crypto';
 import { User } from '../../core/domain/user/user.entity';
 import { UserSession } from '../../core/domain/auth/user-session.entity';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+// RegisterDto import removed - users are created by administrators only
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
@@ -89,44 +89,7 @@ export class AuthService {
         };
     }
 
-    async register(registerDto: RegisterDto): Promise<any> {
-        const { email, username, password, full_name } = registerDto;
-
-        // Check if user exists
-        const existingUser = await this.userRepository.findOne({
-            where: [{ email }, { username }],
-        });
-
-        if (existingUser) {
-            throw new BadRequestException('Email hoặc tên đăng nhập đã tồn tại');
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 12);
-
-        // Create user
-        const user = this.userRepository.create({
-            email,
-            username,
-            password: hashedPassword,
-            full_name,
-            role: 'user',
-            is_active: true,
-        });
-
-        const savedUser = await this.userRepository.save(user);
-
-        return {
-            user: {
-                id: savedUser.id,
-                email: savedUser.email,
-                username: savedUser.username,
-                full_name: savedUser.full_name,
-                role: savedUser.role,
-            },
-            message: 'Đăng ký thành công',
-        };
-    }
+    // Register method removed - users are created by administrators only
 
     async refreshToken(refreshTokenDto: RefreshTokenDto, ipAddress: string): Promise<any> {
         const { refresh_token } = refreshTokenDto;

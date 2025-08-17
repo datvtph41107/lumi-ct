@@ -182,7 +182,7 @@ import { Controller, Post, Body, Res, Req, HttpStatus, UseGuards, Get, Delete } 
 import { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+// RegisterDto import removed - users are created by administrators only
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -228,16 +228,7 @@ export class AuthController {
         };
     }
 
-    @Post('register')
-    async register(@Body() registerDto: RegisterDto) {
-        const result = await this.authService.register(registerDto);
-
-        return {
-            success: true,
-            message: result.message,
-            data: result.user,
-        };
-    }
+    // Register endpoint removed - users are created by administrators only
 
     @Post('refresh')
     async refreshToken(
