@@ -1,14 +1,13 @@
-import type { Admin } from '@/core/domain/admin';
 import type { User } from '@/core/domain/user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import type { AdminJwtPayload, UserContext, UserJwtPayload } from '@/core/shared/interface/jwt-payload.interface';
+import type { UserJwtPayload, PermissionPayload } from '@/core/shared/interface/jwt-payload.interface';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import type { DataSource } from 'typeorm';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 import type { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { UserSession } from '@/core/domain/user';
+import { UserSession } from '@/core/domain/user/user-session.entity';
 
 // ✅ Entity mới cho session management
 
@@ -21,7 +20,7 @@ interface SessionData {
 @Injectable()
 export class TokenService {
     private readonly clientId = process.env.CLIENT_OAUTH_PASSWORD as string;
-    private readonly accessTokenExpireSeconds = 1 * 60; // 15 minutes
+    private readonly accessTokenExpireSeconds = 15 * 60; // 15 minutes
     private readonly refreshTokenExpireSeconds = 7 * 24 * 60 * 60; // 7 days
     private readonly sessionTimeoutMinutes = 30;
 
@@ -34,7 +33,6 @@ export class TokenService {
 
     async getUserTokens(
         user: User,
-        context: UserContext,
         sessionId: string,
     ): Promise<{ access_token: string; refresh_token: string }> {
         const jti = uuidv4();
@@ -43,9 +41,17 @@ export class TokenService {
         const accessTokenPayload: UserJwtPayload = {
             sub: user.id,
             username: user.username,
-            roles: [user.role],
-            permissions: context.permissions,
-            department: context.department,
+            roles: [user.role as any],
+            permissions: {
+                create_contract: false,
+                create_report: false,
+                read: true,
+                update: false,
+                delete: false,
+                approve: false,
+                assign: false,
+            } as PermissionPayload,
+            department: null,
             client_id: this.clientId,
             scope: ['read'],
             jti,
@@ -68,12 +74,12 @@ export class TokenService {
         };
     }
 
-    getAdminTokens(admin: Admin): { access_token: string; refresh_token: string } {
+    getAdminTokens(admin: any): { access_token: string; refresh_token: string } {
         const jti = uuidv4();
         const now = Math.floor(Date.now() / 1000);
         const sessionId = uuidv4();
 
-        const accessTokenPayload: AdminJwtPayload = {
+        const accessTokenPayload: any = {
             sub: admin.id,
             roles: [admin.role],
             client_id: this.clientId,
@@ -145,7 +151,7 @@ export class TokenService {
             }
 
             const now = new Date();
-            const lastActivity = new Date(session.lastActivity);
+            const lastActivity = new Date(session.last_activity);
             const timeDiff = (now.getTime() - lastActivity.getTime()) / (1000 * 60); // minutes
 
             if (timeDiff > this.sessionTimeoutMinutes) {
@@ -203,14 +209,15 @@ export class TokenService {
     private async getSession(sessionId: string): Promise<UserSession | null> {
         const repo = this.db.getRepository(UserSession);
         return repo.findOne({
-            where: { sessionId, isActive: true },
+            where: { session_id: sessionId, is_active: true },
+            relations: ['user'],
         });
     }
 
     private async updateSessionActivity(sessionId: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ sessionId, isActive: true }, { lastActivity: new Date() });
+            await repo.update({ session_id: sessionId, is_active: true }, { last_activity: new Date() });
         } catch (error) {
             this.logger.APP.error(`Update session activity error: ${error}`);
         }
@@ -219,7 +226,7 @@ export class TokenService {
     private async revokeSession(sessionId: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ sessionId }, { isActive: false, revokedAt: new Date() });
+            await repo.update({ session_id: sessionId }, { is_active: false, revoked_at: new Date() });
         } catch (error) {
             this.logger.APP.error(`Revoke session error: ${error}`);
         }
@@ -228,7 +235,7 @@ export class TokenService {
     private async revokeSessionByJti(jti: string): Promise<void> {
         try {
             const repo = this.db.getRepository(UserSession);
-            await repo.update({ jti }, { isActive: false, revokedAt: new Date() });
+            await repo.update({ jti }, { is_active: false, revoked_at: new Date() });
         } catch (error) {
             this.logger.APP.error(`Revoke session by jti error: ${error}`);
         }
@@ -250,7 +257,7 @@ export class TokenService {
                     .createQueryBuilder('token')
                     .select('token.id')
                     .where('token.revokedAt < :date', { date: expiredDate })
-                    .orderBy('token.revokedAt', 'ASC') // đảm bảo nhất quán
+                    .orderBy('token.revokedAt', 'ASC')
                     .limit(batchSize)
                     .getMany();
 

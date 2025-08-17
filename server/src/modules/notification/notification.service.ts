@@ -7,7 +7,7 @@ import {
     NotificationType,
     NotificationStatus,
     NotificationChannel,
-} from '@/core/domain/contract/contract-notification.entity';
+} from '@/core/domain/notification/notification.entity';
 import {
     ContractReminder,
     ReminderType,

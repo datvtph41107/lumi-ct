@@ -73,39 +73,60 @@
 // })
 // export class AuthModule {}
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { AuthCoreService } from '../../core/services/auth-core.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
-import { PermissionGuard } from '../../core/guards/permission.guard';
-import { User } from '../../core/domain/user/user.entity';
-import { UserSession } from '../../core/domain/auth/user-session.entity';
-import { Role } from '../../core/domain/auth/role.entity';
-import { Permission } from '../../core/domain/auth/permission.entity';
-import { UserRole } from '../../core/domain/auth/user-role.entity';
+import { LoggerModule } from '@/core/shared/logger/logger.module';
+import { DatabaseModule } from '@/providers/database';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
+import { AuthCoreService } from './auth/auth-core.service';
+import { JwtStrategy } from './jwt/jwt.strategy';
+import { TokenService } from './jwt/jwt.service';
+import { AuthGuardAccess } from './guards/jwt-auth.guard';
+import { PermissionGuard } from './guards/permission.guard';
+import { User } from '@/core/domain/user/user.entity';
+import { UserSession } from '@/core/domain/user/user-session.entity';
+import { Role } from '@/core/domain/permission/role.entity';
+import { Permission } from '@/core/domain/permission/permission.entity';
+import { UserRole } from '@/core/domain/permission/user-role.entity';
 
 @Module({
     imports: [
+        LoggerModule,
+        DatabaseModule,
+        ConfigModule,
         TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole]),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
             imports: [ConfigModule],
-            useFactory: async (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET'),
-                signOptions: {
-                    expiresIn: configService.get<string>('JWT_EXPIRES_IN', '15m'),
-                },
-            }),
             inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                privateKey: configService.getOrThrow<string>('ACCESS_TOKEN_PRIVATE_KEY').replace(/\\n/g, '\n'),
+                publicKey: configService.getOrThrow<string>('ACCESS_TOKEN_PUBLIC_KEY').replace(/\\n/g, '\n'),
+                signOptions: { algorithm: 'RS256', expiresIn: '15m' },
+            }),
         }),
     ],
     controllers: [AuthController],
-    providers: [AuthService, AuthCoreService, JwtStrategy, JwtRefreshStrategy, PermissionGuard],
-    exports: [AuthService, AuthCoreService, JwtStrategy, JwtRefreshStrategy, PermissionGuard],
+    providers: [
+        AuthService,
+        AuthCoreService,
+        JwtStrategy,
+        PermissionGuard,
+        AuthGuardAccess,
+        TokenService,
+        {
+            provide: 'REFRESH_JWT_SERVICE',
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) =>
+                new JwtService({
+                    secret: configService.getOrThrow<string>('REFRESH_TOKEN_SECRET'),
+                    signOptions: { algorithm: 'HS256', expiresIn: '7d' },
+                }),
+        },
+    ],
+    exports: [AuthService, AuthCoreService, JwtStrategy, PermissionGuard, AuthGuardAccess, TokenService],
 })
 export class AuthModule {}

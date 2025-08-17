@@ -5,8 +5,8 @@ import { Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { User } from '../../core/domain/user/user.entity';
-import { UserSession } from '../../core/domain/auth/user-session.entity';
+import { User } from '@/core/domain/user/user.entity';
+import { UserSession } from '@/core/domain/user/user-session.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -21,8 +21,8 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) {}
 
-    async validateUser(email: string, password: string): Promise<User> {
-        const user = await this.userRepository.findOne({ where: { email } });
+    async validateUser(username: string, password: string): Promise<User | null> {
+        const user = await this.userRepository.findOne({ where: { username } });
         if (user && (await bcrypt.compare(password, user.password))) {
             return user;
         }
@@ -30,12 +30,12 @@ export class AuthService {
     }
 
     async login(loginDto: LoginDto, ipAddress: string, userAgent: string): Promise<any> {
-        const { email, password, rememberMe = false } = loginDto;
+        const { username, password, rememberMe = false } = loginDto;
 
         // Validate user
-        const user = await this.validateUser(email, password);
+        const user = await this.validateUser(username, password);
         if (!user) {
-            throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+            throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không đúng');
         }
 
         if (!user.is_active) {
@@ -90,15 +90,15 @@ export class AuthService {
     }
 
     async register(registerDto: RegisterDto): Promise<any> {
-        const { email, username, password, full_name } = registerDto;
+        const { email, username, password, full_name } = registerDto as any;
 
-        // Check if user exists
+        // Check if user exists by username only (our User entity has no email field)
         const existingUser = await this.userRepository.findOne({
-            where: [{ email }, { username }],
+            where: { username },
         });
 
         if (existingUser) {
-            throw new BadRequestException('Email hoặc tên đăng nhập đã tồn tại');
+            throw new BadRequestException('Tên đăng nhập đã tồn tại');
         }
 
         // Hash password
@@ -106,11 +106,11 @@ export class AuthService {
 
         // Create user
         const user = this.userRepository.create({
-            email,
+            name: full_name || username,
             username,
             password: hashedPassword,
-            full_name,
-            role: 'user',
+            role: 'STAFF' as any,
+            status: 'active' as any,
             is_active: true,
         });
 
@@ -119,9 +119,8 @@ export class AuthService {
         return {
             user: {
                 id: savedUser.id,
-                email: savedUser.email,
                 username: savedUser.username,
-                full_name: savedUser.full_name,
+                name: savedUser.name,
                 role: savedUser.role,
             },
             message: 'Đăng ký thành công',
@@ -272,7 +271,7 @@ export class AuthService {
             session_id: sessionId,
         };
 
-        return this.jwtService.sign(payload);
+        return this.jwtService.sign(payload, { expiresIn: '15m' });
     }
 
     private generateRefreshToken(): string {

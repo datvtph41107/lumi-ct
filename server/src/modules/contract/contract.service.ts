@@ -2,19 +2,19 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthCoreService } from '../../core/services/auth-core.service';
-import { Contract } from '../../core/domain/contract/contract.entity';
-import { ContractDraft } from '../../core/domain/contract/contract-draft.entity';
-import { ContractTemplate } from '../../core/domain/contract/contract-template.entity';
-import { ContractContent } from '../../core/domain/contract/contract-content.entity';
-import { ContractVersion } from '../../core/domain/contract/contract-version.entity';
-import { Milestone } from '../../core/domain/contract/milestone.entity';
-import { Task } from '../../core/domain/contract/task.entity';
-import { ContractFile } from '../../core/domain/contract/contract-file.entity';
-import { Collaborator } from '../../core/domain/contract/collaborator.entity';
-import { AuditLog } from '../../core/domain/contract/audit-log.entity';
-import { User } from '../../core/domain/user/user.entity';
-import { WorkflowService } from './workflow.service';
+import { AuthCoreService } from '@/modules/auth/auth/auth-core.service';
+import { Contract } from '@/core/domain/contract/contract.entity';
+import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
+import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
+import { ContractContent } from '@/core/domain/contract/contract-content.entity';
+import { ContractVersion } from '@/core/domain/contract/contract-versions.entity';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
+import { ContractFile } from '@/core/domain/contract/contract-file.entity';
+import { Collaborator } from '@/core/domain/permission/collaborator.entity';
+import { AuditLog } from '@/core/domain/permission/audit-log.entity';
+import { User } from '@/core/domain/user/user.entity';
+// import { WorkflowService } from './workflow.service';
 import { NotificationService } from '../notification/notification.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
@@ -47,7 +47,7 @@ export class ContractService {
         private readonly userRepository: Repository<User>,
         private readonly dataSource: DataSource,
         private readonly authCoreService: AuthCoreService,
-        private readonly workflowService: WorkflowService,
+        // private readonly workflowService: any,
         private readonly notificationService: NotificationService,
         private readonly auditLogService: AuditLogService,
         private readonly collaboratorService: CollaboratorService,
@@ -115,9 +115,9 @@ export class ContractService {
                     where: { id: createDto.template_id },
                 });
 
-                if (template?.workflow_id) {
-                    await this.workflowService.createWorkflowInstance(savedContract.id, template.workflow_id, userId);
-                }
+                // if (template?.workflow_id) {
+                //     await this.workflowService.createWorkflowInstance(savedContract.id, template.workflow_id, userId);
+                // }
             }
 
             // Add creator as owner collaborator
@@ -377,7 +377,7 @@ export class ContractService {
         }
 
         // Execute workflow step
-        await this.workflowService.executeStep(contract.workflow_instance_id, 'approve', userId, 'approve', comment);
+        // await this.workflowService.executeStep(contract.workflow_instance_id, 'approve', userId, 'approve', comment);
 
         // Update contract status
         await this.contractRepository.update(id, {
@@ -411,7 +411,7 @@ export class ContractService {
         }
 
         // Execute workflow step
-        await this.workflowService.executeStep(contract.workflow_instance_id, 'reject', userId, 'reject', reason);
+        // await this.workflowService.executeStep(contract.workflow_instance_id, 'reject', userId, 'reject', reason);
 
         // Update contract status
         await this.contractRepository.update(id, {
@@ -446,13 +446,13 @@ export class ContractService {
         }
 
         // Execute workflow step
-        await this.workflowService.executeStep(
-            contract.workflow_instance_id,
-            'request_changes',
-            userId,
-            'request_changes',
-            changes,
-        );
+        // await this.workflowService.executeStep(
+        //     contract.workflow_instance_id,
+        //     'request_changes',
+        //     userId,
+        //     'request_changes',
+        //     changes,
+        // );
 
         // Update contract status
         await this.contractRepository.update(id, {
@@ -636,7 +636,7 @@ export class ContractService {
             contract_id: contractId,
             user_id: userId,
             action: 'UPLOAD_FILE',
-            details: { file_id: savedFile.id, filename: savedFile.filename },
+            details: { file_id: savedFile.id, filename: savedFile.file_name },
         });
 
         return savedFile;

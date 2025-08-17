@@ -1,5 +1,5 @@
 import { Department } from '@/core/domain/department';
-import { UserPermission } from '@/core/domain/permission';
+// import { UserPermission } from '@/core/domain/permission';
 import { User } from '@/core/domain/user';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
@@ -8,7 +8,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role, Status } from '@/core/shared/enums/base.enums';
 import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
+// import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
 
 @Injectable()
@@ -37,7 +37,7 @@ export class UserService {
         try {
             const userRepo = this.db.getRepository(User);
             const departmentRepo = this.db.getRepository(Department);
-            const permissionRepo = queryRunner.manager.getRepository(UserPermission);
+            // const permissionRepo = queryRunner.manager.getRepository(UserPermission);
 
             if (creator.roles?.includes(Role.MANAGER)) {
                 if (req.department_id !== creator.department?.id) {
@@ -83,12 +83,12 @@ export class UserService {
 
             const savedUser = await userRepo.save(newUser);
 
-            const userPermission = permissionRepo.create({
+            /* const userPermission = permissionRepo.create({
                 user_id: savedUser.id,
                 ...userPermissionData,
             });
 
-            await permissionRepo.save(userPermission);
+            await permissionRepo.save(userPermission); */
 
             await queryRunner.commitTransaction();
 

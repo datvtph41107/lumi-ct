@@ -21,7 +21,7 @@ export interface AuditLogWithUser {
     created_at: Date;
     user_name?: string;
     user_email?: string;
-    user_avatar?: string;
+    user_avatar?: string | undefined | null;
 }
 
 export interface AuditLogFilters {
