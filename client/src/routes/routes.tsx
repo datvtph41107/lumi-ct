@@ -23,9 +23,9 @@ import ContractCollection from '~/page/Contract/ContractCollection';
 
 // New admin pages (placeholders)
 import SystemNotifications from '~/page/admin/SystemNotifications';
-import SystemNotificationsQueue from '~/page/admin/SystemNotifications/index';
+import SystemNotificationsQueue from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
-import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
+import RolePermissionManagement from '~/page/admin/RolePermissionManagement';
 
 // Route interfaces
 interface BaseRoute {

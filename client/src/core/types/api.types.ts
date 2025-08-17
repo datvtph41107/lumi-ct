@@ -14,8 +14,10 @@ export interface RequestParams {
 export type ApiMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 export interface ApiResponse<T> {
-    status: number;
-    message: string;
+    // Compatible with server ResponseInterceptor
+    success?: boolean;
+    status?: number;
+    message?: string | string[];
     data: T;
 }
 
