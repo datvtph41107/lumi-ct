@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFlag, faClock, faUser, faEdit, faTrash, faTasks, faChartLine, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import { MILESTONE_TYPES, PRIORITY_OPTIONS, STATUS_OPTIONS } from "~/constants/milestone.constants";
 import { formatDateTime, getDaysUntilDue, calculateMilestoneProgress } from "~/utils/milestone.utils";
-import type { Milestone } from "~/types/milestone.types";
+import type { Milestone } from "~/types/milestones";
 import classNames from "classnames/bind";
 import styles from "./milestone-timeline.module.scss";
 

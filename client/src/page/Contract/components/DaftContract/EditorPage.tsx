@@ -2,7 +2,7 @@ import classNames from 'classnames/bind';
 import styles from './EditorPage.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCirclePlus, faCopy, faUpDownLeftRight, faTrashCan } from '@fortawesome/free-solid-svg-icons';
-import { Editor } from '~/components/Editor/Editor';
+import { Editor } from "~/components/Editor/Editor";
 
 const cx = classNames.bind(styles);
 
