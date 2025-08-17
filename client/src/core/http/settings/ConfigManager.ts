@@ -14,7 +14,7 @@ export class ConfigManager {
 
         this.authConfig = {
             loginEndpoint: "auth/login",
-            refreshEndpoint: "auth/refresh",
+            refreshEndpoint: "auth/refresh-token",
             logoutEndpoint: "auth/logout",
         };
     }
