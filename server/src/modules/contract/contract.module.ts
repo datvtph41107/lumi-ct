@@ -21,9 +21,17 @@ import { ContractDraftController } from './contract-draft.controller';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { ContractDraftService } from './contract-draft.service';
+import { LoggerModule } from '@/core/shared/logger/logger.module';
+import { DatabaseModule } from '@/providers/database';
+import { NotificationModule } from '@/modules/notification/notification.module';
+import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
     imports: [
+        LoggerModule,
+        DatabaseModule,
+        NotificationModule,
+        AuthModule,
         TypeOrmModule.forFeature([
             Contract,
             ContractDraft,

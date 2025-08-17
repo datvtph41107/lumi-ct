@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthCoreService as AuthService } from '../../auth/auth/auth-core.service';
+import { AuthCoreService as AuthService } from '../auth/auth-core.service';
 
 export interface PermissionMetadata {
     resource: string;

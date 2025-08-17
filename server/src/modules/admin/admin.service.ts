@@ -5,7 +5,7 @@ import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Role, Status } from '@/core/shared/enums/base.enums';
-import { UserPermission } from '@/core/domain/permission';
+// import { UserPermission } from '@/core/domain/permission';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
@@ -115,7 +115,7 @@ export class AdminService {
         try {
             const userRepo = this.db.getRepository(User);
             const departmentRepo = this.db.getRepository(Department);
-            const permissionRepo = queryRunner.manager.getRepository(UserPermission);
+            // const permissionRepo = queryRunner.manager.getRepository(UserPermission);
 
             const department = await departmentRepo.findOne({ where: { id: req.department_id } });
             if (!department) {
