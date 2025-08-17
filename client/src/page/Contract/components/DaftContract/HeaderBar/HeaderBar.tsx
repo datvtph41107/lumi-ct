@@ -7,6 +7,7 @@ import { useCallback, useMemo } from 'react';
 import { useContractStore } from '~/store/contract-store';
 import { ApiClient } from '~/core/http/api/ApiClient';
 import { useEditorStore } from '~/store/editor-store';
+import PermissionGuard from '~/core/auth/PermissionGuard';
 
 const cx = classNames.bind(styles);
 
@@ -96,7 +97,26 @@ const HeaderBar = () => {
                 </div>
             </div>
             <div className={cx('actions')}>
-                <div className={cx('action-btn')} onClick={handleDownloadPdf}>
+                <PermissionGuard
+                    resource="contract"
+                    action="export"
+                    context={{ contractId: currentContract?.id }}
+                    showFallback
+                >
+                    <div className={cx('action-btn')} onClick={handleDownloadPdf}>
+                        Download PDF
+                    </div>
+                    <div className={cx('action-btn')} onClick={handleDownloadDocx}>
+                        Download DOCX
+                    </div>
+                    <div className={cx('action-btn')} onClick={handleExportHtml}>
+                        Export HTML
+                    </div>
+                    <button className={cx('action-btn')} onClick={() => window.print()}>
+                        Print
+                    </button>
+                </PermissionGuard>
+                {/* <div className={cx('action-btn')} onClick={handleDownloadPdf}>
                     Download PDF
                 </div>
                 <div className={cx('action-btn')} onClick={handleDownloadDocx}>
@@ -107,7 +127,7 @@ const HeaderBar = () => {
                 </div>
                 <button className={cx('action-btn')} onClick={() => window.print()}>
                     Print
-                </button>
+                </button> */}
                 <button className={cx('action-btn')} onClick={handleShare}>
                     Share
                 </button>

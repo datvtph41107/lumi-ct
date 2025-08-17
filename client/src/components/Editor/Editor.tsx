@@ -1,28 +1,29 @@
-"use client";
+'use client';
 
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
-import Table from "@tiptap/extension-table";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import TableRow from "@tiptap/extension-table-row";
-import Image from "@tiptap/extension-image";
-import ImageResize from "tiptap-extension-resize-image";
-import TextAlign from "@tiptap/extension-text-align";
-import Underline from "@tiptap/extension-underline";
-import { Color } from "@tiptap/extension-color";
-import HighLight from "@tiptap/extension-highlight";
-import Link from "@tiptap/extension-link";
-import FontFamily from "@tiptap/extension-font-family";
-import Toolbar from "../Toolbar";
-import classNames from "classnames/bind";
-import style from "./Editor.module.scss";
-import { useEditorStore } from "~/store/editor-store";
-import { FontSizeExtension } from "./extensions/font-size";
-import { LineHeightExtension } from "./extensions/line-height";
-import { useEffect, useRef } from "react";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
+import Table from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import Image from '@tiptap/extension-image';
+import ImageResize from 'tiptap-extension-resize-image';
+import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
+import { Color } from '@tiptap/extension-color';
+import HighLight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import FontFamily from '@tiptap/extension-font-family';
+import Toolbar from '../Toolbar';
+import classNames from 'classnames/bind';
+import style from './Editor.module.scss';
+import { useEditorStore } from '~/store/editor-store';
+import { FontSizeExtension } from './extensions/font-size';
+import { LineHeightExtension } from './extensions/line-height';
+import { useEffect, useRef } from 'react';
+import { useContractDraftStore } from '~/store/contract-draft-store';
 
 const cx = classNames.bind(style);
 
@@ -36,6 +37,7 @@ export const Editor = () => {
         setInteractionTimeoutId,
         isToolbarVisible,
     } = useEditorStore();
+    const { currentDraft, updateDraftData, setDirty } = useContractDraftStore();
 
     const editorRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -44,41 +46,37 @@ export const Editor = () => {
     const isImageSelected = (editor: any) => {
         const { state } = editor;
         const { from, to, $from } = state.selection;
-
-        // Check if selection is a NodeSelection (single node selected)
-        if (state.selection.constructor.name === "NodeSelection") {
+        if (state.selection.constructor.name === 'NodeSelection') {
             const node = state.selection.node;
-            return node && node.type.name === "image";
+            return node && node.type.name === 'image';
         }
-
-        // Check if cursor is positioned at an image node
         const nodeAtFrom = state.doc.nodeAt(from);
         const nodeAtTo = state.doc.nodeAt(to);
-
-        // Check if we're at the position of an image
-        if (nodeAtFrom && nodeAtFrom.type.name === "image") {
+        if (nodeAtFrom && nodeAtFrom.type.name === 'image') {
             return true;
         }
-
-        if (nodeAtTo && nodeAtTo.type.name === "image") {
+        if (nodeAtTo && nodeAtTo.type.name === 'image') {
             return true;
         }
-
-        // Check if we're adjacent to an image
         const $pos = state.doc.resolve(from);
         const nodeBefore = $pos.nodeBefore;
         const nodeAfter = $pos.nodeAfter;
-
-        if (nodeBefore && nodeBefore.type.name === "image") {
+        if (nodeBefore && nodeBefore.type.name === 'image') {
             return true;
         }
-
-        if (nodeAfter && nodeAfter.type.name === "image") {
+        if (nodeAfter && nodeAfter.type.name === 'image') {
             return true;
         }
-
         return false;
     };
+
+    const initialHtml = ((): string => {
+        const content = (currentDraft?.contractData as any)?.content;
+        if (content?.mode === 'editor' && content?.editorContent?.content) {
+            return String(content.editorContent.content);
+        }
+        return `\n            <h1 style="text-align:center">HỢP ĐỒNG</h1>\n            <p>Vui lòng nhập nội dung hợp đồng...</p>\n        `;
+    })();
 
     const editor = useEditor({
         immediatelyRender: false,
@@ -89,26 +87,41 @@ export const Editor = () => {
             setEditor(null);
         },
         onUpdate({ editor }) {
-            // setEditor(editor);
+            // Persist editor content to draft store
+            const html = editor.getHTML();
+            const text = editor.getText();
+            updateDraftData('content_draft', {
+                mode: 'editor',
+                content: {
+                    mode: 'editor',
+                    editorContent: {
+                        content: html,
+                        plainText: text,
+                        metadata: {
+                            wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+                            characterCount: text.length,
+                            lastEditedAt: new Date().toISOString(),
+                            version:
+                                ((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) +
+                                1,
+                        },
+                    },
+                },
+            } as any);
+            setDirty(true);
 
             // Check if image is selected and hide toolbar if so
             if (isImageSelected(editor)) {
                 setToolbarVisible(false);
                 return;
             }
-
-            // Only hide toolbar when typing and not interacting with toolbar
             if (!isInteractingWithToolbar) {
                 const { autoToggleEnabled } = useEditorStore.getState();
-
                 if (!autoToggleEnabled) return;
-
                 setToolbarVisible(false);
-
                 if (typingTimeoutRef.current) {
                     clearTimeout(typingTimeoutRef.current);
                 }
-
                 typingTimeoutRef.current = setTimeout(() => {
                     const currentState = useEditorStore.getState();
                     if (currentState.autoToggleEnabled && !currentState.isInteractingWithToolbar) {
@@ -123,38 +136,29 @@ export const Editor = () => {
                 setToolbarVisible(false);
                 return;
             }
-
             if (!isInteractingWithToolbar) {
                 const { from, to } = editor.state.selection;
                 const hasSelection = from !== to;
-
                 const { manualToggleOnly } = useEditorStore.getState();
-                if (manualToggleOnly) return; // ⚠️ Không bật toolbar nếu đang ở chế độ khóa thủ công
-
+                if (manualToggleOnly) return;
                 if (hasSelection) {
                     setToolbarVisible(true);
                 }
             }
         },
-        onTransaction({ editor }) {
-            // setEditor(editor);
-        },
+        onTransaction({ editor }) {},
         onFocus({ editor }) {
             setEditor(editor);
             if (isImageSelected(editor)) {
                 setToolbarVisible(false);
                 return;
             }
-
             const { manualToggleOnly } = useEditorStore.getState();
             if (!manualToggleOnly && !isInteractingWithToolbar) {
                 setToolbarVisible(true);
             }
         },
         onBlur({ editor }) {
-            // setEditor(editor);
-
-            // Use a longer delay and check interaction state
             setTimeout(() => {
                 const currentState = useEditorStore.getState();
                 if (!currentState.isInteractingWithToolbar && currentState.autoToggleEnabled) {
@@ -162,13 +166,11 @@ export const Editor = () => {
                 }
             }, 200);
         },
-        onContentError({ editor }) {
-            // setEditor(editor);
-        },
+        onContentError({ editor }) {},
         editorProps: {
             attributes: {
-                style: "padding-left: 56px; padding-right: 56px",
-                class: cx("editor-content"),
+                style: 'padding-left: 56px; padding-right: 56px',
+                class: cx('editor-content'),
             },
         },
         extensions: [
@@ -184,46 +186,42 @@ export const Editor = () => {
             Image,
             ImageResize,
             TextAlign.configure({
-                types: ["heading", "paragraph"],
+                types: ['heading', 'paragraph'],
             }),
             TaskItem.configure({ nested: true }),
             Table.configure({
                 resizable: true,
             }),
-            Link.configure({ openOnClick: false, autolink: true, defaultProtocol: "https" }),
+            Link.configure({ openOnClick: false, autolink: true, defaultProtocol: 'https' }),
             TableRow,
             TableHeader,
             TableCell,
             Underline,
         ],
-        content: `
-            <p>Welcome to the editor</p>
-        `,
+        content: initialHtml,
     });
 
     useEffect(() => {
         const handleContextMenu = (e: MouseEvent) => {
             if (editorRef.current?.contains(e.target as Node)) {
                 e.preventDefault();
-
-                const { isToolbarVisible, setToolbarVisible, setAutoToggleEnabled, setManualToggleOnly } = useEditorStore.getState();
-
+                const { isToolbarVisible, setToolbarVisible, setAutoToggleEnabled, setManualToggleOnly } =
+                    useEditorStore.getState();
                 if (isToolbarVisible) {
                     setToolbarVisible(false);
                     setAutoToggleEnabled(false);
-                    setManualToggleOnly(true); // chỉ mở lại bằng chuột phải
+                    setManualToggleOnly(true);
                 } else {
                     setToolbarVisible(true);
                     setAutoToggleEnabled(true);
-                    setManualToggleOnly(false); // cho phép auto-toggle lại
+                    setManualToggleOnly(false);
                 }
             }
         };
 
-        document.addEventListener("contextmenu", handleContextMenu);
+        document.addEventListener('contextmenu', handleContextMenu);
         return () => {
-            document.removeEventListener("contextmenu", handleContextMenu);
-            // Cleanup timeouts
+            document.removeEventListener('contextmenu', handleContextMenu);
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current);
             }
@@ -232,7 +230,7 @@ export const Editor = () => {
     }, [clearInteractionTimeout]);
 
     return (
-        <div className={cx("editor-wrapper")} ref={editorRef}>
+        <div className={cx('editor-wrapper')} ref={editorRef}>
             <EditorContent editor={editor} />
             {editor && <Toolbar />}
         </div>

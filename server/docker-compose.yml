@@ -1,10 +1,8 @@
 version: '3.9'
 
 services:
-    mysql:
+    db:
         image: mysql:8
-        container_name: mysql_db
-        restart: always
         environment:
             MYSQL_ROOT_PASSWORD: root
             MYSQL_DATABASE: contract_db
@@ -15,16 +13,28 @@ services:
         volumes:
             - mysql_data:/var/lib/mysql
 
-    # nest-app:
-    #     build: .
-    #     container_name: nest_backend
-    #     ports:
-    #         - '3000:3000'
-    #     depends_on:
-    #         - mysql
-    #     environment:
-    #         DATABASE_URL: mysql://root:root123@mysql:3306/contract_db
-    #     command: sh -c "npx prisma generate && npm run start:prod"
+    server:
+        build: ./server
+        environment:
+            PORT: 3000
+            PREFIX: /api
+            CLIENT_URL: http://localhost:5173
+            DB_HOST: db
+            DB_PORT: 3306
+            DB_USER: root
+            DB_PASS: root123
+            DB_NAME: contract_db
+        depends_on:
+            - db
+        ports:
+            - '3000:3000'
+
+    client:
+        build: ./client
+        depends_on:
+            - server
+        ports:
+            - '5173:80'
 
 volumes:
     mysql_data:
