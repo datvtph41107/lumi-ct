@@ -9,7 +9,6 @@ import { AuthController } from './auth/auth.controller';
 
 // Services
 import { AdminAuthService } from './admin/admin.auth.service';
-import { AuthService } from './auth/auth.service';
 import { TokenService } from './jwt/jwt.service';
 
 // Guards & Validators
@@ -69,7 +68,6 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        AuthService,
         AdminAuthService,
         AuthCoreService,
         // Strategy & Guards

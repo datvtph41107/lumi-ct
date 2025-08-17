@@ -2,20 +2,12 @@
 import { DataSource, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { BaseQueryBuilder } from './base.query';
 import moment from 'moment-timezone';
-import { ContractStatus } from '@/core/domain/contract/contract.entity';
-
-type UserIds = { userId: number | null };
-const FORMAT = 'YYYY-MM-DD';
 
 export class ContractQueryBuilder<T extends ObjectLiteral> extends BaseQueryBuilder<T> {
-    constructor(qb: SelectQueryBuilder<T>) {
-        super(qb);
-    }
+    constructor(qb: SelectQueryBuilder<T>) { super(qb); }
 
     withDepartment(departmentId?: number) {
-        if (departmentId) {
-            this.qb.andWhere(`${this.qbName}.department_id = :department_id`, { department_id: departmentId });
-        }
+        if (departmentId) this.qb.andWhere(`${this.qbName}.department_id = :department_id`, { department_id: departmentId });
         return this;
     }
 
@@ -38,7 +30,7 @@ export class ContractQueryBuilder<T extends ObjectLiteral> extends BaseQueryBuil
     }
 
     whereStartOrEndDateIn(daysBefore: number) {
-        const targetDate = moment().add(daysBefore, 'days').format(FORMAT);
+        const targetDate = moment().add(daysBefore, 'days').format('YYYY-MM-DD');
         this.qb.andWhere(
             `DATE(${this.qbName}.start_date) = :targetDate OR DATE(${this.qbName}.end_date) = :targetDate`,
             { targetDate },
@@ -47,46 +39,11 @@ export class ContractQueryBuilder<T extends ObjectLiteral> extends BaseQueryBuil
     }
 
     whereStartOrEndDatePassed() {
-        const today = moment().format(FORMAT);
+        const today = moment().format('YYYY-MM-DD');
         this.qb.andWhere(
-            `(DATE(${this.qbName}.end_date) < :today OR DATE(${this.qbName}.start_date) < :today) 
-             AND ${this.qbName}.status NOT IN (:...finishedStatuses)`,
-            { today, finishedStatuses: [ContractStatus.COMPLETED, ContractStatus.CANCELLED] },
+            `(DATE(${this.qbName}.end_date) < :today OR DATE(${this.qbName}.start_date) < :today)`,
+            { today },
         );
         return this;
-    }
-
-    // Các wherePhase... và whereTask... giữ nguyên
-
-    static async findRelatedUserIds(contractId: number, dataSource: DataSource): Promise<number[]> {
-        const contract = await dataSource
-            .getRepository('contracts')
-            .createQueryBuilder('c')
-            .where('c.id = :id', { id: contractId })
-            .getOne();
-
-        if (!contract) return [];
-
-        const taskUsers: UserIds[] = await dataSource
-            .getRepository('contract_tasks')
-            .createQueryBuilder('t')
-            .select('DISTINCT t.assigned_to_id', 'userId')
-            .where('t.contract_id = :id', { id: contractId })
-            .getRawMany();
-
-        const phaseUsers: UserIds[] = await dataSource
-            .getRepository('contract_phases')
-            .createQueryBuilder('p')
-            .select('DISTINCT p.assigned_to_id', 'userId')
-            .where('p.contract_id = :id', { id: contractId })
-            .getRawMany();
-
-        const ids = new Set<number>();
-        if (contract.created_by) ids.add(contract.created_by);
-
-        taskUsers.forEach((u) => u.userId && ids.add(Number(u.userId)));
-        phaseUsers.forEach((u) => u.userId && ids.add(Number(u.userId)));
-
-        return Array.from(ids);
     }
 }
