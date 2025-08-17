@@ -1,5 +1,5 @@
-import axios from "axios";
-import { ConfigManager } from "./ConfigManager";
+import axios from 'axios';
+import { ConfigManager } from './ConfigManager';
 
 export class SessionManager {
     private static instance: SessionManager;
@@ -13,13 +13,13 @@ export class SessionManager {
     private lastApiActivity: number = Date.now();
     private isWarningShown = false;
 
-    private readonly BROWSER_IDLE_TIMEOUT = 45 * 60 * 1000; // 45 minutes - browser events
-    private readonly API_IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes - API calls
-    private readonly WARNING_BEFORE_LOGOUT = 5 * 60 * 1000; // 5 minutes warning
+    private readonly BROWSER_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes - browser events
+    private readonly API_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes - API calls
+    private readonly WARNING_BEFORE_LOGOUT = 60 * 1000; // 1 minute warning
     private readonly ACTIVITY_UPDATE_INTERVAL = 3 * 60 * 1000; // 3 minutes
 
     private constructor() {
-        this.broadcastChannel = new BroadcastChannel("auth-channel");
+        this.broadcastChannel = new BroadcastChannel('auth-channel');
         this.setupEventListeners();
         this.startIdleDetection();
     }
@@ -35,7 +35,7 @@ export class SessionManager {
         this.sessionId = sessionId;
         this.resetAllActivity();
         this.startActivityUpdates();
-        console.log("[SessionManager] Session started:", sessionId);
+        console.log('[SessionManager] Session started:', sessionId);
     }
 
     getSessionId(): string | null {
@@ -46,7 +46,7 @@ export class SessionManager {
         this.sessionId = null;
         this.stopAllTimers();
         this.isWarningShown = false;
-        console.log("[SessionManager] Session cleared");
+        console.log('[SessionManager] Session cleared');
     }
 
     // ✅ Method để track API activity
@@ -57,7 +57,7 @@ export class SessionManager {
         // Nếu có API activity, cũng reset browser idle
         this.resetBrowserIdleTimer();
 
-        console.log("[SessionManager] API activity tracked");
+        console.log('[SessionManager] API activity tracked');
     }
 
     // ✅ Method để track browser activity
@@ -70,41 +70,41 @@ export class SessionManager {
             this.clearIdleWarning();
         }
 
-        console.log("[SessionManager] Browser activity tracked");
+        console.log('[SessionManager] Browser activity tracked');
     }
 
     // ✅ Broadcast methods
-    broadcastLogout(reason: "manual" | "idle" | "api-timeout" | "browser-timeout" = "manual"): void {
+    broadcastLogout(reason: 'manual' | 'idle' | 'api-timeout' | 'browser-timeout' = 'manual'): void {
         this.broadcastChannel.postMessage({
-            type: "LOGOUT",
+            type: 'LOGOUT',
             reason,
             timestamp: Date.now(),
         });
-        console.log("[SessionManager] Logout broadcasted:", reason);
+        console.log('[SessionManager] Logout broadcasted:', reason);
     }
 
     broadcastLogin(sessionId: string): void {
         this.broadcastChannel.postMessage({
-            type: "LOGIN",
+            type: 'LOGIN',
             sessionId,
             timestamp: Date.now(),
         });
-        console.log("[SessionManager] Login broadcasted:", sessionId);
+        console.log('[SessionManager] Login broadcasted:', sessionId);
     }
 
     // ✅ Warning system
-    private showIdleWarning(timeoutType: "browser" | "api"): void {
+    private showIdleWarning(timeoutType: 'browser' | 'api'): void {
         if (this.isWarningShown) return;
 
         this.isWarningShown = true;
         const message =
-            timeoutType === "api"
+            timeoutType === 'api'
                 ? "You haven't performed any actions recently. You'll be logged out in 5 minutes for security."
                 : "You appear to be inactive. You'll be logged out in 5 minutes for security.";
 
         // Dispatch custom event for UI to show warning
         window.dispatchEvent(
-            new CustomEvent("auth:idle-warning", {
+            new CustomEvent('auth:idle-warning', {
                 detail: { message, timeoutType, remainingTime: this.WARNING_BEFORE_LOGOUT },
             }),
         );
@@ -114,7 +114,7 @@ export class SessionManager {
             this.handleIdleTimeout(timeoutType);
         }, this.WARNING_BEFORE_LOGOUT);
 
-        console.log("[SessionManager] Idle warning shown:", timeoutType);
+        console.log('[SessionManager] Idle warning shown:', timeoutType);
     }
 
     private clearIdleWarning(): void {
@@ -127,30 +127,30 @@ export class SessionManager {
         }
 
         // Dispatch event to hide warning
-        window.dispatchEvent(new CustomEvent("auth:idle-warning-cleared"));
-        console.log("[SessionManager] Idle warning cleared");
+        window.dispatchEvent(new CustomEvent('auth:idle-warning-cleared'));
+        console.log('[SessionManager] Idle warning cleared');
     }
 
     private setupEventListeners(): void {
         // ✅ Listen for messages from other tabs
-        this.broadcastChannel.addEventListener("message", (event) => {
+        this.broadcastChannel.addEventListener('message', (event) => {
             const { type, sessionId, reason } = event.data;
 
             switch (type) {
-                case "LOGOUT":
-                    console.log("[SessionManager] Received logout broadcast:", reason);
-                    window.dispatchEvent(new CustomEvent("auth:logout", { detail: { reason } }));
+                case 'LOGOUT':
+                    console.log('[SessionManager] Received logout broadcast:', reason);
+                    window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason } }));
                     break;
 
-                case "LOGIN":
-                    console.log("[SessionManager] Received login broadcast:", sessionId);
+                case 'LOGIN':
+                    console.log('[SessionManager] Received login broadcast:', sessionId);
                     this.setSessionId(sessionId);
                     break;
             }
         });
 
         // ✅ Browser activity events
-        const activityEvents = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click", "focus", "blur"];
+        const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click', 'focus', 'blur'];
 
         const throttledBrowserActivity = this.throttle(() => {
             this.trackBrowserActivity();
@@ -161,15 +161,34 @@ export class SessionManager {
         });
 
         // ✅ Page visibility change
-        document.addEventListener("visibilitychange", () => {
+        document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 this.trackBrowserActivity();
             }
         });
 
         // ✅ Before unload cleanup
-        window.addEventListener("beforeunload", () => {
-            this.cleanup();
+        window.addEventListener('beforeunload', () => {
+            try {
+                const baseURL = ConfigManager.getInstance().getApiConfig().baseURL;
+                const url = `${baseURL.replace(/\/$/, '')}/auth/logout`;
+                navigator.sendBeacon?.(url, JSON.stringify({ reason: 'tab-close' }));
+            } catch (err) {
+                console.error('[SessionManager] Logout beacon error:', err);
+                // optional fallback luôn
+                try {
+                    fetch('/auth/logout', {
+                        method: 'POST',
+                        body: JSON.stringify({ reason: 'tab-close' }),
+                        headers: { 'Content-Type': 'application/json' },
+                        keepalive: true,
+                    });
+                } catch (fallbackErr) {
+                    console.error('[SessionManager] Final fallback logout failed:', fallbackErr);
+                }
+            } finally {
+                this.cleanup();
+            }
         });
     }
 
@@ -192,8 +211,8 @@ export class SessionManager {
         }
 
         this.browserIdleTimer = setTimeout(() => {
-            console.log("[SessionManager] Browser idle timeout detected");
-            this.showIdleWarning("browser");
+            console.log('[SessionManager] Browser idle timeout detected');
+            this.showIdleWarning('browser');
         }, this.BROWSER_IDLE_TIMEOUT - this.WARNING_BEFORE_LOGOUT);
     }
 
@@ -203,8 +222,8 @@ export class SessionManager {
         }
 
         this.apiIdleTimer = setTimeout(() => {
-            console.log("[SessionManager] API idle timeout detected");
-            this.showIdleWarning("api");
+            console.log('[SessionManager] API idle timeout detected');
+            this.showIdleWarning('api');
         }, this.API_IDLE_TIMEOUT - this.WARNING_BEFORE_LOGOUT);
     }
 
@@ -228,7 +247,7 @@ export class SessionManager {
             try {
                 await this.updateServerActivity();
             } catch (error) {
-                console.error("[SessionManager] Failed to update server activity:", error);
+                console.error('[SessionManager] Failed to update server activity:', error);
             }
         }, this.ACTIVITY_UPDATE_INTERVAL);
     }
@@ -244,7 +263,7 @@ export class SessionManager {
         try {
             const config = ConfigManager.getInstance().getApiConfig();
 
-            console.log("[AuthManager] Sending updateServerActivity request");
+            console.log('[AuthManager] Sending updateServerActivity request');
 
             const res = await axios.post(
                 `${config.baseURL}auth/update-activity`,
@@ -254,22 +273,22 @@ export class SessionManager {
                 },
                 {
                     withCredentials: true,
-                    headers: { "Content-Type": "application/json" },
+                    headers: { 'Content-Type': 'application/json' },
                     timeout: config.timeout,
                 },
             );
 
-            console.log("[SessionManager] Server activity updated", res.data);
+            console.log('[SessionManager] Server activity updated', res.data);
         } catch (error) {
-            console.error("[SessionManager] Activity update failed:", error);
+            console.error('[SessionManager] Activity update failed:', error);
         }
     }
 
-    private handleIdleTimeout(type: "browser" | "api"): void {
-        const reason = type === "api" ? "api-timeout" : "browser-timeout";
+    private handleIdleTimeout(type: 'browser' | 'api'): void {
+        const reason = type === 'api' ? 'api-timeout' : 'browser-timeout';
         this.broadcastLogout(reason);
         window.dispatchEvent(
-            new CustomEvent("auth:idle-timeout", {
+            new CustomEvent('auth:idle-timeout', {
                 detail: { type, reason },
             }),
         );
@@ -296,7 +315,7 @@ export class SessionManager {
     // ✅ Public methods for manual control
     extendSession(): void {
         this.resetAllActivity();
-        console.log("[SessionManager] Session manually extended");
+        console.log('[SessionManager] Session manually extended');
     }
 
     getActivityStatus(): {

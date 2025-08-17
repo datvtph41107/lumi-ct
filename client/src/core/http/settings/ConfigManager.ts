@@ -1,21 +1,21 @@
-import type { ApiConfig, AuthConfig } from "../../types/api.types";
+import type { ApiConfig, AuthConfig } from '../../types/api.types';
 
 export class ConfigManager {
     private static instance: ConfigManager;
     private apiConfig: ApiConfig;
     private authConfig: AuthConfig;
-    private BASE_URL = import.meta.env.VITE_LOCAL_API_URL || "http://localhost:3001/api/v1";
+    private BASE_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:3001/api/v1';
     private constructor() {
         this.apiConfig = {
             baseURL: this.BASE_URL,
             timeout: 10000,
-            enableLogging: import.meta.env.NODE_ENV === "dev",
+            enableLogging: import.meta.env.NODE_ENV === 'dev',
         };
 
         this.authConfig = {
-            loginEndpoint: "auth/login",
-            refreshEndpoint: "auth/refresh",
-            logoutEndpoint: "auth/logout",
+            loginEndpoint: 'auth/login',
+            refreshEndpoint: 'auth/refresh-token',
+            logoutEndpoint: 'auth/logout',
         };
     }
 
