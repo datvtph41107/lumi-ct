@@ -41,6 +41,12 @@ class ContractService extends BaseService {
         return response;
     }
 
+    // Overload cho id chuỗi (uuid)
+    async getContractById(id: string): Promise<{ data: any }> {
+        const response = await this.get<any>(`/${id}`);
+        return response;
+    }
+
     async updateContract(id: number, data: UpdateContractDto): Promise<{ data: Contract }> {
         // Check permission
         if (!authCoreService.canUpdateContract(id)) {
@@ -355,6 +361,18 @@ class ContractService extends BaseService {
         }
 
         const response = await this.get<any>('/statistics');
+        return response;
+    }
+
+    // Dashboard stats (server: GET /contracts/dashboard/stats)
+    async getDashboardStats(): Promise<{ data: any }> {
+        const response = await this.get<any>('/dashboard/stats');
+        return response;
+    }
+
+    // Contract analytics (server: GET /contracts/:id/analytics)
+    async getContractAnalytics(id: string): Promise<{ data: any }> {
+        const response = await this.get<any>(`/${id}/analytics`);
         return response;
     }
 
