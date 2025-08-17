@@ -9,7 +9,7 @@ interface PermissionGuardProps {
     children: React.ReactNode;
     resource: string;
     action: string;
-    context?: Record<string, any>;
+    context?: Record<string, unknown>;
     fallback?: React.ReactNode;
     showFallback?: boolean;
     loadingFallback?: React.ReactNode;
@@ -66,7 +66,7 @@ function createContractGuard(action: string) {
     }: {
         children: React.ReactNode;
         contractId?: number;
-        context?: Record<string, any>;
+        context?: Record<string, unknown>;
         fallback?: React.ReactNode;
         loadingFallback?: React.ReactNode;
     }) => (
