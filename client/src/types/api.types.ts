@@ -1,10 +1,5 @@
 // Base API Types
-export interface ApiResponse<T = unknown> {
-    data: T;
-    message?: string;
-    success: boolean;
-    statusCode: number;
-}
+export type ApiResponse<T = unknown> = import('~/core/types/api.types').ApiResponse<T>;
 
 export interface ApiError {
     message: string;
