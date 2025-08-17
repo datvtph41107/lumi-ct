@@ -13,9 +13,9 @@ export class SessionManager {
     private lastApiActivity: number = Date.now();
     private isWarningShown = false;
 
-    private readonly BROWSER_IDLE_TIMEOUT = 45 * 60 * 1000; // 45 minutes - browser events
-    private readonly API_IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes - API calls
-    private readonly WARNING_BEFORE_LOGOUT = 5 * 60 * 1000; // 5 minutes warning
+    private readonly BROWSER_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes - browser events
+    private readonly API_IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes - API calls
+    private readonly WARNING_BEFORE_LOGOUT = 60 * 1000; // 1 minute warning
     private readonly ACTIVITY_UPDATE_INTERVAL = 3 * 60 * 1000; // 3 minutes
 
     private constructor() {
@@ -169,6 +169,11 @@ export class SessionManager {
 
         // ✅ Before unload cleanup
         window.addEventListener("beforeunload", () => {
+            try {
+                const baseURL = ConfigManager.getInstance().getApiConfig().baseURL;
+                const url = `${baseURL.replace(/\/$/, '')}/auth/logout`;
+                navigator.sendBeacon?.(url, JSON.stringify({ reason: "tab-close" }));
+            } catch {}
             this.cleanup();
         });
     }
