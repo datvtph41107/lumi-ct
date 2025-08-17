@@ -1,0 +1,310 @@
+.contract-templates {
+  .templates-header {
+    margin-bottom: 24px;
+    text-align: center;
+
+    h4 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    p {
+      margin: 0;
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.5;
+    }
+  }
+
+  .templates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .template-item {
+      background-color: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+
+      &:hover {
+        border-color: #cbd5e0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      &.selected {
+        border-color: #3182ce;
+        background-color: #ebf8ff;
+        box-shadow: 0 4px 12px rgba(49, 130, 206, 0.2);
+
+        .template-selected {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .template-header {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        position: relative;
+
+        .template-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background-color: #f7fafc;
+          border-radius: 12px;
+          margin-right: 16px;
+          color: #3182ce;
+          flex-shrink: 0;
+
+          svg {
+            font-size: 20px;
+          }
+        }
+
+        .template-info {
+          flex: 1;
+          min-width: 0;
+
+          .template-name {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            line-height: 1.3;
+          }
+
+          .template-description {
+            margin: 0;
+            font-size: 14px;
+            color: #718096;
+            line-height: 1.5;
+          }
+        }
+
+        .template-selected {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 32px;
+          height: 32px;
+          background-color: #3182ce;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transform: scale(0.8);
+          transition: all 0.2s ease;
+
+          svg {
+            font-size: 14px;
+          }
+        }
+      }
+
+      .template-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+
+        .template-tag {
+          padding: 4px 12px;
+          background-color: #f7fafc;
+          color: #4a5568;
+          border-radius: 16px;
+          font-size: 12px;
+          font-weight: 500;
+          border: 1px solid #e2e8f0;
+        }
+      }
+
+      .template-actions {
+        display: flex;
+        gap: 12px;
+
+        .template-action-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border: 1px solid #e2e8f0;
+          background-color: white;
+          color: #4a5568;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+
+          &:hover {
+            background-color: #f7fafc;
+            border-color: #cbd5e0;
+            transform: translateY(-1px);
+          }
+
+          &:active {
+            transform: translateY(0);
+          }
+
+          &.preview-btn:hover {
+            border-color: #38a169;
+            color: #38a169;
+          }
+
+          &.download-btn:hover {
+            border-color: #3182ce;
+            color: #3182ce;
+          }
+
+          svg {
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+
+  .no-templates {
+    text-align: center;
+    padding: 40px 20px;
+    color: #718096;
+
+    p {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 768px) {
+    .templates-header {
+      margin-bottom: 20px;
+
+      h4 {
+        font-size: 16px;
+      }
+
+      p {
+        font-size: 13px;
+      }
+    }
+
+    .templates-list {
+      gap: 12px;
+
+      .template-item {
+        padding: 16px;
+
+        .template-header {
+          margin-bottom: 12px;
+
+          .template-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 12px;
+
+            svg {
+              font-size: 18px;
+            }
+          }
+
+          .template-info {
+            .template-name {
+              font-size: 15px;
+            }
+
+            .template-description {
+              font-size: 13px;
+            }
+          }
+
+          .template-selected {
+            width: 28px;
+            height: 28px;
+
+            svg {
+              font-size: 12px;
+            }
+          }
+        }
+
+        .template-tags {
+          margin-bottom: 12px;
+
+          .template-tag {
+            font-size: 11px;
+            padding: 3px 10px;
+          }
+        }
+
+        .template-actions {
+          gap: 8px;
+
+          .template-action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+
+            svg {
+              font-size: 11px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .templates-list {
+      .template-item {
+        padding: 12px;
+
+        .template-header {
+          .template-icon {
+            width: 36px;
+            height: 36px;
+            margin-right: 10px;
+
+            svg {
+              font-size: 16px;
+            }
+          }
+
+          .template-info {
+            .template-name {
+              font-size: 14px;
+            }
+
+            .template-description {
+              font-size: 12px;
+            }
+          }
+        }
+
+        .template-actions {
+          flex-direction: column;
+          gap: 6px;
+
+          .template-action-btn {
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+}

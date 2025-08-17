@@ -1,0 +1,309 @@
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background-color: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+
+  .editor-header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+    .sidebar-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background-color: #f7fafc;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #4a5568;
+
+      &:hover {
+        background-color: #edf2f7;
+        color: #2d3748;
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      svg {
+        font-size: 16px;
+      }
+    }
+
+    .editor-title {
+      h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: #2d3748;
+      }
+    }
+  }
+
+  .editor-header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    margin: 0 40px;
+
+    .formatting-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: #f7fafc;
+      border-radius: 8px;
+      padding: 8px;
+      border: 1px solid #e2e8f0;
+
+      .toolbar-group {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        padding: 0 4px;
+
+        &:not(:last-child) {
+          border-right: 1px solid #e2e8f0;
+          padding-right: 8px;
+        }
+
+        .toolbar-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          background-color: transparent;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          color: #4a5568;
+
+          &:hover {
+            background-color: #edf2f7;
+            color: #2d3748;
+          }
+
+          &:active {
+            background-color: #e2e8f0;
+            transform: scale(0.95);
+          }
+
+          &.active {
+            background-color: #3182ce;
+            color: white;
+          }
+
+          svg {
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+
+  .editor-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-decoration: none;
+
+      &.save-btn {
+        background-color: #3182ce;
+        color: white;
+
+        &:hover {
+          background-color: #2c5aa0;
+          transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+
+      svg {
+        font-size: 14px;
+      }
+    }
+
+    .export-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .action-btn {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        justify-content: center;
+        background-color: #f7fafc;
+        color: #4a5568;
+        border: 1px solid #e2e8f0;
+
+        &:hover {
+          background-color: #edf2f7;
+          color: #2d3748;
+          transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+
+        &.print-btn:hover {
+          background-color: #38a169;
+          color: white;
+          border-color: #38a169;
+        }
+
+        &.pdf-btn:hover {
+          background-color: #e53e3e;
+          color: white;
+          border-color: #e53e3e;
+        }
+
+        &.word-btn:hover {
+          background-color: #2b6cb0;
+          color: white;
+          border-color: #2b6cb0;
+        }
+      }
+    }
+  }
+
+  // Responsive design
+  @media (max-width: 1200px) {
+    .editor-header-center {
+      margin: 0 20px;
+
+      .formatting-toolbar {
+        .toolbar-group {
+          &:nth-child(n+4) {
+            display: none;
+          }
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+
+    .editor-header-left {
+      gap: 12px;
+
+      .editor-title h2 {
+        font-size: 18px;
+      }
+    }
+
+    .editor-header-center {
+      order: 3;
+      margin: 0;
+      flex-basis: 100%;
+      justify-content: flex-start;
+
+      .formatting-toolbar {
+        flex-wrap: wrap;
+        gap: 4px;
+
+        .toolbar-group {
+          &:nth-child(n+3) {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .editor-header-right {
+      gap: 8px;
+
+      .action-btn.save-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+
+        span {
+          display: none;
+        }
+      }
+
+      .export-actions {
+        .action-btn {
+          width: 36px;
+          height: 36px;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .editor-header-left {
+      .sidebar-toggle-btn {
+        width: 36px;
+        height: 36px;
+      }
+
+      .editor-title h2 {
+        font-size: 16px;
+      }
+    }
+
+    .editor-header-center {
+      .formatting-toolbar {
+        padding: 6px;
+        gap: 4px;
+
+        .toolbar-group {
+          .toolbar-btn {
+            width: 28px;
+            height: 28px;
+
+            svg {
+              font-size: 12px;
+            }
+          }
+        }
+      }
+    }
+
+    .editor-header-right {
+      .action-btn.save-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      .export-actions {
+        .action-btn {
+          width: 32px;
+          height: 32px;
+        }
+      }
+    }
+  }
+}
