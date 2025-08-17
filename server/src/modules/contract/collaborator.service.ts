@@ -167,7 +167,7 @@ export class CollaboratorService {
             active: collab.active,
             user_name: `User ${collab.user_id}`, // Placeholder
             user_email: `user${collab.user_id}@example.com`, // Placeholder
-            user_avatar: null,
+            user_avatar: null as any,
             created_at: collab.created_at,
             updated_at: collab.updated_at,
         }));

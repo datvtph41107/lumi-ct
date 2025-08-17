@@ -23,28 +23,28 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { ContractDraftService } from './contract-draft.service';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            Contract,
-            ContractDraft,
-            Milestone,
-            Task,
-            ContractFile,
-            ContractTemplate,
-            ContractContent,
-            ContractVersion,
-            Collaborator,
-            AuditLog,
-        ]),
-    ],
-    controllers: [ContractController, ContractDraftController],
-    providers: [
-        ContractService,
-        AuditLogService,
-        CollaboratorService,
-        ContractDraftService,
-        { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
-    ],
-    exports: [ContractService, CollaboratorService, AuditLogService, ContractDraftService],
+	imports: [
+		TypeOrmModule.forFeature([
+			Contract,
+			ContractDraft,
+			Milestone,
+			Task,
+			ContractFile,
+			ContractTemplate,
+			ContractContent,
+			ContractVersion,
+			Collaborator,
+			AuditLog,
+		]),
+	],
+	controllers: [ContractController, ContractDraftController],
+	providers: [
+		ContractService,
+		AuditLogService,
+		CollaboratorService,
+		ContractDraftService,
+		{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+	],
+	exports: [ContractService, CollaboratorService, AuditLogService, ContractDraftService],
 })
 export class ContractsModule {}

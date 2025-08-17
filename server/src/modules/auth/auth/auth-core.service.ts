@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '../domain/auth/role.entity';
-import { Permission } from '../domain/auth/permission.entity';
-import { UserRole } from '../domain/auth/user-role.entity';
-import { User } from '../domain/user/user.entity';
-import { UserSession } from '../domain/auth/user-session.entity';
+import { Role } from '@/core/domain/permission/role.entity';
+import { Permission } from '@/core/domain/permission/permission.entity';
+import { UserRole } from '@/core/domain/permission/user-role.entity';
+import { User } from '@/core/domain/user/user.entity';
+import { UserSession } from '@/core/domain/user/user-session.entity';
 
 export interface PermissionCheck {
     resource: string;

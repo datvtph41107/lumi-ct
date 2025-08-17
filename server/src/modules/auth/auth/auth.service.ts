@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { User } from '../../core/domain/user/user.entity';
-import { UserSession } from '../../core/domain/auth/user-session.entity';
+import { UserSession } from '../../core/domain/user/user-session.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';

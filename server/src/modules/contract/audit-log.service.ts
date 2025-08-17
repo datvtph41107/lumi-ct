@@ -4,7 +4,7 @@ import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
 export interface CreateAuditLogDto {
-    contract_id?: string;
+    contract_id?: string | number;
     user_id?: number;
     action: string;
     meta?: Record<string, any>;
@@ -13,7 +13,7 @@ export interface CreateAuditLogDto {
 
 export interface AuditLogWithUser {
     id: string;
-    contract_id?: string;
+    contract_id?: string | number;
     user_id?: number;
     action: string;
     meta?: Record<string, any>;
@@ -21,7 +21,7 @@ export interface AuditLogWithUser {
     created_at: Date;
     user_name?: string;
     user_email?: string;
-    user_avatar?: string;
+    user_avatar?: string | null;
 }
 
 export interface AuditLogFilters {
@@ -55,7 +55,7 @@ export class AuditLogService {
             throw new BadRequestException('Action is required to create audit log');
         }
         try {
-            const ent = this.repo.create(payload);
+            const ent = this.repo.create(payload as any);
             const saved = await this.repo.save(ent);
 
             this.logger.APP.info('Audit log created', {

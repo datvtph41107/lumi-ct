@@ -1,5 +1,5 @@
 import { Department } from '@/core/domain/department';
-import { UserPermission } from '@/core/domain/permission';
+import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import { User } from '@/core/domain/user';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
