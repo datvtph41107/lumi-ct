@@ -32,11 +32,7 @@ export interface LoginRequest {
 }
 
 export type LoginCredentials = LoginRequest;
-export interface RegisterData {
-    username: string;
-    password: string;
-    email?: string;
-}
+// RegisterData interface removed - users are created by administrators only
 
 export interface LoginResponse {
     user: User;

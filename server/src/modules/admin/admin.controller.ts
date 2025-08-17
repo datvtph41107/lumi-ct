@@ -1,160 +1,274 @@
-import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
-import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
-import { AdminService } from './admin.service';
-import { CreateUserRequest } from '@/core/dto/user/user.request';
-import { AuthCoreService } from '../auth/auth/auth-core.service';
+import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Res, HttpStatus } from '@nestjs/common';
+import { Response } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionGuard } from '../../core/guards/permission.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { User } from '../../core/domain/user/user.entity';
+import { UserManagementService, CreateUserDto, UpdateUserDto, UserFiltersDto } from './user-management.service';
+import { PermissionManagementService } from './permission-management.service';
+import { SystemSettingsService } from './system-settings.service';
+import { AuditLogService } from './audit-log.service';
 
 @Controller('admin')
-@UseGuards(AuthGuardAccess)
+@UseGuards(JwtAuthGuard, PermissionGuard)
 export class AdminController {
     constructor(
-        @Inject('LOGGER') private readonly logger: LoggerTypes,
-        private readonly adminService: AdminService,
-        private readonly authCore: AuthCoreService,
+        private readonly userManagementService: UserManagementService,
+        private readonly permissionManagementService: PermissionManagementService,
+        private readonly systemSettingsService: SystemSettingsService,
+        private readonly auditLogService: AuditLogService,
     ) {}
 
-    // ==== Departments (existing) ====
-    @Get('departments')
-    async getAllDepartments() {
-        const result = await this.adminService.getAllDepartments();
-        return result;
-    }
-
-    @Get('departments/:id')
-    async getDepartment(@Param('id') id: number) {
-        this.logger.APP.info('Parameters: ', id);
-        const result = await this.adminService.getOneDepartment(id);
-        return result;
-    }
-
-    @Put('departments/:id')
-    async updateManagerDepartment(@Param('id') idDepartment: number, @Body() req: any) {
-        this.logger.APP.info('Parameters: ', idDepartment);
-        const result = await this.adminService.updateManagerDepartment(idDepartment, req.id_manager);
-        return result;
-    }
-
-    @Post('departments/manager')
-    async createManagerUser(@Body() req: CreateUserRequest) {
-        this.logger.APP.info('Create department Req -> data: ' + JSON.stringify(req));
-        const result = await this.adminService.createManagerUser(req);
-        return result;
-    }
-
-    // ==== Users management ====
+    // User Management Endpoints
     @Get('users')
-    async listUsers(@Query() query: any) {
-        // TODO: replace with real repo query (search/role/departmentId)
-        return { data: [], total: 0 };
-    }
-
-    @Post('users')
-    async createUser(@Body() body: any) {
-        // TODO: implement real create
-        return { id: Date.now(), ...body };
-    }
-
-    @Put('users/:id')
-    async updateUser(@Param('id') id: string, @Body() body: any) {
-        // TODO: implement real update
-        return { id, ...body };
-    }
-
-    @Delete('users/:id')
-    async deactivateUser(@Param('id') id: string) {
-        // TODO: implement deactivate
-        return { success: true };
-    }
-
-    @Get('users/:id/roles')
-    async getUserRoles(@Param('id') id: string) {
-        const roles = await this.authCore.getUserRoles(Number(id));
-        return { roles: roles.map((r) => r.role?.name || '') };
-    }
-
-    @Post('users/:id/roles')
-    async assignUserRoles(
-        @Param('id') id: string,
-        @Body() body: { roles: Array<{ roleId: string; scope?: string; scopeId?: number }> },
-    ) {
-        await this.authCore.updateUserRoles(Number(id), body.roles || []);
-        return { success: true };
-    }
-
-    @Get('users/:id/permissions')
-    async getEffectivePermissions(@Param('id') id: string) {
-        const perms = await this.authCore.getUserPermissions(Number(id));
+    async getUsers(@Query() filters: UserFiltersDto, @CurrentUser() currentUser: User) {
+        const result = await this.userManagementService.getUsers(filters, currentUser);
+        
         return {
-            permissions: (perms?.permissions || []).map((p) => ({
-                resource: p.resource,
-                action: p.action,
-                conditions: p.conditions_schema,
-            })),
+            success: true,
+            message: 'Lấy danh sách người dùng thành công',
+            data: result,
         };
     }
 
-    // ==== Roles & permissions ====
+    @Get('users/:id')
+    async getUser(@Param('id') userId: string, @CurrentUser() currentUser: User) {
+        const user = await this.userManagementService.getUser(userId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Lấy thông tin người dùng thành công',
+            data: user,
+        };
+    }
+
+    @Post('users')
+    async createUser(@Body() userData: CreateUserDto, @CurrentUser() currentUser: User) {
+        const user = await this.userManagementService.createUser(userData, currentUser);
+        
+        return {
+            success: true,
+            message: 'Tạo người dùng thành công',
+            data: user,
+        };
+    }
+
+    @Put('users/:id')
+    async updateUser(
+        @Param('id') userId: string,
+        @Body() userData: UpdateUserDto,
+        @CurrentUser() currentUser: User
+    ) {
+        const user = await this.userManagementService.updateUser(userId, userData, currentUser);
+        
+        return {
+            success: true,
+            message: 'Cập nhật người dùng thành công',
+            data: user,
+        };
+    }
+
+    @Delete('users/:id')
+    async deleteUser(@Param('id') userId: string, @CurrentUser() currentUser: User) {
+        await this.userManagementService.deleteUser(userId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Xóa người dùng thành công',
+        };
+    }
+
+    @Post('users/bulk-delete')
+    async bulkDeleteUsers(@Body() body: { userIds: string[] }, @CurrentUser() currentUser: User) {
+        await this.userManagementService.bulkDeleteUsers(body.userIds, currentUser);
+        
+        return {
+            success: true,
+            message: `Xóa ${body.userIds.length} người dùng thành công`,
+        };
+    }
+
+    @Patch('users/:id/activate')
+    async activateUser(@Param('id') userId: string, @CurrentUser() currentUser: User) {
+        const user = await this.userManagementService.activateUser(userId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Kích hoạt người dùng thành công',
+            data: user,
+        };
+    }
+
+    @Patch('users/:id/deactivate')
+    async deactivateUser(@Param('id') userId: string, @CurrentUser() currentUser: User) {
+        const user = await this.userManagementService.deactivateUser(userId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Vô hiệu hóa người dùng thành công',
+            data: user,
+        };
+    }
+
+    @Post('users/:id/reset-password')
+    async resetPassword(@Param('id') userId: string, @CurrentUser() currentUser: User) {
+        const result = await this.userManagementService.resetPassword(userId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Đặt lại mật khẩu thành công',
+            data: result,
+        };
+    }
+
+    @Post('users/:id/assign-role')
+    async assignRole(
+        @Param('id') userId: string,
+        @Body() body: { role: string },
+        @CurrentUser() currentUser: User
+    ) {
+        await this.userManagementService.assignRole(userId, body.role, currentUser);
+        
+        return {
+            success: true,
+            message: 'Phân quyền thành công',
+        };
+    }
+
+    // Permission Management Endpoints
     @Get('roles')
-    async listRoles() {
-        // TODO: fetch from role repo; simplified response
-        return { data: [], total: 0 };
+    async getRoles(@CurrentUser() currentUser: User) {
+        const roles = await this.permissionManagementService.getRoles();
+        
+        return {
+            success: true,
+            message: 'Lấy danh sách vai trò thành công',
+            data: roles,
+        };
+    }
+
+    @Get('permissions')
+    async getPermissions(@CurrentUser() currentUser: User) {
+        const permissions = await this.permissionManagementService.getPermissions();
+        
+        return {
+            success: true,
+            message: 'Lấy danh sách quyền thành công',
+            data: permissions,
+        };
     }
 
     @Post('roles')
-    async createRole(
-        @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
-    ) {
-        // TODO: implement real create
-        return { id: body.name || `role-${Date.now()}`, ...body };
+    async createRole(@Body() roleData: any, @CurrentUser() currentUser: User) {
+        const role = await this.permissionManagementService.createRole(roleData, currentUser);
+        
+        return {
+            success: true,
+            message: 'Tạo vai trò thành công',
+            data: role,
+        };
     }
 
     @Put('roles/:id')
-    async updateRole(
-        @Param('id') id: string,
-        @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
-    ) {
-        // TODO: implement real update
-        return { id, ...body };
+    async updateRole(@Param('id') roleId: string, @Body() roleData: any, @CurrentUser() currentUser: User) {
+        const role = await this.permissionManagementService.updateRole(roleId, roleData, currentUser);
+        
+        return {
+            success: true,
+            message: 'Cập nhật vai trò thành công',
+            data: role,
+        };
     }
 
     @Delete('roles/:id')
-    async deleteRole(@Param('id') id: string) {
-        // TODO: implement real delete
-        return { success: true };
-    }
-
-    @Get('roles/:id/permissions')
-    async getRolePermissions(@Param('id') id: string) {
-        // TODO: fetch role->permissions mapping
-        return { permissions: [] };
-    }
-
-    @Put('roles/:id/permissions')
-    async setRolePermissions(
-        @Param('id') id: string,
-        @Body() body: { permissions: Array<{ resource: string; action: string; conditions?: any }> },
-    ) {
-        // TODO: assign permissions to role
-        return { success: true };
-    }
-
-    @Get('permissions/catalog')
-    async getPermissionCatalog() {
+    async deleteRole(@Param('id') roleId: string, @CurrentUser() currentUser: User) {
+        await this.permissionManagementService.deleteRole(roleId, currentUser);
+        
         return {
-            resources: ['contract', 'template', 'dashboard', 'audit', 'user', 'notification'],
-            actions: [
-                'create',
-                'read',
-                'update',
-                'delete',
-                'approve',
-                'reject',
-                'export',
-                'manage',
-                'analytics',
-                'view',
-            ],
+            success: true,
+            message: 'Xóa vai trò thành công',
+        };
+    }
+
+    // System Settings Endpoints
+    @Get('settings')
+    async getSystemSettings(@CurrentUser() currentUser: User) {
+        const settings = await this.systemSettingsService.getSettings();
+        
+        return {
+            success: true,
+            message: 'Lấy cài đặt hệ thống thành công',
+            data: settings,
+        };
+    }
+
+    @Put('settings')
+    async updateSystemSettings(@Body() settings: any, @CurrentUser() currentUser: User) {
+        const updatedSettings = await this.systemSettingsService.updateSettings(settings, currentUser);
+        
+        return {
+            success: true,
+            message: 'Cập nhật cài đặt hệ thống thành công',
+            data: updatedSettings,
+        };
+    }
+
+    // Audit Log Endpoints
+    @Get('audit-logs')
+    async getAuditLogs(@Query() filters: any, @CurrentUser() currentUser: User) {
+        const logs = await this.auditLogService.getLogs(filters, currentUser);
+        
+        return {
+            success: true,
+            message: 'Lấy nhật ký hoạt động thành công',
+            data: logs,
+        };
+    }
+
+    @Get('audit-logs/:id')
+    async getAuditLog(@Param('id') logId: string, @CurrentUser() currentUser: User) {
+        const log = await this.auditLogService.getLog(logId, currentUser);
+        
+        return {
+            success: true,
+            message: 'Lấy chi tiết nhật ký thành công',
+            data: log,
+        };
+    }
+
+    // Export Endpoints
+    @Get('users/export')
+    async exportUsers(@Query() filters: UserFiltersDto, @Query('format') format: string, @Res() res: Response, @CurrentUser() currentUser: User) {
+        const data = await this.userManagementService.exportUsers(filters, format as 'csv' | 'excel');
+        
+        const filename = `users_${new Date().toISOString().split('T')[0]}.${format}`;
+        
+        res.setHeader('Content-Type', format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        
+        res.send(data);
+    }
+
+    // Dashboard Endpoints
+    @Get('dashboard/stats')
+    async getDashboardStats(@CurrentUser() currentUser: User) {
+        const stats = await this.systemSettingsService.getDashboardStats(currentUser);
+        
+        return {
+            success: true,
+            message: 'Lấy thống kê dashboard thành công',
+            data: stats,
+        };
+    }
+
+    @Get('dashboard/activity')
+    async getDashboardActivity(@Query() filters: any, @CurrentUser() currentUser: User) {
+        const activity = await this.auditLogService.getRecentActivity(filters, currentUser);
+        
+        return {
+            success: true,
+            message: 'Lấy hoạt động gần đây thành công',
+            data: activity,
         };
     }
 }
