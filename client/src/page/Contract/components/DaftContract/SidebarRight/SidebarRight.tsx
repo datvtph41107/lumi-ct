@@ -11,13 +11,7 @@ import {
 	faPrint,
 	faDownload,
 	faEdit,
-	faTrash,
-	faUser,
-	faCalendarAlt,
 	faFileAlt,
-	faCheckCircle,
-	faExclamationTriangle,
-	faClock,
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './SidebarRight.module.scss';
 import classNames from 'classnames/bind';
@@ -26,14 +20,9 @@ import CollaboratorManagement from '~/components/CollaboratorManagement/Collabor
 import { auditLogService } from '~/services/api/audit-log.service';
 import { useEditorStore } from '~/store/editor-store';
 import { useContractDraftStore } from '~/store/contract-draft-store';
+import type { ContractFormData } from '~/types/contract/contract.types';
 
 const cx = classNames.bind(styles);
-
-interface SidebarRightProps {
-	contractId?: string;
-	userId?: number;
-	editor?: any;
-}
 
 interface ContractInfo {
 	id: string;
@@ -50,15 +39,6 @@ interface ContractInfo {
 	tasks: number;
 }
 
-interface Collaborator {
-	id: string;
-	name: string;
-	email: string;
-	role: string;
-	avatar?: string;
-	joinedAt: string;
-}
-
 interface ActivityItem {
 	id: string;
 	action: string;
@@ -68,10 +48,9 @@ interface ActivityItem {
 	type: 'edit' | 'save' | 'share' | 'comment';
 }
 
-const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor }) => {
+const SidebarRight: React.FC = () => {
 	const [activeTab, setActiveTab] = useState<'info' | 'settings' | 'collaborators' | 'activity'>('info');
 	const [contractInfo, setContractInfo] = useState<ContractInfo | null>(null);
-	const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
 	const [activity, setActivity] = useState<ActivityItem[]>([]);
 	const [settings, setSettings] = useState({
 		autoSave: true,
@@ -83,7 +62,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 	const [loading, setLoading] = useState(false);
 	const location = useLocation();
 	const query = new URLSearchParams(location.search);
-	const resolvedContractId = contractId || query.get('draftId') || 'contract-001';
+	const resolvedContractId = query.get('draftId') || 'contract-001';
 
 	const { editor: tiptapEditor } = useEditorStore();
 	const { currentDraft, updateDraftData, performAutoSave, setDirty } = useContractDraftStore();
@@ -95,9 +74,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 	const loadData = async () => {
 		setLoading(true);
 		try {
-			// Simulate API calls
 			await new Promise((resolve) => setTimeout(resolve, 300));
-
 			switch (activeTab) {
 				case 'info':
 					setContractInfo({
@@ -115,11 +92,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 						tasks: 12,
 					});
 					break;
-				case 'collaborators':
-					// Collaborator list is rendered by CollaboratorManagement
-					break;
 				case 'activity':
-					// Fetch real audit activity if available
 					try {
 						const recent = await auditLogService.getRecentActivity(resolvedContractId, 10);
 						setActivity(
@@ -135,8 +108,6 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 					} catch {}
 					break;
 			}
-		} catch (error) {
-			console.error('Error loading data:', error);
 		} finally {
 			setLoading(false);
 		}
@@ -152,7 +123,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 				if (tiptapEditor && currentDraft) {
 					const html = tiptapEditor.getHTML();
 					const text = tiptapEditor.getText();
-					await updateDraftData('content_draft', {
+					const payload: Partial<ContractFormData> = {
 						mode: 'editor',
 						content: {
 							mode: 'editor',
@@ -164,28 +135,28 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 									characterCount: text.length,
 									lastEditedAt: new Date().toISOString(),
 									version:
-										((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) + 1,
+										((((currentDraft.contractData as { content?: { editorContent?: { metadata?: { version?: number } } } })
+											?.content?.editorContent?.metadata?.version) || 0) + 1,
 								},
 							},
 						},
-					} as any);
+					};
+					await updateDraftData('content_draft', payload);
 					setDirty(false);
 					try {
 						await performAutoSave();
 						alert('Đã lưu bản nháp');
-					} catch (e) {
+					} catch {
 						alert('Lưu thất bại');
 					}
 				}
 				break;
 			case 'preview':
-				console.log('Opening preview...');
 				break;
 			case 'print':
 				window.print();
 				break;
 			case 'export':
-				console.log('Exporting...');
 				break;
 		}
 	};
@@ -217,32 +188,6 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 				return 'Đã lưu trữ';
 			default:
 				return status;
-		}
-	};
-
-	const getRoleColor = (role: string) => {
-		switch (role) {
-			case 'owner':
-				return '#e74c3c';
-			case 'editor':
-				return '#3498db';
-			case 'viewer':
-				return '#27ae60';
-			default:
-				return '#6c757d';
-		}
-	};
-
-	const getRoleText = (role: string) => {
-		switch (role) {
-			case 'owner':
-				return 'Chủ sở hữu';
-			case 'editor':
-				return 'Chỉnh sửa';
-			case 'viewer':
-				return 'Xem';
-			default:
-				return role;
 		}
 	};
 
@@ -332,7 +277,6 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 					<div className={cx('loading')}>Đang tải...</div>
 				) : (
 					<>
-						{/* Info Tab */}
 						{activeTab === 'info' && contractInfo && (
 							<div className={cx('info-tab')}>
 								<div className={cx('contract-info')}>
@@ -426,7 +370,6 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 							</div>
 						)}
 
-						{/* Settings Tab */}
 						{activeTab === 'settings' && (
 							<div className={cx('settings-tab')}>
 								<div className={cx('setting-item')}>
@@ -462,14 +405,12 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 							</div>
 						)}
 
-						{/* Collaborators Tab */}
 						{activeTab === 'collaborators' && (
 							<div className={cx('collaborators-tab')}>
-								<CollaboratorManagement contractId={resolvedContractId} currentUserId={userId || 0} />
+								<CollaboratorManagement contractId={resolvedContractId} currentUserId={0} />
 							</div>
 						)}
 
-						{/* Activity Tab */}
 						{activeTab === 'activity' && (
 							<div className={cx('activity-tab')}>
 								<div className={cx('activity-list')}>

@@ -69,7 +69,7 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
 
 	const { editor } = useEditorStore();
 	const { currentDraft, updateDraftData, setDirty } = useContractDraftStore();
-	const currentType = (currentDraft?.contractData as any)?.contractType || 'service';
+	const currentType = (currentDraft?.contractData as { contractType?: string } | undefined)?.contractType || 'service';
 
 	useEffect(() => {
 		loadData();
@@ -214,11 +214,11 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
 						wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
 						characterCount: editor.getText().length,
 						lastEditedAt: new Date().toISOString(),
-						version: ((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) + 1,
+						version: (((currentDraft?.contractData as { content?: { editorContent?: { metadata?: { version?: number } } } })?.content?.editorContent?.metadata?.version) || 0) + 1,
 					},
 				},
 			},
-		} as any);
+		});
 		setDirty(true);
 	};
 
@@ -312,11 +312,11 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
 						wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
 						characterCount: editor.getText().length,
 						lastEditedAt: new Date().toISOString(),
-						version: ((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) + 1,
+						version: (((currentDraft?.contractData as { content?: { editorContent?: { metadata?: { version?: number } } } })?.content?.editorContent?.metadata?.version) || 0) + 1,
 					},
 				},
 			},
-		} as any);
+		});
 		setDirty(true);
 	};
 

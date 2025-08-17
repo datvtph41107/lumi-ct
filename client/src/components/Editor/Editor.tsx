@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor as TiptapEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
@@ -43,12 +43,12 @@ export const Editor = () => {
 	const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
 	// Helper function to check if current selection is on an image
-	const isImageSelected = (editor: any) => {
+	const isImageSelected = (editor: TiptapEditor) => {
 		const { state } = editor;
-		const { from, to, $from } = state.selection;
+		const { from, to } = state.selection;
 		if (state.selection.constructor.name === 'NodeSelection') {
-			const node = state.selection.node;
-			return node && node.type.name === 'image';
+			const node = (state.selection as unknown as { node?: { type: { name: string } } }).node;
+			return !!node && node.type.name === 'image';
 		}
 		const nodeAtFrom = state.doc.nodeAt(from);
 		const nodeAtTo = state.doc.nodeAt(to);
@@ -71,7 +71,7 @@ export const Editor = () => {
 	};
 
 	const initialHtml = ((): string => {
-		const content = (currentDraft?.contractData as any)?.content;
+		const content = (currentDraft?.contractData as { content?: { mode?: string; editorContent?: { content?: string } } } | undefined)?.content;
 		if (content?.mode === 'editor' && content?.editorContent?.content) {
 			return String(content.editorContent.content);
 		}
@@ -87,7 +87,6 @@ export const Editor = () => {
 			setEditor(null);
 		},
 		onUpdate({ editor }) {
-			// Persist editor content to draft store
 			const html = editor.getHTML();
 			const text = editor.getText();
 			updateDraftData('content_draft', {
@@ -102,15 +101,14 @@ export const Editor = () => {
 							characterCount: text.length,
 							lastEditedAt: new Date().toISOString(),
 							version:
-								((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) +
-								1,
+								((((currentDraft?.contractData as { content?: { editorContent?: { metadata?: { version?: number } } } })
+									?.content?.editorContent?.metadata?.version) || 0) + 1),
 						},
 					},
 				},
-			} as any);
+			});
 			setDirty(true);
 
-			// Check if image is selected and hide toolbar if so
 			if (isImageSelected(editor)) {
 				setToolbarVisible(false);
 				return;
