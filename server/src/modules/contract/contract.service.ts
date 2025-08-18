@@ -143,6 +143,12 @@ export class ContractService {
     async exportDocx(id: string, userId: number) {
         return { fileUrl: `/exports/${id}.docx` };
     }
+    async exportPdf(id: string, userId: number) {
+        const filename = `contract-${id}.pdf`;
+        const content = `%PDF-1.4\n% Stub PDF for contract ${id}\n`;
+        const contentBase64 = Buffer.from(content).toString('base64');
+        return { filename, contentBase64, contentType: 'application/pdf' } as any;
+    }
     async generatePrintView(id: string, userId?: number) {
         return { html: `<html><body>Contract ${id}</body></html>` };
     }

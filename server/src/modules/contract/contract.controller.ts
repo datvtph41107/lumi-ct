@@ -78,6 +78,10 @@ export class ContractController {
     }
 
     // ===== EXPORT & PRINT =====
+    @Get(':id/export/pdf')
+    async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.exportPdf(id, Number(user.sub));
+    }
     @Get(':id/export/docx')
     async exportDocx(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportDocx(id, Number(user.sub));
