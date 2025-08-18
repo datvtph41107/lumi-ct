@@ -7,6 +7,7 @@ import { ContractsModule } from './modules/contract/contract.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CronTaskModule } from './modules/cron-task/cron-task.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -21,6 +22,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         AdminModule,
         UserModule,
         ContractsModule,
+        NotificationModule,
         CronTaskModule,
     ],
 })

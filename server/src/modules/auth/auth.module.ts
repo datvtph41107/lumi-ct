@@ -48,7 +48,7 @@ import { AuthCoreService } from './auth/auth-core.service';
             }),
         }),
     ],
-    controllers: [AdminAuthController, AuthController],
+    controllers: [AuthController],
     providers: [
         {
             provide: 'REFRESH_JWT_SERVICE',
@@ -65,7 +65,6 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        AdminAuthService,
         AuthCoreService,
         // Strategy & Guards
         JwtStrategy,
