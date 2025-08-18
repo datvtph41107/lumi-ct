@@ -59,7 +59,7 @@ export class AuditLogService {
                 contract_id: payload.contract_id,
                 user_id: payload.user_id,
             });
-            return saved as any;
+            return saved;
         } catch (err: unknown) {
             this.logger.APP.error('[AuditLogService] create error', { err, payload });
             throw new InternalServerErrorException('Failed to create audit log');

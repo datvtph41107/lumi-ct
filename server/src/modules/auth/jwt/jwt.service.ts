@@ -1,20 +1,14 @@
-import type { Admin } from '@/core/domain/admin';
-import type { User } from '@/core/domain/user/user.entity';
+import { Admin } from '@/core/domain/admin/admin.entity';
+import { User } from '@/core/domain/user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import type { AdminJwtPayload, UserContext, UserJwtPayload } from '@/core/shared/interface/jwt-payload.interface';
-import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import type { DataSource } from 'typeorm';
+import { AdminJwtPayload, UserContext, UserJwtPayload } from '@/core/shared/types/auth.types';
+import { DataSource } from 'typeorm';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
-import type { LoggerTypes } from '@/core/shared/logger/logger.types';
+import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-
-interface SessionData {
-    userId: number;
-    sessionId: string;
-    lastActivity: Date;
-}
+import { AuthTokens, SessionData as AuthSessionData } from '@/core/shared/types/auth.types';
 
 @Injectable()
 export class TokenService {
@@ -30,11 +24,7 @@ export class TokenService {
         @Inject('LOGGER') private readonly logger: LoggerTypes,
     ) {}
 
-    async getUserTokens(
-        user: User,
-        context: UserContext,
-        sessionId: string,
-    ): Promise<{ access_token: string; refresh_token: string }> {
+    async getUserTokens(user: User, context: UserContext, sessionId: string): Promise<AuthTokens> {
         const jti = uuidv4();
         const now = Math.floor(Date.now() / 1000);
 
