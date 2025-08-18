@@ -1,29 +1,36 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, HttpException } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ErrorResponse, SuccessResponse } from './response.interface';
+import { ApiSuccessResponse, ApiErrorResponse } from '@/core/shared/types/common.types';
+
+interface HttpExceptionResponse {
+  message: string | string[];
+  error?: string;
+  statusCode: number;
+  dataError?: unknown;
+}
 
 @Injectable()
-export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessResponse<T>> {
-    intercept(context: ExecutionContext, next: CallHandler<T>): Observable<SuccessResponse<T>> {
+export class ResponseInterceptor<T = unknown> implements NestInterceptor<T, ApiSuccessResponse<T>> {
+    intercept(context: ExecutionContext, next: CallHandler<T>): Observable<ApiSuccessResponse<T>> {
         return next.handle().pipe(
             map(
-                (data: T): SuccessResponse<T> => ({
+                (data: T): ApiSuccessResponse<T> => ({
                     success: true,
                     message: 'Request successful',
                     data,
                 }),
             ),
-            catchError((err: any): Observable<never> => {
+            catchError((err: Error | HttpException): Observable<never> => {
                 const statusCode = err instanceof HttpException ? err.getStatus() : 500;
                 const response = err instanceof HttpException ? err.getResponse() : null;
 
-                const errorName = err?.name;
+                const errorName = err.name || 'UnknownError';
                 let errorMessage: string | string[] = 'Internal Server Error';
-                let errorDetail: any = null;
+                let errorDetail: unknown = null;
 
                 if (response && typeof response === 'object') {
-                    const resObj = response as Record<string, any>;
+                    const resObj = response as HttpExceptionResponse;
 
                     if ('message' in resObj) {
                         const rawMessage = resObj.message;
@@ -44,7 +51,7 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
                     errorDetail = err.stack || err.message;
                 }
 
-                const errorResponse: ErrorResponse & { data_error?: any } = {
+                const errorResponse: ApiErrorResponse = {
                     success: false,
                     message: errorMessage,
                     error: {

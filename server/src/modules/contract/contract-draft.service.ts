@@ -162,7 +162,7 @@ export class ContractDraftService {
         return { ok: true };
     }
 
-    private toClientDraftShape(contract: Contract, latestStage?: ContractDraft | undefined) {
+    private toClientDraftShape(contract: Contract, latestStage?: ContractDraft) {
         return {
             id: contract.id,
             isDraft: contract.is_draft,
@@ -172,7 +172,7 @@ export class ContractDraftService {
                 contractType: (contract.contract_type as any) || 'custom',
                 category: (contract.category as any) || 'business',
                 priority: (contract.priority as any) || 'medium',
-                structure: (latestStage?.data?.structure as any) || undefined,
+                structure: latestStage?.data?.structure || undefined,
                 notes: contract.notes,
                 tags: contract.tags || [],
                 content: { mode: (contract.mode as any) || 'basic', templateId: contract.template_id },

@@ -187,7 +187,7 @@ export class ContractService {
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
-        return unique as number[];
+        return unique;
     }
 
     async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {
