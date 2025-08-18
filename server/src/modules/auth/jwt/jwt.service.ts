@@ -49,9 +49,14 @@ export class TokenService {
             jti,
             iat: now,
             sessionId,
-        } as any;
+        };
 
-        const refreshTokenPayload = { sub: user.id, jti, iat: now, sessionId } as any;
+        const refreshTokenPayload: Pick<UserJwtPayload, 'sub' | 'jti' | 'iat' | 'sessionId'> = {
+            sub: user.id,
+            jti,
+            iat: now,
+            sessionId,
+        };
 
         await this.createUserSession(user.id, sessionId, jti);
 
@@ -76,7 +81,12 @@ export class TokenService {
             sessionId,
         };
 
-        const refreshTokenPayload = { sub: admin.id, jti, iat: now, sessionId } as any;
+        const refreshTokenPayload: Pick<AdminJwtPayload, 'sub' | 'jti' | 'iat' | 'sessionId'> = {
+            sub: admin.id,
+            jti,
+            iat: now,
+            sessionId,
+        };
 
         return {
             access_token: this.signToken(accessTokenPayload, this.accessTokenExpireSeconds),
@@ -84,11 +94,11 @@ export class TokenService {
         };
     }
 
-    private signToken(payload: any, expiresIn: number): string {
+    private signToken(payload: object, expiresIn: number): string {
         return this.jwtService.sign(payload, { expiresIn, algorithm: 'RS256' });
     }
 
-    private signTokenHS256(payload: any, expiresIn: number): string {
+    private signTokenHS256(payload: object, expiresIn: number): string {
         return this.refreshJwtService.sign(payload, { expiresIn });
     }
 
@@ -139,7 +149,7 @@ export class TokenService {
         }
     }
 
-    decode(token: string): any {
+    decode(token: string): unknown {
         return this.refreshJwtService.decode(token);
     }
 
@@ -252,8 +262,8 @@ export class TokenService {
         const sessionRepo = this.db.getRepository(UserSession);
         const revokedTokenRepo = this.db.getRepository(RevokedToken);
         const [activeSessions, expiredSessions, revokedTokens] = await Promise.all([
-            sessionRepo.count({ where: { is_active: true } as any }),
-            sessionRepo.count({ where: { is_active: false } as any }),
+            sessionRepo.count({ where: { is_active: true } as Record<string, unknown> }),
+            sessionRepo.count({ where: { is_active: false } as Record<string, unknown> }),
             revokedTokenRepo.count(),
         ]);
         return {

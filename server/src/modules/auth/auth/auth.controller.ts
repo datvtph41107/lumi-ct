@@ -32,7 +32,7 @@ export class AuthController {
 
         const context = await buildUserContext(user, dataSource);
         const sessionId = `${Date.now()}`;
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
+        const tokens = await this.tokenService.getUserTokens(user, context, sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
         const responseUser = {
@@ -40,42 +40,42 @@ export class AuthController {
             username: user.username,
             role: user.role,
             isManager: user.role === Role.MANAGER,
-            department: (context as any).department
+            department: context.department
                 ? {
-                      id: (context as any).department.id,
-                      name: (context as any).department.name,
-                      code: (context as any).department.code,
+                      id: context.department.id,
+                      name: context.department.name,
+                      code: context.department.code,
                   }
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { access_token: tokens.access_token, user: responseUser } as const;
     }
 
     @Post('refresh-token')
     async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const dataSource = (this as any).db as DataSource;
-        const refreshToken = (req as any).cookies?.refreshToken;
-        if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as any;
+        const dataSource = this.db;
+        const refreshToken = (req as Request & { cookies?: Record<string, string> }).cookies?.refreshToken;
+        if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as const;
         const payload = await this.tokenService.verifyRefreshToken(refreshToken);
         const userRepo = dataSource.getRepository(User);
         const user = await userRepo.findOne({ where: { id: payload.userId } });
         if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
         const context = await buildUserContext(user, dataSource);
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
+        const tokens = await this.tokenService.getUserTokens(user, context, payload.sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         return {
             accessToken: tokens.access_token,
             sessionId: payload.sessionId,
             tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
-        } as any;
+        } as const;
     }
 
     @Post('logout')
     @UseGuards(AuthGuardAccess)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const sessionId = (req as any).cookies?.sessionId;
-        if (sessionId) await this.tokenService.revokeSession(sessionId as any);
+        const sessionId = (req as Request & { cookies?: Record<string, string> }).cookies?.sessionId;
+        if (sessionId) await this.tokenService.revokeSession(sessionId);
         res.clearCookie('refreshToken', { path: '/' });
         res.clearCookie('sessionId', { path: '/' });
         return { success: true, message: 'Đăng xuất thành công' };
@@ -83,22 +83,22 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuardAccess)
-    async me(@CurrentUser() user: any) {
+    me(@CurrentUser() user: unknown) {
         return user;
     }
 
     @Get('verify-session')
     @UseGuards(AuthGuardAccess)
-    async verifySession(@Req() req: Request) {
-        const sessionId = (req as any).cookies?.sessionId;
-        return { isValid: !!sessionId, sessionId, lastActivity: new Date().toISOString() } as any;
+    verifySession(@Req() req: Request) {
+        const sessionId = (req as Request & { cookies?: Record<string, string> }).cookies?.sessionId;
+        return { isValid: !!sessionId, sessionId, lastActivity: new Date().toISOString() } as const;
     }
 
     @Post('update-activity')
     @UseGuards(AuthGuardAccess)
     async updateActivity(@Req() req: Request) {
-        const refreshToken = (req as any).cookies?.refreshToken;
+        const refreshToken = (req as Request & { cookies?: Record<string, string> }).cookies?.refreshToken;
         if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
-        return { success: true } as any;
+        return { success: true } as const;
     }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
+import { DataSource, Repository, LessThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import {
@@ -137,7 +137,8 @@ export class NotificationService {
 
             return saved;
         } catch (err) {
-            this.logger.APP.error('Error creating notification', err);
+            const e = err as Error;
+            this.logger.APP.error('Error creating notification', { error: e.message });
             throw new InternalServerErrorException('Failed to create notification');
         }
     }
@@ -186,7 +187,7 @@ export class NotificationService {
         } catch (err) {
             // Update notification status to failed
             notification.status = NotificationStatus.FAILED;
-            notification.error_message = err.message;
+            notification.error_message = (err as Error).message;
             notification.retry_count += 1;
 
             // Set next retry time (exponential backoff)
@@ -197,7 +198,7 @@ export class NotificationService {
 
             this.logger.APP.error('Failed to send notification', {
                 id: notification.id,
-                error: err.message,
+                error: (err as Error).message,
                 retry_count: notification.retry_count,
             });
 
@@ -252,7 +253,8 @@ export class NotificationService {
 
             return saved;
         } catch (err) {
-            this.logger.APP.error('Error creating reminder', err);
+            const e = err as Error;
+            this.logger.APP.error('Error creating reminder', { error: e.message });
             throw new InternalServerErrorException('Failed to create reminder');
         }
     }
@@ -384,7 +386,7 @@ export class NotificationService {
         } catch (err) {
             this.logger.APP.error('Failed to trigger reminder', {
                 id: reminder.id,
-                error: err.message,
+                error: (err as Error).message,
             });
             return false;
         }
@@ -413,7 +415,8 @@ export class NotificationService {
                 });
             }
         } catch (err) {
-            this.logger.APP.error('Error processing pending notifications', err);
+            const e = err as Error;
+            this.logger.APP.error('Error processing pending notifications', { error: e.message });
         }
     }
 
@@ -432,7 +435,8 @@ export class NotificationService {
                 });
             }
         } catch (err) {
-            this.logger.APP.error('Error processing reminders', err);
+            const e = err as Error;
+            this.logger.APP.error('Error processing reminders', { error: e.message });
         }
     }
 
@@ -474,7 +478,8 @@ export class NotificationService {
                 });
             }
         } catch (err) {
-            this.logger.APP.error('Error checking milestone due dates', err);
+            const e = err as Error;
+            this.logger.APP.error('Error checking milestone due dates', { error: e.message });
         }
     }
 
@@ -516,7 +521,8 @@ export class NotificationService {
                 });
             }
         } catch (err) {
-            this.logger.APP.error('Error checking task due dates', err);
+            const e = err as Error;
+            this.logger.APP.error('Error checking task due dates', { error: e.message });
         }
     }
 
@@ -558,7 +564,8 @@ export class NotificationService {
                 });
             }
         } catch (err) {
-            this.logger.APP.error('Error checking contract expiry', err);
+            const e = err as Error;
+            this.logger.APP.error('Error checking contract expiry', { error: e.message });
         }
     }
 
@@ -731,9 +738,9 @@ export class NotificationService {
     private async sendEmailNotification(notification: ContractNotification): Promise<void> {
         // Integrate with your mail provider here (e.g., nodemailer, SES)
         // Example stub that logs payload and simulates async send
-        const to = notification.metadata?.recipient_email || 'noreply@example.com';
+        const to =
+            (notification.metadata as Record<string, unknown> | undefined)?.recipient_email || 'noreply@example.com';
         const subject = notification.title || 'Thông báo hợp đồng';
-        const text = notification.message || '';
         this.logger.APP.info('[Email] sending', { to, subject });
         await new Promise((r) => setTimeout(r, 50));
         this.logger.APP.info('[Email] sent', { id: notification.id });
@@ -741,14 +748,14 @@ export class NotificationService {
 
     private async sendSMSNotification(notification: ContractNotification): Promise<void> {
         // Integrate with SMS provider (Twilio, etc.)
-        const phone = notification.metadata?.phone;
+        const phone = (notification.metadata as Record<string, unknown> | undefined)?.phone;
         this.logger.APP.info('[SMS] sending', { phone });
         await new Promise((r) => setTimeout(r, 25));
     }
 
     private async sendPushNotification(notification: ContractNotification): Promise<void> {
         // Integrate with push (Firebase/OneSignal/Web Push)
-        const deviceToken = notification.metadata?.deviceToken;
+        const deviceToken = (notification.metadata as Record<string, unknown> | undefined)?.deviceToken;
         this.logger.APP.info('[PUSH] sending', { deviceToken });
         await new Promise((r) => setTimeout(r, 25));
     }
@@ -760,14 +767,14 @@ export class NotificationService {
 
     private async sendWebhookNotification(notification: ContractNotification): Promise<void> {
         // POST to a configured webhook url
-        const url = notification.metadata?.webhookUrl;
+        const url = (notification.metadata as Record<string, unknown> | undefined)?.webhookUrl;
         this.logger.APP.info('[WEBHOOK] posting', { url });
         await new Promise((r) => setTimeout(r, 25));
     }
 
     // ===== GLOBAL SETTINGS (DB-backed with default fallback) =====
     async getGlobalSettings() {
-        let settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
+        const settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
         if (!settings || settings.length === 0) {
             return {
                 enableEmailNotifications: true,

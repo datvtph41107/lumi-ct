@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '@/core/domain/permission/role.entity';
@@ -19,7 +19,7 @@ export interface UserPermissions {
         | Permission[]
         | Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }>;
     roles: Role[];
-    scopes: Record<string, any>;
+    scopes: Record<string, unknown>;
 }
 
 @Injectable()
@@ -51,10 +51,19 @@ export class AuthCoreService {
 
         const userPermissions = await this.getUserPermissions(userId);
         let ok = false;
-        for (const p of userPermissions.permissions as any[]) {
+        for (const p of userPermissions.permissions as Array<{
+            resource: string;
+            action: string;
+            conditions_schema?: unknown;
+        }>) {
             if (p.resource === resource && p.action === action) {
                 if (p.conditions_schema && context)
-                    ok = this.evaluateConditions(p.conditions_schema, context, userId, userPermissions);
+                    ok = this.evaluateConditions(
+                        p.conditions_schema as Record<string, unknown>,
+                        context,
+                        userId,
+                        userPermissions,
+                    );
                 else ok = true;
                 if (ok) break;
             }
@@ -82,9 +91,13 @@ export class AuthCoreService {
 
         const userRoles = await this.userRoleRepository.find({ where: { user_id: userId, is_active: true } });
         const roles: Role[] = [];
-        const scopes: Record<string, any> = {};
-        const aggregated: Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }> =
-            [];
+        const scopes: Record<string, unknown> = {};
+        const aggregated: Array<{
+            resource: string;
+            action: string;
+            conditions_schema?: unknown;
+            is_active?: boolean;
+        }> = [];
 
         for (const ur of userRoles) {
             const role = await this.roleRepository.findOne({ where: { id: ur.role_id } });
@@ -98,7 +111,7 @@ export class AuthCoreService {
                         is_active: true,
                     }),
                 );
-                if (ur.scope !== 'global') scopes[ur.scope] = ur.scope_id;
+                if (ur.scope !== 'global') (scopes as Record<string, number | undefined>)[ur.scope] = ur.scope_id;
             }
         }
 
@@ -110,7 +123,7 @@ export class AuthCoreService {
     async getUserRoles(userId: number): Promise<UserRole[]> {
         return this.userRoleRepository.find({
             where: { user_id: userId, is_active: true },
-            order: { granted_at: 'DESC' } as any,
+            order: { granted_at: 'DESC' as const },
         });
     }
 
@@ -152,7 +165,7 @@ export class AuthCoreService {
         this.clearUserCache(userId);
     }
 
-    async validateSession(sessionId: string, accessToken: string): Promise<User> {
+    async validateSession(sessionId: string): Promise<User> {
         const session = await this.sessionRepository.findOne({ where: { session_id: sessionId, is_active: true } });
         if (!session) throw new UnauthorizedException('Session không hợp lệ');
         if (session.expires_at < new Date()) {
@@ -205,8 +218,8 @@ export class AuthCoreService {
     }
 
     private evaluateConditions(
-        conditionsSchema: any,
-        context: Record<string, any>,
+        conditionsSchema: Record<string, unknown>,
+        context: Record<string, unknown>,
         userId: number,
         userPermissions: UserPermissions,
     ): boolean {
@@ -220,13 +233,19 @@ export class AuthCoreService {
                 case 'type':
                     return context.contractType === value;
                 case 'assigned':
-                    if (value === true) return context.assignedUsers?.includes(userId) || context.ownerId === userId;
+                    if (value === true)
+                        return (
+                            (context.assignedUsers as number[] | undefined)?.includes(userId) ||
+                            context.ownerId === userId
+                        );
                     break;
                 case 'status':
                     return context.status === value;
                 case 'amount':
-                    if ((value as any).max) return context.amount <= (value as any).max;
-                    if ((value as any).min) return context.amount >= (value as any).min;
+                    if (typeof (value as Record<string, unknown>).max === 'number')
+                        return (context as Record<string, number>).amount <= (value as Record<string, number>).max;
+                    if (typeof (value as Record<string, unknown>).min === 'number')
+                        return (context as Record<string, number>).amount >= (value as Record<string, number>).min;
                     break;
                 case 'scope':
                     return userPermissions.scopes[value as any] !== undefined;

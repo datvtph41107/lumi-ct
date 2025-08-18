@@ -1,19 +1,5 @@
 // src/modules/contracts/contracts.controller.ts
-import {
-    Controller,
-    Post,
-    Body,
-    Get,
-    Param,
-    Patch,
-    UseGuards,
-    Delete,
-    HttpCode,
-    HttpStatus,
-    Inject,
-    Query,
-    Put,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, UseGuards, Delete, Inject, Query } from '@nestjs/common';
 import { ContractService } from './contract.service';
 
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
@@ -37,7 +23,7 @@ export class ContractController {
     }
 
     @Get()
-    async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
+    async list(@Query() query: Record<string, unknown>, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.listContracts(query, Number(user.sub));
     }
 
@@ -68,7 +54,7 @@ export class ContractController {
 
     // ===== AUDIT LOG =====
     @Get(':id/audit')
-    async getAuditLogs(@Param('id') id: string, @Query() query: any) {
+    async getAuditLogs(@Param('id') id: string, @Query() query: Record<string, unknown>) {
         return this.contractService.getAuditLogs(id, query);
     }
 
@@ -95,7 +81,11 @@ export class ContractController {
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)
-    async createNotification(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
+    async createNotification(
+        @Param('id') id: string,
+        @Body() dto: { type: string; title: string; message: string },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         return this.contractService.createNotification(id, dto, Number(user.sub));
     }
 
@@ -106,7 +96,11 @@ export class ContractController {
 
     @Post(':id/reminders')
     @UseGuards(CollaboratorGuard)
-    async updateReminder(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
+    async updateReminder(
+        @Param('id') id: string,
+        @Body() dto: Record<string, unknown>,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         return this.contractService.createReminder(id, dto, Number(user.sub));
     }
 

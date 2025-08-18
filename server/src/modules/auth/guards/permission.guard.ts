@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthCoreService as AuthService } from '../../auth/auth/auth-core.service';
+import type { HeaderRequest } from '@/core/shared/interface/header-payload-req.interface';
 
 export interface PermissionMetadata {
     resource: string;
@@ -9,9 +10,10 @@ export interface PermissionMetadata {
 }
 
 export const PERMISSIONS_KEY = 'permissions';
-export const RequirePermissions =
+export const RequirePermissions: (...permissions: PermissionMetadata[]) => MethodDecorator =
     (...permissions: PermissionMetadata[]) =>
-    (target: any, key?: string, descriptor?: any) => {
+    (_target, _key, descriptor) => {
+        if (!descriptor || typeof descriptor.value !== 'function') return descriptor;
         Reflect.defineMetadata(PERMISSIONS_KEY, permissions, descriptor.value);
         return descriptor;
     };
@@ -33,7 +35,7 @@ export class PermissionGuard implements CanActivate {
             return true;
         }
 
-        const request = context.switchToHttp().getRequest();
+        const request = context.switchToHttp().getRequest<HeaderRequest>();
         const user = request.user;
 
         if (!user) {
@@ -43,14 +45,14 @@ export class PermissionGuard implements CanActivate {
         // Check if user has all required permissions
         for (const permission of requiredPermissions) {
             const hasPermission = await this.authService.hasPermission(
-                user.id,
+                Number(user.sub),
                 permission.resource,
                 permission.action,
                 {
                     ...permission.conditions,
-                    ...request.body,
-                    ...request.params,
-                    ...request.query,
+                    ...(request.body as Record<string, unknown>),
+                    ...(request.params as Record<string, unknown>),
+                    ...(request.query as Record<string, unknown>),
                 },
             );
 
