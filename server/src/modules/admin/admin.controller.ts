@@ -89,7 +89,7 @@ export class AdminController {
     async getEffectivePermissions(@Param('id') id: string) {
         const perms = await this.authCore.getUserPermissions(Number(id));
         return {
-            permissions: (perms?.permissions || []).map((p: any) => ({
+            permissions: (Array.isArray((perms as any)?.permissions) ? (perms as any).permissions : []).map((p: any) => ({
                 resource: p.resource,
                 action: p.action,
                 conditions: p.conditions_schema,

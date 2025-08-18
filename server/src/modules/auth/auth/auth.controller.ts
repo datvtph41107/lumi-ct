@@ -49,7 +49,7 @@ export class AuthController {
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { accessToken: tokens.access_token, sessionId, tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60, user: responseUser } as any;
     }
 
     @Post('refresh-token')

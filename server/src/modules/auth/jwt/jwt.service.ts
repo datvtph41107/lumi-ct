@@ -49,7 +49,7 @@ export class TokenService {
             jti,
             iat: now,
             sessionId,
-        } as any;
+        } as UserJwtPayload;
 
         const refreshTokenPayload = { sub: user.id, jti, iat: now, sessionId } as any;
 
@@ -74,7 +74,7 @@ export class TokenService {
             jti,
             iat: now,
             sessionId,
-        };
+        } as AdminJwtPayload;
 
         const refreshTokenPayload = { sub: admin.id, jti, iat: now, sessionId } as any;
 
