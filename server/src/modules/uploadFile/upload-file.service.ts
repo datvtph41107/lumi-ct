@@ -19,7 +19,7 @@ export class FileUploadService {
     }
 
     private getStrategy(): UploadStrategy {
-        switch (this.config.provider) {
+        switch (this.config.provider()) {
             // case UploadProvider.S3:
             //     return this.s3;
             // case UploadProvider.CLOUDINARY:

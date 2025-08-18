@@ -1,49 +1,36 @@
-import { IsString, IsOptional, IsDateString, IsEnum, IsUUID, IsArray } from 'class-validator';
-
-export enum NotificationType {
-    MILESTONE_DUE = 'milestone_due',
-    TASK_ASSIGNED = 'task_assigned',
-    CONTRACT_APPROVED = 'contract_approved',
-    CONTRACT_REJECTED = 'contract_rejected',
-    CHANGES_REQUESTED = 'changes_requested',
-    REMINDER = 'reminder',
-}
-
-export enum NotificationPriority {
-    LOW = 'low',
-    MEDIUM = 'medium',
-    HIGH = 'high',
-    URGENT = 'urgent',
-}
+import { IsString, IsOptional, IsDateString, IsEnum, IsUUID, IsArray, IsInt, Min } from 'class-validator';
+import { NotificationType } from '@/core/shared/enums/base.enums';
+import { NotificationChannel } from '@/core/domain/notification/notification.entity';
+import { ReminderType, ReminderFrequency } from '@/core/domain/contract/contract-reminder.entity';
 
 export class CreateNotificationDto {
+    @IsEnum(NotificationType)
+    type: NotificationType;
+
+    @IsEnum(NotificationChannel)
+    channel: NotificationChannel;
+
     @IsString()
     title: string;
 
     @IsString()
     message: string;
-
-    @IsEnum(NotificationType)
-    type: NotificationType;
-
-    @IsEnum(NotificationPriority)
-    priority: NotificationPriority = NotificationPriority.MEDIUM;
-
-    @IsOptional()
-    @IsArray()
-    @IsUUID(undefined, { each: true })
-    recipient_ids?: string[];
-
-    @IsOptional()
-    @IsString()
-    action_url?: string;
 
     @IsOptional()
     @IsDateString()
     scheduled_at?: string;
+
+    @IsOptional()
+    metadata?: Record<string, any>;
 }
 
 export class CreateReminderDto {
+    @IsEnum(ReminderType)
+    type: ReminderType;
+
+    @IsEnum(ReminderFrequency)
+    frequency: ReminderFrequency;
+
     @IsString()
     title: string;
 
@@ -51,12 +38,20 @@ export class CreateReminderDto {
     message: string;
 
     @IsDateString()
-    due_date: string;
+    trigger_date: string; // ISO string, will be converted to Date in service
+
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    advance_days?: number;
 
     @IsOptional()
     @IsArray()
-    @IsUUID(undefined, { each: true })
-    recipient_ids?: string[];
+    notification_channels?: NotificationChannel[];
+
+    @IsOptional()
+    @IsArray()
+    recipients?: number[];
 
     @IsOptional()
     @IsUUID()
@@ -67,6 +62,5 @@ export class CreateReminderDto {
     task_id?: string;
 
     @IsOptional()
-    @IsString()
-    repeat_pattern?: string; // daily, weekly, monthly
+    metadata?: Record<string, any>;
 }

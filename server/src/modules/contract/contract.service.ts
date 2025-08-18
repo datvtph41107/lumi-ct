@@ -18,6 +18,7 @@ import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
+import { CreateNotificationDto, CreateReminderDto } from '@/core/dto/contract/notification.dto';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -153,21 +154,37 @@ export class ContractService {
         return { html: `<html><body>Contract ${id}</body></html>` };
     }
 
-    async createNotification(id: string, dto: any, userId: number) {
+    async createNotification(id: string, dto: CreateNotificationDto, userId: number) {
         await this.notificationService.create({
-            type: dto.type,
+            type: dto.type as any,
             title: dto.title,
             message: dto.message,
             userId,
             data: id,
+            started_at: dto.scheduled_at ? new Date(dto.scheduled_at) : undefined,
+            ended_at: undefined,
         });
-        return { success: true };
+        return { success: true } as any;
     }
     async listNotifications(id: string) {
         return this.notificationService.getNotificationsByContract(id);
     }
-    async createReminder(id: string, dto: any, userId: number) {
-        return this.notificationService.createReminder({ contract_id: id, user_id: userId, ...dto });
+    async createReminder(id: string, dto: CreateReminderDto, userId: number) {
+        return this.notificationService.createReminder({
+            contract_id: id,
+            user_id: userId,
+            type: dto.type as any,
+            frequency: dto.frequency as any,
+            title: dto.title,
+            message: dto.message,
+            trigger_date: new Date(dto.trigger_date),
+            advance_days: dto.advance_days,
+            notification_channels: dto.notification_channels as any,
+            recipients: dto.recipients,
+            milestone_id: dto.milestone_id,
+            task_id: dto.task_id,
+            metadata: dto.metadata,
+        });
     }
     async listReminders(id: string) {
         return this.notificationService.getRemindersByContract(id);
@@ -187,7 +204,7 @@ export class ContractService {
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
-        return unique as number[];
+        return unique;
     }
 
     async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {

@@ -767,7 +767,7 @@ export class NotificationService {
 
     // ===== GLOBAL SETTINGS (DB-backed with default fallback) =====
     async getGlobalSettings() {
-        let settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
+        const settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
         if (!settings || settings.length === 0) {
             return {
                 enableEmailNotifications: true,
