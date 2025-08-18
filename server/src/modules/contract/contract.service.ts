@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthCoreService } from '@/modules/auth/auth/auth-core.service';
+import { AuthCoreService } from '..//auth/auth/auth-core.service';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
@@ -11,7 +11,7 @@ import { ContractVersion } from '@/core/domain/contract/contract-versions.entity
 import { ContractFile } from '@/core/domain/contract/contract-file.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { User } from '@/core/domain/user/user.entity';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { NotificationService } from '..//notification/notification.service';
 import { AuditLogService } from './audit-log.service';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
@@ -158,5 +158,74 @@ export class ContractService {
     }
     async listReminders(id: string) {
         return this.notificationService.getRemindersByContract(id);
+    }
+
+    // Methods for cron tasks
+    async findUpcomingContracts(daysBefore: number) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + daysBefore);
+        
+        return this.contractRepository.find({
+            where: {
+                end_date: targetDate,
+                status: 'active' as any
+            }
+        });
+    }
+
+    async findContractRelatedUsers(contractId: string) {
+        // Return users related to the contract (drafter, manager, collaborators)
+        const contract = await this.contractRepository.findOne({
+            where: { id: contractId }
+        });
+        
+        if (!contract) return [];
+        
+        const users: any[] = [];
+        if (contract.drafter_id) {
+            const drafter = await this.userRepository.findOne({
+                where: { id: parseInt(contract.drafter_id) }
+            });
+            if (drafter) users.push(drafter);
+        }
+        
+        return users;
+    }
+
+    async findUpcomingPhases(daysBefore: number) {
+        // This would need Milestone entity
+        return [];
+    }
+
+    async findUpcomingTasks(daysBefore: number) {
+        // This would need Task entity  
+        return [];
+    }
+
+    async findOverdueContracts() {
+        const now = new Date();
+        return this.contractRepository.find({
+            where: {
+                end_date: new Date(now.getTime() - 24 * 60 * 60 * 1000), // yesterday
+                status: 'active' as any
+            }
+        });
+    }
+
+    async findOverduePhases() {
+        // This would need Milestone entity
+        return [];
+    }
+
+    async findOverdueTasks() {
+        // This would need Task entity
+        return [];
+    }
+
+    async updateStatus(type: string, id: string, status: string) {
+        if (type === 'contract') {
+            await this.contractRepository.update(id, { status: status as any });
+        }
+        // Handle other types when entities are available
     }
 }

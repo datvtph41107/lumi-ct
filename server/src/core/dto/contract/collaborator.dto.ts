@@ -1,5 +1,5 @@
 // src/modules/contracts/dto/collaborator.dto.ts
-import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { CollaboratorRole } from '../../domain/permission/collaborator-role.enum';
 import { IsNumber, IsEnum } from 'class-validator';
 
 export class CreateCollaboratorDto {
