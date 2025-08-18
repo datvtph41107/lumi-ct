@@ -173,10 +173,7 @@ export class ContractService {
         const target = new Date(now);
         target.setDate(now.getDate() + daysBefore);
         return this.contractRepository.find({
-            where: [
-                { start_date: target as any },
-                { end_date: target as any },
-            ] as any,
+            where: [{ start_date: target as any }, { end_date: target as any }] as any,
             select: ['id', 'name', 'start_date', 'end_date'] as any,
         });
     }
@@ -219,7 +216,10 @@ export class ContractService {
 
     async findOverdueContracts(): Promise<Array<Partial<Contract>>> {
         const now = new Date();
-        return this.contractRepository.find({ where: { end_date: (date: any) => date < now } as any, select: ['id'] as any });
+        return this.contractRepository.find({
+            where: { end_date: (date: any) => date < now } as any,
+            select: ['id'] as any,
+        });
     }
 
     async findOverduePhases(): Promise<Array<Partial<Milestone>>> {
@@ -233,7 +233,10 @@ export class ContractService {
 
     async findOverdueTasks(): Promise<Array<Partial<Task>>> {
         const now = new Date();
-        return this.taskRepository.find({ where: { due_date: (date: any) => date < now } as any, select: ['id'] as any });
+        return this.taskRepository.find({
+            where: { due_date: (date: any) => date < now } as any,
+            select: ['id'] as any,
+        });
     }
 
     async updateStatus(scope: 'contract' | 'phase' | 'task', id: string, status: SharedContractStatus): Promise<void> {

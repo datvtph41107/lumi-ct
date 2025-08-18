@@ -65,7 +65,7 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        
+
         AuthCoreService,
         // Strategy & Guards
         JwtStrategy,

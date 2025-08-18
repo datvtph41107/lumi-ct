@@ -2,7 +2,11 @@ import { Injectable, Inject, BadRequestException, InternalServerErrorException }
 import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { ContractNotification, NotificationStatus, NotificationChannel } from '@/core/domain/notification/notification.entity';
+import {
+    ContractNotification,
+    NotificationStatus,
+    NotificationChannel,
+} from '@/core/domain/notification/notification.entity';
 import { NotificationType } from '@/core/shared/enums/base.enums';
 import {
     ContractReminder,
@@ -762,7 +766,7 @@ export class NotificationService {
 
     // ===== GLOBAL SETTINGS (DB-backed with default fallback) =====
     async getGlobalSettings() {
-        let settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
+        const settings = await this.sysRepo.find({ order: { created_at: 'DESC' as any }, take: 1 });
         if (!settings || settings.length === 0) {
             return {
                 enableEmailNotifications: true,
