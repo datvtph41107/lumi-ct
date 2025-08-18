@@ -25,7 +25,7 @@ import ContractCollection from '~/page/Contract/ContractCollection';
 import SystemNotifications from '~/page/admin/SystemNotifications';
 import SystemNotificationsQueue from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
-import RolePermissionManagement from '~/page/admin/RolePermissionManagement';
+import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
 
 // Route interfaces
 interface BaseRoute {
@@ -52,14 +52,14 @@ export const publicRoutes: PublicRoute[] = [
         path: config.routes.adminLogin,
         component: AdminLogin,
         layout: LoginLayout,
-        redirectPath: '/dashboard', // Redirect về dashboard chung
+        redirectPath: '/', // Redirect về dashboard chung
         allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
     },
     {
         path: config.routes.login,
         component: Login,
         layout: LoginLayout,
-        redirectPath: '/dashboard', // Redirect về dashboard chung
+        redirectPath: '/', // Redirect về dashboard chung
         allowedWhenAuthenticated: false, // Không cho phép truy cập khi đã đăng nhập
     },
     // Có thể thêm các public routes khác như forgot-password, register, etc.
@@ -93,7 +93,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: SystemNotifications,
         layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.SYSTEM_SETTINGS],
             requireAll: false,
         },
@@ -105,7 +105,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: UserManagement,
         layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.USER_MANAGEMENT],
             requireAll: false,
         },
@@ -117,7 +117,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: SystemNotificationsQueue,
         layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.SYSTEM_SETTINGS],
             requireAll: false,
         },

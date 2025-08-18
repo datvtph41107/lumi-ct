@@ -1,7 +1,7 @@
 import type React from 'react';
 import { useState } from 'react';
 import classNames from 'classnames/bind';
-import styles from './StageMilestones.module.scss';
+import styles from './StageNotifications.module.scss';
 import Button from '~/components/Button';
 import NotificationRuleManager from './NotificationRuleManager';
 import GlobalNotificationSettings from './GlobalNotificationSettings';

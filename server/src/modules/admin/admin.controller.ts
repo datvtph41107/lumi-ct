@@ -3,7 +3,7 @@ import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuar
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
-import { AuthCoreService } from '../auth/auth/auth-core.service';
+import { AuthCoreService } from '../auth/auth/auth.service';
 import { Repository } from 'typeorm';
 import { Role } from '@/core/domain/permission/role.entity';
 import { InjectRepository } from '@nestjs/typeorm';

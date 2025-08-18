@@ -120,17 +120,17 @@ const { slice, thunks, actions } = createApiSlice({
                 const response = action.payload as LoginResponse;
                 state.loading = false;
                 state.isAuthenticated = true;
-                state.sessionId = response.sessionId as any;
-                state.tokenExpiry = response.tokenExpiry as any;
+                state.sessionId = response.sessionId;
+                state.tokenExpiry = response.tokenExpiry;
                 state.isSessionValid = true;
                 state.lastActivity = new Date().toISOString();
-                if ((response as any).user) {
-                    state.user = (response as any).user;
+                if (response.user) {
+                    state.user = response.user;
                 }
-                if ((response as any).accessToken) {
-                    state.accessToken = (response as any).accessToken;
+                if (response.accessToken) {
+                    state.accessToken = response.accessToken;
                 }
-                AuthManager.getInstance().setAccessToken((response as any).accessToken, (response as any).sessionId);
+                AuthManager.getInstance().setAccessToken(response.accessToken, response.sessionId);
             })
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
@@ -146,7 +146,7 @@ const { slice, thunks, actions } = createApiSlice({
             .addCase(getCurrentUser.fulfilled, (state, action) => {
                 const response = action.payload as UserResponse;
                 state.loading = false;
-                state.user = response.userData as any;
+                state.user = response.userData;
                 state.isAuthenticated = true;
                 state.lastActivity = new Date().toISOString();
             })
@@ -179,11 +179,11 @@ const { slice, thunks, actions } = createApiSlice({
             .addCase(verifySession.fulfilled, (state, action) => {
                 const response = action.payload as SessionData;
                 state.loading = false;
-                if ((response as any).isValid && (response as any).sessionId) {
-                    state.sessionId = (response as any).sessionId;
+                if (response.isValid && response.sessionId) {
+                    state.sessionId = response.sessionId;
                     state.isSessionValid = true;
-                    state.lastActivity = (response as any).lastActivity || new Date().toISOString();
-                    SessionManager.getInstance().setSessionId((response as any).sessionId);
+                    state.lastActivity = response.lastActivity || new Date().toISOString();
+                    SessionManager.getInstance().setSessionId(response.sessionId);
                 } else {
                     state.isSessionValid = false;
                     state.sessionId = null;
@@ -202,16 +202,13 @@ const { slice, thunks, actions } = createApiSlice({
             .addCase(refreshToken.fulfilled, (state, action) => {
                 const response = action.payload as LoginResponse;
                 state.isTokenRefreshing = false;
-                state.tokenExpiry = (response as any).tokenExpiry;
-                state.sessionId = (response as any).sessionId;
+                state.tokenExpiry = response.tokenExpiry;
+                state.sessionId = response.sessionId;
                 state.isSessionValid = true;
                 state.lastActivity = new Date().toISOString();
-                if ((response as any).accessToken) {
-                    state.accessToken = (response as any).accessToken;
-                    AuthManager.getInstance().setAccessToken(
-                        (response as any).accessToken,
-                        (response as any).sessionId,
-                    );
+                if (response.accessToken) {
+                    state.accessToken = response.accessToken;
+                    AuthManager.getInstance().setAccessToken(response.accessToken, response.sessionId);
                 }
             })
             .addCase(refreshToken.rejected, (state, action) => {
@@ -228,7 +225,7 @@ const { slice, thunks, actions } = createApiSlice({
             })
             .addCase(getUserPermissions.fulfilled, (state, action) => {
                 state.loading = false;
-                state.userPermissions = action.payload as any;
+                state.userPermissions = action.payload as UserPermissions;
                 state.isPermissionsLoaded = true;
             })
             .addCase(getUserPermissions.rejected, (state, action) => {

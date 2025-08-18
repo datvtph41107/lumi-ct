@@ -1,20 +1,8 @@
 import { Department } from '@/core/domain/department';
 import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import type { User } from '@/core/domain/user';
+import { UserContext } from '@/core/shared/types/auth.types';
 import type { DataSource } from 'typeorm';
-
-export interface UserContext {
-    permissions: {
-        create_contract: boolean;
-        create_report: boolean;
-        read: boolean;
-        update: boolean;
-        delete: boolean;
-        approve: boolean;
-        assign: boolean;
-    };
-    department: Department | null;
-}
 
 export async function buildUserContext(user: User, db: DataSource): Promise<UserContext> {
     const permissionRepo = db.getRepository(UserPermission);

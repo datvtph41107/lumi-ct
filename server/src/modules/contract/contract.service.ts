@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthCoreService } from '@/modules/auth/auth/auth-core.service';
+import { AuthCoreService } from '@/modules/auth/auth/auth.service';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
@@ -187,7 +187,7 @@ export class ContractService {
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
-        return unique as number[];
+        return unique;
     }
 
     async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {

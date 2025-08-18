@@ -1,11 +1,5 @@
-export interface SuccessResponse<T = any> {
-    success: boolean;
-    message: string;
-    data: T;
-}
-
-export interface ErrorResponse<T = any> {
-    success: boolean;
-    message: string | string[];
-    error: T;
-}
+// Re-export from centralized types
+export {
+    ApiSuccessResponse as SuccessResponse,
+    ApiErrorResponse as ErrorResponse,
+} from '@/core/shared/types/common.types';

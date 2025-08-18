@@ -1,5 +1,5 @@
 // === src/domain/user/user.entity.ts ===
-import { Role, Status } from 'src/core/shared/enums/base.enums';
+import { Status } from 'src/core/shared/enums/base.enums';
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { BaseEntity } from '../base.entity';
 
@@ -8,14 +8,17 @@ import { BaseEntity } from '../base.entity';
 @Index(['role'])
 @Index(['status'])
 export class User extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @Column()
     name: string;
 
     @Column()
     username: string;
+
+    @Column({ type: 'string', nullable: true })
+    email?: string;
 
     @Column()
     password: string;
@@ -29,8 +32,8 @@ export class User extends BaseEntity {
     @Column({ nullable: true })
     remember_token?: string;
 
-    @Column({ type: 'enum', enum: Role })
-    role: Role;
+    @Column({ name: 'role_id', nullable: true })
+    roleId: string;
 
     @Column({ type: 'bigint', nullable: true })
     department_id?: number;

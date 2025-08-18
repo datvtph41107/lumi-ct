@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '@/core/domain/permission/role.entity';
@@ -6,24 +6,10 @@ import { Permission } from '@/core/domain/permission/permission.entity';
 import { UserRole } from '@/core/domain/permission/user-role.entity';
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-
-export interface PermissionCheck {
-    resource: string;
-    action: string;
-    conditions?: Record<string, any>;
-}
-
-export interface UserPermissions {
-    userId: number;
-    permissions:
-        | Permission[]
-        | Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }>;
-    roles: Role[];
-    scopes: Record<string, any>;
-}
+import { PermissionCheck, UserPermissions, RolePermission } from '@/core/shared/types/auth.types';
 
 @Injectable()
-export class AuthCoreService {
+export class AuthService {
     private permissionCache = new Map<string, boolean>();
     private userPermissionsCache = new Map<number, UserPermissions>();
 
@@ -44,23 +30,37 @@ export class AuthCoreService {
         userId: number,
         resource: string,
         action: string,
-        context?: Record<string, any>,
+        context?: Record<string, unknown>,
     ): Promise<boolean> {
         const cacheKey = `${userId}:${resource}:${action}:${JSON.stringify(context)}`;
-        if (this.permissionCache.has(cacheKey)) return this.permissionCache.get(cacheKey)!;
+        if (this.permissionCache.has(cacheKey)) {
+            return this.permissionCache.get(cacheKey)!;
+        }
 
         const userPermissions = await this.getUserPermissions(userId);
-        let ok = false;
-        for (const p of userPermissions.permissions as any[]) {
-            if (p.resource === resource && p.action === action) {
-                if (p.conditions_schema && context)
-                    ok = this.evaluateConditions(p.conditions_schema, context, userId, userPermissions);
-                else ok = true;
-                if (ok) break;
+        let hasAccess = false;
+
+        // Type-safe permission checking
+        if (Array.isArray(userPermissions.permissions)) {
+            for (const permission of userPermissions.permissions) {
+                if (permission.resource === resource && permission.action === action) {
+                    if (permission.conditions_schema && context) {
+                        hasAccess = this.evaluateConditions(
+                            permission.conditions_schema,
+                            context,
+                            userId,
+                            userPermissions,
+                        );
+                    } else {
+                        hasAccess = true;
+                    }
+                    if (hasAccess) break;
+                }
             }
         }
-        this.permissionCache.set(cacheKey, ok);
-        return ok;
+
+        this.permissionCache.set(cacheKey, hasAccess);
+        return hasAccess;
     }
 
     async hasAnyPermission(userId: number, permissions: PermissionCheck[]): Promise<boolean> {
@@ -78,39 +78,59 @@ export class AuthCoreService {
     }
 
     async getUserPermissions(userId: number): Promise<UserPermissions> {
-        if (this.userPermissionsCache.has(userId)) return this.userPermissionsCache.get(userId)!;
+        if (this.userPermissionsCache.has(userId)) {
+            return this.userPermissionsCache.get(userId)!;
+        }
 
-        const userRoles = await this.userRoleRepository.find({ where: { user_id: userId, is_active: true } });
+        const userRoles = await this.userRoleRepository.find({
+            where: { user_id: userId, is_active: true },
+        });
+
         const roles: Role[] = [];
-        const scopes: Record<string, any> = {};
-        const aggregated: Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }> =
-            [];
+        const scopes: Record<string, unknown> = {};
+        const aggregatedPermissions: RolePermission[] = [];
 
-        for (const ur of userRoles) {
-            const role = await this.roleRepository.findOne({ where: { id: ur.role_id } });
+        for (const userRole of userRoles) {
+            const role = await this.roleRepository.findOne({
+                where: { id: userRole.role_id },
+            });
+
             if (role && role.is_active) {
                 roles.push(role);
-                (role.permissions || []).forEach((rp) =>
-                    aggregated.push({
-                        resource: rp.resource,
-                        action: rp.action,
-                        conditions_schema: rp.conditions,
+
+                // Process role permissions
+                const rolePermissions = role.permissions || [];
+                rolePermissions.forEach((rolePermission) => {
+                    aggregatedPermissions.push({
+                        resource: rolePermission.resource,
+                        action: rolePermission.action,
+                        conditions_schema: rolePermission.conditions,
                         is_active: true,
-                    }),
-                );
-                if (ur.scope !== 'global') scopes[ur.scope] = ur.scope_id;
+                    });
+                });
+
+                // Handle scopes
+                if (userRole.scope !== 'global') {
+                    scopes[userRole.scope] = userRole.scope_id;
+                }
             }
         }
 
-        const up: UserPermissions = { userId, permissions: aggregated, roles, scopes };
-        this.userPermissionsCache.set(userId, up);
-        return up;
+        const userPermissions: UserPermissions = {
+            userId,
+            permissions: aggregatedPermissions,
+            roles,
+            scopes,
+        };
+
+        this.userPermissionsCache.set(userId, userPermissions);
+        return userPermissions;
     }
 
     async getUserRoles(userId: number): Promise<UserRole[]> {
         return this.userRoleRepository.find({
             where: { user_id: userId, is_active: true },
-            order: { granted_at: 'DESC' } as any,
+            order: { granted_at: 'DESC' },
         });
     }
 
@@ -176,19 +196,23 @@ export class AuthCoreService {
     async canCreateContract(userId: number, contractType?: string): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'create', { contractType });
     }
-    async canReadContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean> {
+    async canReadContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'read', { contractId, ...context });
     }
-    async canUpdateContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean> {
+
+    async canUpdateContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'update', { contractId, ...context });
     }
-    async canDeleteContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean> {
+
+    async canDeleteContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'delete', { contractId, ...context });
     }
-    async canApproveContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean> {
+
+    async canApproveContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'approve', { contractId, ...context });
     }
-    async canRejectContract(userId: number, contractId: number, context?: Record<string, any>): Promise<boolean> {
+
+    async canRejectContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'reject', { contractId, ...context });
     }
     async canExportContract(userId: number, contractId: number): Promise<boolean> {
@@ -205,31 +229,40 @@ export class AuthCoreService {
     }
 
     private evaluateConditions(
-        conditionsSchema: any,
-        context: Record<string, any>,
+        conditionsSchema: Record<string, unknown>,
+        context: Record<string, unknown>,
         userId: number,
         userPermissions: UserPermissions,
     ): boolean {
         for (const [key, value] of Object.entries(conditionsSchema)) {
             switch (key) {
                 case 'owner':
-                    if (value === true) return context.ownerId === userId;
+                    if (value === true) {
+                        return context.ownerId === userId;
+                    }
                     break;
                 case 'department':
                     return context.department === value;
                 case 'type':
                     return context.contractType === value;
                 case 'assigned':
-                    if (value === true) return context.assignedUsers?.includes(userId) || context.ownerId === userId;
+                    if (value === true) {
+                        const assignedUsers = context.assignedUsers as number[] | undefined;
+                        return assignedUsers?.includes(userId) || context.ownerId === userId;
+                    }
                     break;
                 case 'status':
                     return context.status === value;
                 case 'amount':
-                    if ((value as any).max) return context.amount <= (value as any).max;
-                    if ((value as any).min) return context.amount >= (value as any).min;
+                    if (typeof value === 'object' && value !== null) {
+                        const amountCondition = value as Record<string, number>;
+                        const amount = context.amount as number;
+                        if (amountCondition.max && amount > amountCondition.max) return false;
+                        if (amountCondition.min && amount < amountCondition.min) return false;
+                    }
                     break;
                 case 'scope':
-                    return userPermissions.scopes[value as any] !== undefined;
+                    return userPermissions.scopes[value as string] !== undefined;
                 case 'role':
                     return userPermissions.roles.some((role) => role.name === value);
             }

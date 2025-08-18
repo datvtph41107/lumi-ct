@@ -35,17 +35,11 @@ export class Contract extends BaseEntity {
     @Column({ type: 'enum', enum: ContractPriority, default: ContractPriority.MEDIUM })
     priority: ContractPriority;
 
+    @Column({ type: 'boolean', default: true })
+    active: boolean;
+
     @Column({ type: 'char', length: 36, nullable: true })
     drafter_id?: string;
-
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    drafter_name?: string;
-
-    @Column({ type: 'char', length: 36, nullable: true })
-    manager_id?: string;
-
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    manager_name?: string;
 
     @Column({ type: 'char', length: 36, nullable: true })
     template_id?: string;
