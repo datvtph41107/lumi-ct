@@ -7,32 +7,32 @@ import * as cookieParser from 'cookie-parser';
 import 'reflect-metadata';
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create(AppModule);
 
-    const config = new DocumentBuilder().setTitle('Contract Management API').setVersion('0.1').build();
-    const document = SwaggerModule.createDocument(app, config);
-    app.enableCors({
-        origin: [process.env.CLIENT_URL || 'http://localhost:5173'],
-        credentials: true, // Important: Allow cookies
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-        exposedHeaders: ['Set-Cookie'],
-    });
+	const config = new DocumentBuilder().setTitle('Contract Management API').setVersion('0.1').build();
+	const document = SwaggerModule.createDocument(app, config);
+	app.enableCors({
+		origin: [process.env.CLIENT_URL || 'http://localhost:5173'],
+		credentials: true, // Important: Allow cookies
+		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+		allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+		exposedHeaders: ['Set-Cookie'],
+	});
 
-    // Cookie parser middleware
-    app.use(cookieParser());
-    SwaggerModule.setup('api', app, document);
-    app.setGlobalPrefix(process.env.PREFIX as string);
-    app.useGlobalInterceptors(new ResponseInterceptor());
-    app.useGlobalPipes(
-        new ValidationPipe({
-            whitelist: true,
-            forbidNonWhitelisted: true,
-            transform: true,
-        }),
-    );
+	// Cookie parser middleware
+	app.use(cookieParser());
+	SwaggerModule.setup('api', app, document);
+	app.setGlobalPrefix(process.env.PREFIX || 'api/v1');
+	app.useGlobalInterceptors(new ResponseInterceptor());
+	app.useGlobalPipes(
+		new ValidationPipe({
+			whitelist: true,
+			forbidNonWhitelisted: true,
+			transform: true,
+		}),
+	);
 
-    await app.listen(process.env.PORT ?? 3000);
+	await app.listen(process.env.PORT ?? 3000);
 }
 
 bootstrap();

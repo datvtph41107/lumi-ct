@@ -49,12 +49,12 @@ export class Task extends BaseEntity {
     @Column({ type: 'char', length: 36, nullable: true })
     updated_by?: string;
 
-    @Column({ type: 'json', default: '[]' })
+    @Column({ type: 'json', default: () => "'[]'" })
     dependencies: string[];
 
-    @Column({ type: 'json', default: '[]' })
+    @Column({ type: 'json', default: () => "'[]'" })
     attachments: string[];
 
-    @Column({ type: 'json', default: '[]' })
+    @Column({ type: 'json', default: () => "'[]'" })
     comments: string[];
 }

@@ -31,6 +31,12 @@ export interface LoginRequest {
     is_manager_login?: boolean;
 }
 
+export interface LoginFormValues {
+    username: string;
+    password: string;
+    is_manager_login?: boolean;
+}
+
 export type LoginCredentials = LoginRequest;
 export interface RegisterData {
     username: string;

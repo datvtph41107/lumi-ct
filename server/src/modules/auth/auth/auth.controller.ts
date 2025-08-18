@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards, UnauthorizedException, Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TokenService } from '../jwt/jwt.service';
 import { AuthGuardAccess } from '../guards/jwt-auth.guard';
@@ -14,7 +14,7 @@ import { Role } from '@/core/shared/enums/base.enums';
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
-        private readonly db: DataSource,
+        @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
     @Post('login')
@@ -26,7 +26,7 @@ export class AuthController {
         const matched = await bcrypt.compare(body.password, user.password);
         if (!matched) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
 
-        if (body.isManager === true && user.role !== Role.MANAGER) {
+        if (body.is_manager_login === true && user.role !== Role.MANAGER) {
             throw new UnauthorizedException('Tài khoản không có quyền quản lý');
         }
 

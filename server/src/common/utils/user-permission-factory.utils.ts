@@ -1,6 +1,7 @@
 import { UserPermission } from '@/core/domain/permission';
 import { Department, Role } from '@/core/shared/enums/base.enums';
 
+// Deprecated enum, use Department code strings from base.enums instead
 export enum DepartmentEnum {
     HANH_CHINH = 1,
     KE_TOAN = 2,
