@@ -129,7 +129,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: RolePermissionManagement,
         layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.SYSTEM_SETTINGS],
             requireAll: false,
         },
@@ -152,7 +152,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: UserManagement, // Replace with actual UserManagement component
         layout: AdminLayout,
         access: {
-            roles: [ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.USER_MANAGEMENT],
             requireAll: false, // Chỉ cần 1 trong 2
         },
@@ -213,7 +213,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: Dashboard, // Replace with actual Reports component
         layout: DefaultLayout,
         access: {
-            roles: [ROLE.MANAGER, ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.REPORTS_ACCESS],
             requireAll: false, // Có role HOẶC có permission
         },
@@ -224,7 +224,7 @@ export const privateRoutes: PrivateRoute[] = [
         component: Dashboard, // Replace with actual TeamManagement component
         layout: DefaultLayout,
         access: {
-            roles: [ROLE.MANAGER, ROLE.ADMIN],
+            roles: [ROLE.MANAGER],
             permissions: [PERMISSION.TEAM_MANAGEMENT],
             requireAll: false,
         },

@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthCoreService } from '@/modules/auth/auth/auth.service';
+import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
@@ -106,12 +106,15 @@ export class ContractService {
     async getContract(id: string, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
-        const can = await this.authCoreService.canReadContract(userId, 0 as any, {
-            ownerId: contract.created_by,
-            status: contract.status,
-            type: contract.contract_type,
-        });
-        if (!can) throw new ForbiddenException('Không có quyền xem hợp đồng này');
+        // Allow public contracts without further checks
+        if (!contract.is_public) {
+            const can = await this.authCoreService.canReadContract(userId, 0 as any, {
+                ownerId: contract.created_by,
+                status: contract.status,
+                type: contract.contract_type,
+            });
+            if (!can) throw new ForbiddenException('Không có quyền xem hợp đồng này');
+        }
         return contract;
     }
 
@@ -183,7 +186,7 @@ export class ContractService {
     async findContractRelatedUsers(contractId: string): Promise<number[]> {
         const contract = await this.contractRepository.findOne({ where: { id: contractId } });
         if (!contract) return [];
-        const possible = [contract.created_by, contract.manager_id, contract.drafter_id]
+        const possible = [contract.created_by, (contract as any).manager_id, contract.drafter_id]
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));

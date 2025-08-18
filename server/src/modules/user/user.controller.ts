@@ -9,7 +9,7 @@ import { PermissionsGuard } from '../auth/guards/permission.guard';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { HeaderRequest, HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 
-@UseGuards(AuthGuardAccess, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuardAccess, RolesGuard)
 @Controller()
 export class UserController {
     constructor(

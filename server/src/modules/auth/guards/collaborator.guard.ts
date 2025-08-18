@@ -25,10 +25,11 @@ export class CollaboratorGuard implements CanActivate {
             throw new ForbiddenException('Contract ID is required');
         }
 
-        // Check collaborator role
+        // Allow access if collaborator has at least view role
         const hasAccess = await this.collaboratorService.hasRole(contractId, user.sub, [
             CollaboratorRole.OWNER,
             CollaboratorRole.EDITOR,
+            CollaboratorRole.REVIEWER,
             CollaboratorRole.VIEWER,
         ]);
 

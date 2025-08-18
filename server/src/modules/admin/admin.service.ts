@@ -5,12 +5,12 @@ import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Role, Status } from '@/core/shared/enums/base.enums';
-// import { UserPermission } from '@/core/domain/permission';
+// Permissions are derived from role; legacy entity removed
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
-import { UserPermission } from '@/core/domain/permission';
-import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
+// import { UserPermission } from '@/core/domain/permission';
+// import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 
 @Injectable()
 export class AdminService {
@@ -116,7 +116,7 @@ export class AdminService {
         try {
             const userRepo = this.db.getRepository(User);
             const departmentRepo = this.db.getRepository(Department);
-            const permissionRepo = queryRunner.manager.getRepository(UserPermission);
+            // const permissionRepo = queryRunner.manager.getRepository(UserPermission);
 
             const department = await departmentRepo.findOne({ where: { id: req.department_id } });
             if (!department) {
@@ -153,13 +153,7 @@ export class AdminService {
                 await departmentRepo.save(department);
             }
 
-            const userPermissionData = UserPermissionFactory.createDefaultPermissions(Role.MANAGER, department.code);
-            const userPermission = permissionRepo.create({
-                user_id: savedUser.id,
-                ...userPermissionData,
-            });
-
-            await permissionRepo.save(userPermission);
+            // No separate permission record. Permissions are computed from role.
 
             await queryRunner.commitTransaction();
 

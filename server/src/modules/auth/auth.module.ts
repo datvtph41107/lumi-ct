@@ -25,13 +25,10 @@ import { DatabaseModule } from '@/providers/database';
 // Entities
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-import { Role } from '@/core/domain/permission/role.entity';
-import { Permission } from '@/core/domain/permission/permission.entity';
-import { UserRole } from '@/core/domain/permission/user-role.entity';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 
 // Core Services
-import { AuthCoreService } from './auth/auth.service';
+import { AuthService as AuthCoreService } from './auth/auth.service';
 
 @Module({
     imports: [
@@ -39,7 +36,7 @@ import { AuthCoreService } from './auth/auth.service';
         DatabaseModule,
         ConfigModule,
         PassportModule,
-        TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole, RevokedToken]),
+        TypeOrmModule.forFeature([User, UserSession, RevokedToken]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],

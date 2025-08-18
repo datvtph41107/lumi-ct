@@ -3,7 +3,6 @@ import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { HeaderRequest, HeaderUserPayload } from '../../../core/shared/interface/header-payload-req.interface';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { DataSource } from 'typeorm';
-import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
 
 @Injectable()
@@ -20,7 +19,7 @@ export class AuthValidatorService {
     async validateRequestPermissions(
         user: HeaderUserPayload,
         meta: { permissions?: string[]; departments?: string[] },
-        db: DataSource,
+        _db: DataSource,
     ): Promise<boolean> {
         if (!user) {
             this.logger.APP.error('Payload request null');
@@ -32,18 +31,11 @@ export class AuthValidatorService {
             this.logger.APP.error('Invalid user ID format', { userSub: user.sub });
             throw new ForbiddenException('Invalid user ID');
         }
-
-        const permissionRepo = db.getRepository(UserPermission);
-        const permission = await permissionRepo.findOne({ where: { user_id: userId } });
-
-        if (!permission) {
-            this.logger.APP.error(`No permission record found for user ID ${userId}`);
-            return false;
-        }
+        // Permissions are carried in JWT payload as booleans under user.permissions
 
         const { permissions = [], departments = [] } = meta;
 
-        const hasPermissions = permissions.every((prs) => permission[prs] === true);
+        const hasPermissions = permissions.every((prs) => (user as any)?.permissions?.[prs] === true);
         if (!hasPermissions) {
             this.logger.APP.warn(`User ID ${userId} lacks required permissions: ${permissions.join(', ')}`);
             throw new ForbiddenException(ERROR_MESSAGES.AUTH.FORBIDDEN);
@@ -79,7 +71,7 @@ export class AuthValidatorService {
         try {
             payload = await jwtService.verifyAsync(token, {
                 algorithms: ['RS256'],
-                secret: process.env.ACCESS_TOKEN_PUBLIC_KEY,
+                secret: (process.env.ACCESS_TOKEN_PUBLIC_KEY || '').replace(/\\n/g, '\n'),
             });
         } catch (err) {
             if (err instanceof TokenExpiredError) {
