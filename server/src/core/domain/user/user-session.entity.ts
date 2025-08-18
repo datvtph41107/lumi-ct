@@ -13,11 +13,14 @@ export class UserSession {
     @Column({ type: 'varchar', length: 64 })
     session_id: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    refresh_token: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    refresh_token?: string;
 
-    @Column({ type: 'varchar', length: 255 })
-    access_token_hash: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    access_token_hash?: string;
+
+    @Column({ type: 'varchar', length: 64, nullable: true })
+    jti?: string;
 
     @Column({ type: 'varchar', length: 45, nullable: true })
     ip_address?: string;
@@ -42,6 +45,9 @@ export class UserSession {
 
     @Column({ type: 'varchar', length: 50, nullable: true })
     logout_reason?: string;
+
+    @Column({ type: 'datetime', nullable: true })
+    revoked_at?: Date;
 
     @CreateDateColumn({ name: 'created_at' })
     created_at: Date;

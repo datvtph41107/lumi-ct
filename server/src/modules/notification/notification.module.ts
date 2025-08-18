@@ -1,5 +1,5 @@
 // src/providers/cron-task/cron-task.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ContractsModule } from '@/modules/contract/contract.module';
 import { NotificationService } from '../notification/notification.service';
 // import { SocketService } from '@/core/providers/socket.service'; // nếu có dùng socket
@@ -10,7 +10,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
 
 @Module({
-    imports: [LoggerModule, DatabaseModule, ContractsModule, TypeOrmModule.forFeature([SystemNotificationSettings])],
+    imports: [
+        LoggerModule,
+        DatabaseModule,
+        forwardRef(() => ContractsModule),
+        TypeOrmModule.forFeature([SystemNotificationSettings]),
+    ],
     controllers: [NotificationController],
     providers: [
         NotificationService,

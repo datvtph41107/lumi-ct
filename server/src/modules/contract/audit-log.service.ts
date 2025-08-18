@@ -44,7 +44,7 @@ export class AuditLogService {
     private readonly repo: Repository<AuditLog>;
 
     constructor(
-        @Inject('DATA_SOURCE') private readonly db: DataSource,
+        private readonly db: DataSource,
         @Inject('LOGGER') private readonly logger: LoggerTypes,
     ) {
         this.repo = this.db.getRepository(AuditLog);
@@ -101,9 +101,10 @@ export class AuditLogService {
         }
 
         if (filters?.search) {
-            queryBuilder.andWhere('(audit.description ILIKE :search OR audit.action ILIKE :search)', {
-                search: `%${filters.search}%`,
-            });
+            queryBuilder.andWhere(
+                '(LOWER(audit.description) LIKE LOWER(:search) OR LOWER(audit.action) LIKE LOWER(:search))',
+                { search: `%${filters.search}%` },
+            );
         }
 
         // Get total count
@@ -162,9 +163,10 @@ export class AuditLogService {
         }
 
         if (filters?.search) {
-            queryBuilder.andWhere('(audit.description ILIKE :search OR audit.action ILIKE :search)', {
-                search: `%${filters.search}%`,
-            });
+            queryBuilder.andWhere(
+                '(LOWER(audit.description) LIKE LOWER(:search) OR LOWER(audit.action) LIKE LOWER(:search))',
+                { search: `%${filters.search}%` },
+            );
         }
 
         const total = await queryBuilder.getCount();
@@ -223,9 +225,10 @@ export class AuditLogService {
         }
 
         if (filters?.search) {
-            queryBuilder.andWhere('(audit.description ILIKE :search OR audit.action ILIKE :search)', {
-                search: `%${filters.search}%`,
-            });
+            queryBuilder.andWhere(
+                '(LOWER(audit.description) LIKE LOWER(:search) OR LOWER(audit.action) LIKE LOWER(:search))',
+                { search: `%${filters.search}%` },
+            );
         }
 
         const total = await queryBuilder.getCount();
@@ -333,9 +336,12 @@ export class AuditLogService {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-        const result = await this.repo.delete({
-            created_at: { $lt: cutoffDate } as any,
-        });
+        const result = await this.repo
+            .createQueryBuilder()
+            .delete()
+            .from(AuditLog)
+            .where('created_at < :cutoff', { cutoff: cutoffDate })
+            .execute();
 
         this.logger.APP.info('Deleted old audit logs', {
             deleted_count: result.affected,
