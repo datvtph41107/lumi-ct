@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '@/core/domain/permission/role.entity';
+import { Role as RoleEntity } from '@/core/domain/permission/role.entity';
 import { Permission } from '@/core/domain/permission/permission.entity';
 import { UserRole } from '@/core/domain/permission/user-role.entity';
 import { User } from '@/core/domain/user/user.entity';
@@ -18,7 +18,7 @@ export interface UserPermissions {
     permissions:
         | Permission[]
         | Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }>;
-    roles: Role[];
+    roles: import('@/core/shared/enums/base.enums').Role[];
     scopes: Record<string, any>;
 }
 
@@ -28,8 +28,8 @@ export class AuthCoreService {
     private userPermissionsCache = new Map<number, UserPermissions>();
 
     constructor(
-        @InjectRepository(Role)
-        private readonly roleRepository: Repository<Role>,
+        @InjectRepository(RoleEntity)
+        private readonly roleRepository: Repository<RoleEntity>,
         @InjectRepository(Permission)
         private readonly permissionRepository: Repository<Permission>,
         @InjectRepository(UserRole)
@@ -81,7 +81,7 @@ export class AuthCoreService {
         if (this.userPermissionsCache.has(userId)) return this.userPermissionsCache.get(userId)!;
 
         const userRoles = await this.userRoleRepository.find({ where: { user_id: userId, is_active: true } });
-        const roles: Role[] = [];
+        const roles: import('@/core/shared/enums/base.enums').Role[] = [];
         const scopes: Record<string, any> = {};
         const aggregated: Array<{ resource: string; action: string; conditions_schema?: any; is_active?: boolean }> =
             [];
@@ -89,7 +89,7 @@ export class AuthCoreService {
         for (const ur of userRoles) {
             const role = await this.roleRepository.findOne({ where: { id: ur.role_id } });
             if (role && role.is_active) {
-                roles.push(role);
+                roles.push(role.name as import('@/core/shared/enums/base.enums').Role);
                 (role.permissions || []).forEach((rp) =>
                     aggregated.push({
                         resource: rp.resource,
@@ -231,7 +231,7 @@ export class AuthCoreService {
                 case 'scope':
                     return userPermissions.scopes[value as any] !== undefined;
                 case 'role':
-                    return userPermissions.roles.some((role) => role.name === value);
+                    return userPermissions.roles.some((role) => role === value);
             }
         }
         return true;
