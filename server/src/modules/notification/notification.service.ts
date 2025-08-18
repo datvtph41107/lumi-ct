@@ -2,12 +2,7 @@ import { Injectable, Inject, BadRequestException, InternalServerErrorException }
 import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import {
-    ContractNotification,
-    NotificationType,
-    NotificationStatus,
-    NotificationChannel,
-} from '@/core/domain/notification/notification.entity';
+import { ContractNotification, NotificationType, NotificationStatus, NotificationChannel } from '@/core/domain/notification/notification.entity';
 import {
     ContractReminder,
     ReminderType,

@@ -4,7 +4,10 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from 'moment-timezone';
 import { ContractService } from '@/modules/contract/contract.service';
 import { NotificationService } from '../notification/notification.service';
-import { ContractStatus, NotificationType } from '@/core/shared/enums/base.enums';
+import { NotificationType } from '@/core/domain/notification/notification.entity';
+import { MilestoneStatus } from '@/core/domain/contract/contract-milestones.entity';
+import { TaskStatus } from '@/core/domain/contract/contract-taks.entity';
+import { ContractStatus } from '@/core/domain/contract/contract.entity';
 // Removed unused imports of ContractPhase and ContractTask to fix build
 
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
@@ -53,7 +56,7 @@ export class CronTaskService {
 
             await this.notificationService.notifyManyUsers({
                 userIds: relatedUsers,
-                type: NotificationType.CONTRACT_REMINDER,
+                type: NotificationType.CONTRACT_EXPIRING,
                 title: 'Contract Reminder',
                 message: `Contract "${(contract as any).name}" is ${this.formatReminderText(daysBefore, 'starting or ending')}.`,
                 data: `${(contract as any).id}`,
@@ -72,7 +75,7 @@ export class CronTaskService {
         const phases = await this.contractService.findUpcomingPhases(daysBefore);
 
         await this.sendNotifications(phases, {
-            type: NotificationType.PHASE_REMINDER,
+            type: NotificationType.MILESTONE_DUE,
             title: 'Phase Reminder',
             daysBefore,
             getUserId: (phase: any) => phase.assignedToId,
@@ -86,7 +89,7 @@ export class CronTaskService {
         const tasks = await this.contractService.findUpcomingTasks(daysBefore);
 
         await this.sendNotifications(tasks, {
-            type: NotificationType.TASK_REMINDER,
+            type: NotificationType.TASK_DUE,
             title: 'Task Reminder',
             daysBefore,
             getUserId: (task: any) => task.assignedToId,
@@ -130,7 +133,7 @@ export class CronTaskService {
     private async markExpiredContracts() {
         const expiredContracts = await this.contractService.findOverdueContracts();
         for (const contract of expiredContracts as any[]) {
-            await this.contractService.updateStatus('contract', (contract as any).id, ContractStatus.EXPIRED);
+            await this.contractService.updateStatus('contract', (contract as any).id, ContractStatus.CANCELLED);
             this.logger.APP.warn(`Contract ${(contract as any).id} marked as EXPIRED`);
         }
     }
@@ -138,7 +141,7 @@ export class CronTaskService {
     private async markExpiredPhases() {
         const expiredPhases = await this.contractService.findOverduePhases();
         for (const phase of expiredPhases as any[]) {
-            await this.contractService.updateStatus('phase', (phase as any).id, ContractStatus.EXPIRED);
+            await this.contractService.updateStatus('phase', (phase as any).id, MilestoneStatus.OVERDUE as any);
             this.logger.APP.warn(`Phase ${(phase as any).id} marked as EXPIRED`);
         }
     }
@@ -146,7 +149,7 @@ export class CronTaskService {
     private async markExpiredTasks() {
         const expiredTasks = await this.contractService.findOverdueTasks();
         for (const task of expiredTasks as any[]) {
-            await this.contractService.updateStatus('task', (task as any).id, ContractStatus.EXPIRED);
+            await this.contractService.updateStatus('task', (task as any).id, TaskStatus.CANCELLED as any);
             this.logger.APP.warn(`Task ${(task as any).id} marked as EXPIRED`);
         }
     }

@@ -116,10 +116,10 @@ export class UserService {
             const userRepo = this.db.getRepository(User);
             const users = await userRepo.find({
                 where: { role: Role.STAFF, department_id: creator.department?.id },
+                select: ['id', 'name', 'username', 'role', 'department_id', 'created_at', 'updated_at'],
+                order: { name: 'ASC' as any },
             });
-            if (users) {
-                throw new ConflictException('No staff of this department');
-            }
+            return { data: users, total: users.length };
         } catch (error) {
             this.logger.APP.error('Get All Staff of depart error: ' + error);
             throw error;

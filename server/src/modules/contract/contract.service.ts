@@ -3,7 +3,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { AuthCoreService } from '@/modules/auth/auth/auth-core.service';
-import { Contract } from '@/core/domain/contract/contract.entity';
+import { Contract, ContractStatus, ContractMode } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
 import { ContractContent } from '@/core/domain/contract/contract-content.entity';
@@ -158,5 +158,56 @@ export class ContractService {
     }
     async listReminders(id: string) {
         return this.notificationService.getRemindersByContract(id);
+    }
+
+    // ===== Support for CronTaskService queries =====
+    async findUpcomingContracts(daysBefore: number) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + daysBefore);
+        return this.contractRepository.find({
+            where: [
+                { start_date: targetDate as any, deleted_at: null as any },
+                { end_date: targetDate as any, deleted_at: null as any },
+            ] as any,
+            order: { start_date: 'ASC' as any },
+        });
+    }
+
+    async findContractRelatedUsers(contractId: string): Promise<number[]> {
+        // Placeholder: in real impl, join collaborators and owner
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } });
+        if (!contract) return [];
+        const userId = Number(contract.created_by);
+        return Number.isFinite(userId) ? [userId] : [];
+    }
+
+    async findUpcomingPhases(daysBefore: number) {
+        // Not implemented yet: return empty list for now
+        return [] as any[];
+    }
+
+    async findUpcomingTasks(daysBefore: number) {
+        // Not implemented yet: return empty list for now
+        return [] as any[];
+    }
+
+    async findOverdueContracts() {
+        const now = new Date();
+        return this.contractRepository.find({ where: { end_date: (date: any) => date < now, deleted_at: null as any } as any });
+    }
+
+    async findOverduePhases() {
+        return [] as any[];
+    }
+
+    async findOverdueTasks() {
+        return [] as any[];
+    }
+
+    async updateStatus(kind: 'contract' | 'phase' | 'task', id: string, status: any) {
+        if (kind === 'contract') {
+            await this.contractRepository.update({ id }, { status });
+        }
+        // TODO: implement for milestones/tasks when entities wired in service
     }
 }
