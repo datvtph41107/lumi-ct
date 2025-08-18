@@ -66,7 +66,22 @@ export class ContractController {
         return this.contractService.generatePrintView(id);
     }
 
+    // ===== AUDIT LOG =====
+    @Get(':id/audit')
+    async getAuditLogs(@Param('id') id: string, @Query() query: any) {
+        return this.contractService.getAuditLogs(id, query);
+    }
+
+    @Get(':id/audit/summary')
+    async getAuditSummary(@Param('id') id: string) {
+        return this.contractService.getAuditSummary(id);
+    }
+
     // ===== EXPORT & PRINT =====
+    @Get(':id/export/pdf')
+    async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.exportPdf(id, Number(user.sub));
+    }
     @Get(':id/export/docx')
     async exportDocx(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportDocx(id, Number(user.sub));

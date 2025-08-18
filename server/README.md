@@ -1,3 +1,61 @@
+## Hệ thống Quản lý Hợp đồng – Tài liệu thiết kế server (NestJS)
+
+### 1. Phân lớp module
+- auth: đăng nhập, refresh, xác thực JWT, quản lý phiên/session, guard Roles/Permissions
+- user: hồ sơ người dùng, tạo staff theo phòng ban, danh sách staff
+- admin: phòng ban, tạo manager, gán quyền theo vai trò, catalog permission
+- contract: CRUD hợp đồng, draft flow, templates, collaborators, audit-log, export/print
+- notification: thông báo, reminders, thiết lập hệ thống, cron xử lý hàng đợi
+- cron-task: tác vụ lịch, gom các tick chạy NotificationService
+- uploadFile: upload file phục vụ soạn thảo
+- core: shared (logger, filters, decorators), dto, domain (entities), providers (database)
+
+### 2. Authentication & Authorization
+- AccessToken: Bearer JWT RSA (RS256), lưu trên client memory; RefreshToken: HttpOnly cookie (HS256)
+- Endpoints: auth/login, auth/refresh-token, auth/logout, auth/me, auth/verify-session, auth/update-activity
+- Guards: AuthGuardAccess, RolesGuard, PermissionGuard; CurrentUser decorator
+- Sessions: bảng user_sessions, tự gia hạn hoạt động, revoke theo sessionId/jti
+
+### 3. Workflow hợp đồng và chức năng chính
+- ContractController: create/list/get/update/softDelete, exportDocx/print, notifications/reminders, audit
+- ContractDraftController: list/get/create/update/delete draft, saveStage
+- ContractTemplateController: list/get/create/update/delete templates
+- Collaborators: service hỗ trợ add/update/remove, check quyền view/edit/review/owner
+- AuditLogService: tạo và truy vấn log theo hợp đồng/người dùng/tổng quan
+
+### 4. Notification & Cron
+- NotificationService: tạo thông báo, gửi theo channel (stub), retry theo backoff, reminders
+- System settings: /notifications/settings GET/PUT
+- Contract-level: /contracts/:id/notifications, /contracts/:id/reminders
+- Cron: processPendingNotifications, processReminders, checkMilestone/Task due, contract expiry
+
+### 5. Response & Error
+- Interceptor chuẩn hóa Success/Error tại core/shared/filters/response.interceptor.ts
+- ValidationPipe toàn cục: whitelist, forbidNonWhitelisted, transform
+
+### 6. Entity (không dùng quan hệ)
+- Tất cả entity trong core/domain/* đều dùng khóa dạng uuid hoặc primitive; field tham chiếu lưu id thuần
+
+### 7. Kết nối dữ liệu
+- TypeORM config khởi tạo trong AppModule qua TypeOrmModule.forRootAsync, logger Winston
+- DatabaseProvider vẫn sẵn nếu cần inject thủ công DataSource ('DATA_SOURCE')
+
+### 8. Điểm đối chiếu client
+- Auth: client gọi auth/login, auth/refresh-token, auth/me, auth/verify-session, auth/update-activity – server đã cung cấp
+- Draft: /contract-drafts CRUD – server đã cung cấp
+- Templates: /contracts/templates CRUD – server đã bổ sung controller
+- Notifications: /notifications/settings, /notifications/pending, /notifications/failed, /notifications/:id/retry và contract-level routes – server đã cung cấp
+- Audit: /contracts/:id/audit, /contracts/:id/audit/summary – server đã bổ sung
+
+### 9. Lưu ý kỹ thuật
+- Đồng bộ enum NotificationType: service dùng enum tại core/shared/enums/base.enums
+- Sử dụng id dạng string (uuid) cho contract/template/milestone/task; user id dạng number
+- Không sử dụng relations, luôn where theo id string/number tương ứng
+- Upload: FileSizeValidationPipe kiểm soát loại và dung lượng file (PDF/DOC/DOCX, 5MB)
+
+### 10. Scripts
+- build/start/start:dev, migration:generate/run/revert, seed
+
 # Contract Management System
 
 Hệ thống quản lý hợp đồng toàn diện với các tính năng soạn thảo, phê duyệt, versioning và analytics.
