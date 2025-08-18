@@ -1,32 +1,51 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
-import { BaseEntity } from '../base.entity';
+import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('user_roles')
+@Entity('user_sessions')
 @Index(['user_id'])
-@Index(['role_id'])
-@Index(['scope', 'scope_id'])
-export class UserRole extends BaseEntity {
+@Index(['session_id'], { unique: true })
+export class UserSession {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @Column({ type: 'int' })
     user_id: number;
 
-    @Column({ type: 'uuid' })
-    role_id: string;
+    @Column({ type: 'varchar', length: 64 })
+    session_id: string;
 
-    @Column({ type: 'varchar', length: 50, default: 'global' })
-    scope: string;
+    @Column({ type: 'varchar', length: 255 })
+    refresh_token: string;
 
-    @Column({ type: 'int', nullable: true })
-    scope_id?: number;
+    @Column({ type: 'varchar', length: 255 })
+    access_token_hash: string;
 
-    @Column({ type: 'int', nullable: true })
-    granted_by?: number;
+    @Column({ type: 'varchar', length: 45, nullable: true })
+    ip_address?: string;
 
-    @Column({ type: 'datetime', nullable: true })
-    granted_at?: Date;
+    @Column({ type: 'json', nullable: true })
+    device_info?: any;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    user_agent?: string;
+
+    @Column({ type: 'datetime' })
+    expires_at: Date;
+
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+    last_activity: Date;
 
     @Column({ type: 'boolean', default: true })
     is_active: boolean;
+
+    @Column({ type: 'datetime', nullable: true })
+    logout_at?: Date;
+
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    logout_reason?: string;
+
+    @CreateDateColumn({ name: 'created_at' })
+    created_at: Date;
+
+    @UpdateDateColumn({ name: 'updated_at' })
+    updated_at: Date;
 }

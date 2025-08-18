@@ -1,14 +1,12 @@
-"use client";
+import type React from 'react';
 
-import type React from "react";
-
-import classNames from "classnames/bind";
-import { faBold, faItalic, faUnderline, faUndo, faRedo, faStrikethrough } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import styles from "./Toolbar.module.scss";
-import { useEditorStore } from "~/store/editor-store";
-import type { IconProp } from "@fortawesome/fontawesome-svg-core";
-import { Editor, FloatingMenu } from "@tiptap/react";
+import classNames from 'classnames/bind';
+import { faBold, faItalic, faUnderline, faUndo, faRedo, faStrikethrough } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import styles from './Toolbar.module.scss';
+import { useEditorStore } from '~/store/editor-store';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { Editor, FloatingMenu } from '@tiptap/react';
 
 import {
     HeadingLevelButton,
@@ -20,9 +18,9 @@ import {
     ImageButton,
     TextDecorationButton,
     TextStyleButton,
-} from "./EditorButton/EditorButton";
-import { useEffect, useRef } from "react";
-import { NodeSelection } from "prosemirror-state";
+} from './EditorButton/EditorButton';
+import { useEffect, useRef } from 'react';
+import { NodeSelection } from 'prosemirror-state';
 
 const cx = classNames.bind(styles);
 
@@ -51,7 +49,7 @@ const ToolbarButton = ({ onClick, isActive, icon }: ToolbarButtonProps) => {
 
     return (
         <button
-            className={cx("toolbar-btn", { active: isActive })}
+            className={cx('toolbar-btn', { active: isActive })}
             onMouseDown={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -59,7 +57,7 @@ const ToolbarButton = ({ onClick, isActive, icon }: ToolbarButtonProps) => {
             }}
             onClick={handleClick}
         >
-            <FontAwesomeIcon icon={icon} className={cx("icon")} />
+            <FontAwesomeIcon icon={icon} className={cx('icon')} />
         </button>
     );
 };
@@ -72,23 +70,23 @@ const isImageSelected = (editor: Editor): boolean => {
     // Check if selection is a NodeSelection (single node selected)
     if (state.selection instanceof NodeSelection) {
         const node = state.selection.node;
-        return !!node && node.type.name === "image";
+        return !!node && node.type.name === 'image';
     }
 
     // Check if cursor is positioned at an image node
     const nodeAtFrom = state.doc.nodeAt(from);
     const nodeAtTo = state.doc.nodeAt(to);
 
-    if (nodeAtFrom?.type.name === "image") return true;
-    if (nodeAtTo?.type.name === "image") return true;
+    if (nodeAtFrom?.type.name === 'image') return true;
+    if (nodeAtTo?.type.name === 'image') return true;
 
     // Check if adjacent nodes are images
     const $pos = state.doc.resolve(from);
     const nodeBefore = $pos.nodeBefore;
     const nodeAfter = $pos.nodeAfter;
 
-    if (nodeBefore?.type.name === "image") return true;
-    if (nodeAfter?.type.name === "image") return true;
+    if (nodeBefore?.type.name === 'image') return true;
+    if (nodeAfter?.type.name === 'image') return true;
 
     return false;
 };
@@ -105,27 +103,27 @@ const Toolbar = () => {
     }[][] = [
         [
             {
-                label: "Undo",
+                label: 'Undo',
                 icon: faUndo,
                 onClick: () => editor?.chain().focus().undo().run(),
             },
             {
-                label: "Redo",
+                label: 'Redo',
                 icon: faRedo,
                 onClick: () => editor?.chain().focus().redo().run(),
             },
         ],
         [
             {
-                label: "Bold",
+                label: 'Bold',
                 icon: faBold,
-                isActive: editor?.isActive("bold"),
+                isActive: editor?.isActive('bold'),
                 onClick: () => editor?.chain().focus().toggleBold().run(),
             },
             {
-                label: "Italic",
+                label: 'Italic',
                 icon: faItalic,
-                isActive: editor?.isActive("italic"),
+                isActive: editor?.isActive('italic'),
                 onClick: () => editor?.chain().focus().toggleItalic().run(),
             },
             // {
@@ -153,8 +151,8 @@ const Toolbar = () => {
     };
 
     useEffect(() => {
-        document.addEventListener("contextmenu", handleToolbarContextMenu);
-        return () => document.removeEventListener("contextmenu", handleToolbarContextMenu);
+        document.addEventListener('contextmenu', handleToolbarContextMenu);
+        return () => document.removeEventListener('contextmenu', handleToolbarContextMenu);
     }, []);
 
     if (!editor) return null;
@@ -162,7 +160,7 @@ const Toolbar = () => {
     return (
         <FloatingMenu
             editor={editor}
-            className={cx("wrapper", {
+            className={cx('wrapper', {
                 visible: isToolbarVisible,
                 hidden: !isToolbarVisible,
             })}
@@ -179,14 +177,14 @@ const Toolbar = () => {
                 return hasFocus;
             }}
             tippyOptions={{
-                placement: "bottom-start",
+                placement: 'bottom-start',
                 offset: [-40, 8],
-                appendTo: "parent",
-                animation: "fade",
+                appendTo: 'parent',
+                animation: 'fade',
                 duration: [200, 150],
                 interactive: true,
                 hideOnClick: false,
-                trigger: "manual",
+                trigger: 'manual',
             }}
         >
             <div
@@ -213,22 +211,22 @@ const Toolbar = () => {
                     }, 150);
                     setInteractionTimeoutId(timeoutId);
                 }}
-                className={cx("contain")}
+                className={cx('contain')}
             >
                 <TextStyleButton />
-                <div className={cx("vertical-block")} />
+                <div className={cx('vertical-block')} />
 
                 <TextColorButton />
-                <div className={cx("vertical-block")} />
+                <div className={cx('vertical-block')} />
                 {sections[1].map((item) => (
                     <ToolbarButton key={item.label} {...item} />
                 ))}
                 <TextDecorationButton />
-                <div className={cx("vertical-block")} />
+                <div className={cx('vertical-block')} />
 
                 <LinkButton />
                 <ImageButton />
-                <div className={cx("vertical-block")} />
+                <div className={cx('vertical-block')} />
 
                 <AlignButton />
                 <ListButton />
@@ -242,6 +240,6 @@ const Toolbar = () => {
     );
 };
 
-Toolbar.displayName = "Toolbar";
+Toolbar.displayName = 'Toolbar';
 
 export default Toolbar;

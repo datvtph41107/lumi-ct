@@ -50,15 +50,24 @@ const HeaderBar = () => {
     }, [currentContract?.id]);
 
     const handleExportHtml = useCallback(() => {
-        const html = editor?.getHTML() || '<p></p>';
+        const body = editor?.getHTML() || '<p></p>';
+        const title = currentContract?.name || currentContract?.title || 'contract';
+        const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+            <style>
+                body{font-family:Inter,Arial,Helvetica,sans-serif;padding:24px}
+                @page{margin:16mm}
+                h1,h2,h3{line-height:1.3}
+                p{line-height:1.6;margin:0 0 12px}
+            </style>
+        </head><body>${body}</body></html>`;
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `${currentContract?.name || 'contract'}.html`;
+        link.download = `${title}.html`;
         document.body.appendChild(link);
         link.click();
         link.remove();
-    }, [editor, currentContract?.name]);
+    }, [editor, currentContract?.name, currentContract?.title]);
 
     return (
         <header className={cx('header')}>
@@ -116,18 +125,6 @@ const HeaderBar = () => {
                         Print
                     </button>
                 </PermissionGuard>
-                {/* <div className={cx('action-btn')} onClick={handleDownloadPdf}>
-                    Download PDF
-                </div>
-                <div className={cx('action-btn')} onClick={handleDownloadDocx}>
-                    Download DOCX
-                </div>
-                <div className={cx('action-btn')} onClick={handleExportHtml}>
-                    Export HTML
-                </div>
-                <button className={cx('action-btn')} onClick={() => window.print()}>
-                    Print
-                </button> */}
                 <button className={cx('action-btn')} onClick={handleShare}>
                     Share
                 </button>

@@ -1,5 +1,5 @@
 import { Department } from '@/core/domain/department';
-import { UserPermission } from '@/core/domain/permission';
+import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import type { User } from '@/core/domain/user';
 import type { DataSource } from 'typeorm';
 

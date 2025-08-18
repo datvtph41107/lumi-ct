@@ -17,6 +17,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './SidebarLeft.module.scss';
 import classNames from 'classnames/bind';
+import { useEditorStore } from '~/store/editor-store';
+import { useContractDraftStore } from '~/store/contract-draft-store';
 
 const cx = classNames.bind(styles);
 
@@ -65,6 +67,10 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const { editor } = useEditorStore();
+    const { currentDraft, updateDraftData, setDirty } = useContractDraftStore();
+    const currentType = (currentDraft?.contractData as any)?.contractType || 'service';
+
     useEffect(() => {
         loadData();
     }, [activeTab]);
@@ -94,8 +100,8 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                         },
                         {
                             id: '3',
-                            title: 'Định dạng lại bảng',
-                            description: 'Bảng thông tin cần được định dạng rõ ràng hơn',
+                            title: 'Căn lề và giãn dòng chuẩn',
+                            description: 'Áp dụng căn lề đều (justify) và dòng 1.5',
                             type: 'format',
                             priority: 'low',
                         },
@@ -113,7 +119,7 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                             id: '2',
                             title: 'Nội dung chính',
                             expanded: false,
-                            items: ['Điều khoản chung', 'Quyền và nghĩa vụ', 'Điều khoản thanh toán'],
+                            items: ['Điều khoản dịch vụ', 'Quyền và nghĩa vụ', 'Điều khoản thanh toán'],
                         },
                         {
                             id: '3',
@@ -184,9 +190,106 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
         }
     };
 
+    const applyStandardFormatting = () => {
+        if (!editor) return;
+        // Apply justify alignment and 1.5 line-height to whole document
+        editor.chain().focus().selectAll().setTextAlign('justify').run();
+        // Line-height is provided by custom extension
+        // @ts-ignore custom command exists via LineHeightExtension
+        editor.chain().focus().setLineHeight('1.5').run();
+    };
+
+    const insertSection = (title: string, placeholder?: string) => {
+        if (!editor) return;
+        const html = `<h2>${title}</h2><p>${placeholder || 'Nội dung ...'}</p>`;
+        editor.chain().focus().insertContent(html).run();
+        void updateDraftData('content_draft', {
+            mode: 'editor',
+            content: {
+                mode: 'editor',
+                editorContent: {
+                    content: editor.getHTML(),
+                    plainText: editor.getText(),
+                    metadata: {
+                        wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
+                        characterCount: editor.getText().length,
+                        lastEditedAt: new Date().toISOString(),
+                        version:
+                            ((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) + 1,
+                    },
+                },
+            },
+        } as any);
+        setDirty(true);
+    };
+
+    const insertStructureItem = (item: string) => {
+        switch (item) {
+            case 'Tiêu đề hợp đồng':
+                insertSection('HỢP ĐỒNG ' + currentType.toUpperCase(), '');
+                break;
+            case 'Thông tin các bên':
+                insertSection('Thông tin các bên', 'Bên A: ...\nBên B: ...');
+                break;
+            case 'Cơ sở pháp lý':
+                insertSection('Cơ sở pháp lý', 'Căn cứ Bộ luật Dân sự ...');
+                break;
+            case 'Điều khoản dịch vụ':
+                insertSection('Điều 1. Nội dung dịch vụ', 'Mô tả dịch vụ ...');
+                break;
+            case 'Quyền và nghĩa vụ':
+                insertSection('Điều 2. Quyền và nghĩa vụ', 'Quyền và nghĩa vụ của các bên ...');
+                break;
+            case 'Điều khoản thanh toán':
+                insertSection('Điều 3. Thanh toán', 'Giá trị, phương thức và tiến độ thanh toán ...');
+                break;
+            case 'Điều khoản thi hành':
+                insertSection('Điều khoản thi hành', 'Hiệu lực, chấm dứt, sửa đổi bổ sung ...');
+                break;
+            case 'Chữ ký các bên':
+                insertSection('Chữ ký', 'BÊN A: ....................   BÊN B: ....................');
+                break;
+            case 'Phụ lục':
+                insertSection('Phụ lục', '...');
+                break;
+            default:
+                insertSection(item, 'Nội dung ...');
+        }
+    };
+
+    const buildTemplateSkeleton = (category: string): string => {
+        const baseHeader = `<h1 style="text-align:center">HỢP ĐỒNG</h1>`;
+        const parties = `<h2>Thông tin các bên</h2><p>Bên A: ...</p><p>Bên B: ...</p>`;
+        switch (category) {
+            case 'employment':
+                return `${baseHeader}<h2>Chức danh và mô tả công việc</h2><p>...</p><h2>Thời hạn hợp đồng</h2><p>...</p>${parties}<h2>Tiền lương và phúc lợi</h2><p>...</p><h2>Kỷ luật và chấm dứt</h2><p>...</p><h2>Chữ ký</h2><p>Bên A ... Bên B ...</p>`;
+            case 'service':
+                return `${baseHeader}<h2>Phạm vi dịch vụ</h2><p>...</p><h2>Tiến độ thực hiện</h2><p>...</p>${parties}<h2>Thanh toán</h2><p>...</p><h2>Bảo mật</h2><p>...</p><h2>Chữ ký</h2><p>Bên A ... Bên B ...</p>`;
+            case 'rental':
+                return `${baseHeader}<h2>Tài sản thuê</h2><p>...</p><h2>Thời hạn thuê</h2><p>...</p>${parties}<h2>Giá thuê và đặt cọc</h2><p>...</p><h2>Bảo dưỡng và trách nhiệm</h2><p>...</p><h2>Chữ ký</h2><p>Bên A ... Bên B ...</p>`;
+            default:
+                return `${baseHeader}${parties}<h2>Điều khoản</h2><p>...</p><h2>Thanh toán</h2><p>...</p><h2>Chữ ký</h2><p>...</p>`;
+        }
+    };
+
     const handleSuggestionClick = (suggestion: Suggestion) => {
-        // Handle suggestion click
-        console.log('Suggestion clicked:', suggestion);
+        if (!editor) return;
+        switch (suggestion.type) {
+            case 'structure':
+                insertSection(suggestion.title);
+                break;
+            case 'legal':
+                insertSection('Điều khoản bảo mật', 'Các bên cam kết giữ bí mật thông tin ...');
+                break;
+            case 'format':
+                applyStandardFormatting();
+                break;
+            case 'content':
+                insertSection(suggestion.title, suggestion.description);
+                break;
+            default:
+                insertSection(suggestion.title);
+        }
     };
 
     const toggleStructureSection = (sectionId: string) => {
@@ -196,8 +299,27 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
     };
 
     const handleTemplateUse = (template: Template) => {
-        // Handle template use
-        console.log('Template used:', template);
+        if (!editor) return;
+        const html = buildTemplateSkeleton(template.category || currentType);
+        editor.chain().focus().setContent(html, false).run();
+        void updateDraftData('content_draft', {
+            mode: 'editor',
+            content: {
+                mode: 'editor',
+                editorContent: {
+                    content: editor.getHTML(),
+                    plainText: editor.getText(),
+                    metadata: {
+                        wordCount: editor.getText().trim().split(/\s+/).filter(Boolean).length,
+                        characterCount: editor.getText().length,
+                        lastEditedAt: new Date().toISOString(),
+                        version:
+                            ((currentDraft?.contractData as any)?.content?.editorContent?.metadata?.version || 0) + 1,
+                    },
+                },
+            },
+        } as any);
+        setDirty(true);
     };
 
     const getPriorityColor = (priority: string) => {
@@ -372,7 +494,11 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                                             {section.expanded && (
                                                 <div className={cx('section-items')}>
                                                     {section.items.map((item, index) => (
-                                                        <div key={index} className={cx('structure-item')}>
+                                                        <div
+                                                            key={index}
+                                                            className={cx('structure-item')}
+                                                            onClick={() => insertStructureItem(item)}
+                                                        >
                                                             <span className={cx('item-dot')}>•</span>
                                                             {item}
                                                         </div>
@@ -390,6 +516,9 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                                         <li>Đảm bảo đầy đủ các phần bắt buộc</li>
                                         <li>Sắp xếp logic và dễ đọc</li>
                                     </ul>
+                                    <button className={cx('refresh-btn')} onClick={applyStandardFormatting}>
+                                        Áp dụng căn lề chuẩn
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -399,34 +528,35 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                             <div className={cx('templates-tab')}>
                                 <div className={cx('templates-list')}>
                                     {templates.map((template) => (
-                                        <div key={template.id} className={cx('template-item')}>
+                                        <div key={template.id} className={cx('template-card')}>
                                             <div className={cx('template-header')}>
                                                 <h4>{template.name}</h4>
-                                                <div className={cx('template-rating')}>
-                                                    <FontAwesomeIcon icon={faStar} />
-                                                    {template.rating}
+                                                <div className={cx('template-meta')}>
+                                                    <span className={cx('rating')}>
+                                                        <FontAwesomeIcon icon={faStar} /> {template.rating}
+                                                    </span>
+                                                    <span className={cx('usage')}>{template.usageCount} lượt dùng</span>
                                                 </div>
                                             </div>
-                                            <div className={cx('template-description')}>{template.description}</div>
-                                            <div className={cx('template-stats')}>
-                                                {template.usageCount} lượt sử dụng
+                                            <p className={cx('template-description')}>{template.description}</p>
+                                            <div className={cx('template-actions')}>
+                                                <button
+                                                    className={cx('use-template-btn')}
+                                                    onClick={() => handleTemplateUse(template)}
+                                                >
+                                                    Sử dụng template
+                                                </button>
                                             </div>
-                                            <button
-                                                className={cx('use-template-btn')}
-                                                onClick={() => handleTemplateUse(template)}
-                                            >
-                                                Sử dụng template này
-                                            </button>
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className={cx('template-tips')}>
-                                    <h4>Về template</h4>
+                                <div className={cx('templates-tips')}>
+                                    <h4>Mẹo sử dụng template</h4>
                                     <ul>
-                                        <li>Template được tạo bởi chuyên gia pháp lý</li>
-                                        <li>Có thể tùy chỉnh theo nhu cầu</li>
-                                        <li>Đảm bảo tuân thủ quy định pháp luật</li>
+                                        <li>Chọn template phù hợp với thể loại hợp đồng: {currentType}</li>
+                                        <li>Có thể tùy chỉnh lại theo nhu cầu của bạn</li>
+                                        <li>Lưu bản nháp thường xuyên để tránh mất dữ liệu</li>
                                     </ul>
                                 </div>
                             </div>
@@ -438,31 +568,17 @@ const SidebarLeft: React.FC<SidebarLeftProps> = ({ contractId, userId }) => {
                                 <div className={cx('history-list')}>
                                     {history.map((item) => (
                                         <div key={item.id} className={cx('history-item')}>
-                                            <div
-                                                className={cx('history-icon')}
-                                                style={{ backgroundColor: '#3498db20', color: '#3498db' }}
-                                            >
+                                            <div className={cx('history-icon')}>
                                                 <FontAwesomeIcon icon={faHistory} />
                                             </div>
                                             <div className={cx('history-content')}>
-                                                <p>
-                                                    <strong>{item.action}</strong>: {item.description}
-                                                </p>
-                                                <small>
-                                                    {item.timestamp} - {item.user}
-                                                </small>
+                                                <h4>{item.action}</h4>
+                                                <p>{item.description}</p>
+                                                <small>{item.timestamp}</small>
+                                                <span className={cx('history-user')}>{item.user}</span>
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-
-                                <div className={cx('history-tips')}>
-                                    <h4>Về lịch sử</h4>
-                                    <ul>
-                                        <li>Ghi lại mọi thay đổi trong hợp đồng</li>
-                                        <li>Dễ dàng theo dõi và khôi phục</li>
-                                        <li>Đảm bảo tính minh bạch</li>
-                                    </ul>
                                 </div>
                             </div>
                         )}

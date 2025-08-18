@@ -7,7 +7,7 @@ import {
     NotificationType,
     NotificationStatus,
     NotificationChannel,
-} from '@/core/domain/contract/contract-notification.entity';
+} from '@/core/domain/notification/notification.entity';
 import {
     ContractReminder,
     ReminderType,
@@ -53,6 +53,52 @@ export interface CreateReminderDto {
 
 @Injectable()
 export class NotificationService {
+    async create(input: {
+        type: NotificationType;
+        title: string;
+        message: string;
+        data?: string;
+        userId: number;
+        started_at?: Date;
+        ended_at?: Date;
+    }): Promise<{ id: string }> {
+        const entity = this.notificationRepo.create({
+            contract_id: input.data || '',
+            user_id: input.userId,
+            type: input.type,
+            channel: NotificationChannel.IN_APP,
+            title: input.title,
+            message: input.message,
+            status: NotificationStatus.PENDING,
+            scheduled_at: new Date(),
+            metadata: { started_at: input.started_at, ended_at: input.ended_at },
+        });
+        const saved = await this.notificationRepo.save(entity);
+        return { id: saved.id };
+    }
+
+    async notifyManyUsers(opts: {
+        userIds: number[];
+        type: NotificationType;
+        title: string;
+        message: string;
+        data?: string;
+        startedAt?: Date;
+        endedAt?: Date;
+    }): Promise<void> {
+        for (const uid of opts.userIds) {
+            await this.create({
+                type: opts.type,
+                title: opts.title,
+                message: opts.message,
+                data: opts.data,
+                userId: uid,
+                started_at: opts.startedAt,
+                ended_at: opts.endedAt,
+            });
+        }
+    }
+
     private readonly notificationRepo: Repository<ContractNotification>;
     private readonly reminderRepo: Repository<ContractReminder>;
     private readonly milestoneRepo: Repository<Milestone>;

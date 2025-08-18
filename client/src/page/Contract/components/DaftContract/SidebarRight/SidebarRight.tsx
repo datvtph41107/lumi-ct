@@ -24,6 +24,8 @@ import classNames from 'classnames/bind';
 import { useLocation } from 'react-router-dom';
 import CollaboratorManagement from '~/components/CollaboratorManagement/CollaboratorManagement';
 import { auditLogService } from '~/services/api/audit-log.service';
+import { useEditorStore } from '~/store/editor-store';
+import { useContractDraftStore } from '~/store/contract-draft-store';
 
 const cx = classNames.bind(styles);
 
@@ -83,6 +85,9 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
     const query = new URLSearchParams(location.search);
     const resolvedContractId = contractId || query.get('draftId') || 'contract-001';
 
+    const { editor: tiptapEditor } = useEditorStore();
+    const { currentDraft, updateDraftData, performAutoSave, setDirty } = useContractDraftStore();
+
     useEffect(() => {
         loadData();
     }, [activeTab]);
@@ -141,23 +146,46 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
         setSettings((prev) => ({ ...prev, [key]: value }));
     };
 
-    const handleQuickAction = (action: string) => {
+    const handleQuickAction = async (action: string) => {
         switch (action) {
             case 'save':
-                if (editor) {
-                    // Trigger save
-                    console.log('Saving...');
+                if (tiptapEditor && currentDraft) {
+                    const html = tiptapEditor.getHTML();
+                    const text = tiptapEditor.getText();
+                    await updateDraftData('content_draft', {
+                        mode: 'editor',
+                        content: {
+                            mode: 'editor',
+                            editorContent: {
+                                content: html,
+                                plainText: text,
+                                metadata: {
+                                    wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+                                    characterCount: text.length,
+                                    lastEditedAt: new Date().toISOString(),
+                                    version:
+                                        ((currentDraft?.contractData as any)?.content?.editorContent?.metadata
+                                            ?.version || 0) + 1,
+                                },
+                            },
+                        },
+                    } as any);
+                    setDirty(false);
+                    try {
+                        await performAutoSave();
+                        alert('Đã lưu bản nháp');
+                    } catch (e) {
+                        alert('Lưu thất bại');
+                    }
                 }
                 break;
             case 'preview':
-                // Open preview
                 console.log('Opening preview...');
                 break;
             case 'print':
                 window.print();
                 break;
             case 'export':
-                // Export functionality
                 console.log('Exporting...');
                 break;
         }
@@ -402,81 +430,35 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                         {/* Settings Tab */}
                         {activeTab === 'settings' && (
                             <div className={cx('settings-tab')}>
-                                <div className={cx('settings-list')}>
-                                    <div className={cx('setting-item')}>
-                                        <div className={cx('setting-info')}>
-                                            <h4>Tự động lưu</h4>
-                                            <p>Lưu tự động khi có thay đổi</p>
-                                        </div>
-                                        <label className={cx('toggle-switch')}>
-                                            <input
-                                                type="checkbox"
-                                                checked={settings.autoSave}
-                                                onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
-                                            />
-                                            <span className={cx('slider')}></span>
-                                        </label>
-                                    </div>
-
-                                    <div className={cx('setting-item')}>
-                                        <div className={cx('setting-info')}>
-                                            <h4>Kiểm tra chính tả</h4>
-                                            <p>Hiển thị lỗi chính tả khi soạn thảo</p>
-                                        </div>
-                                        <label className={cx('toggle-switch')}>
-                                            <input
-                                                type="checkbox"
-                                                checked={settings.spellCheck}
-                                                onChange={(e) => handleSettingChange('spellCheck', e.target.checked)}
-                                            />
-                                            <span className={cx('slider')}></span>
-                                        </label>
-                                    </div>
-
-                                    <div className={cx('setting-item')}>
-                                        <div className={cx('setting-info')}>
-                                            <h4>Gợi ý thông minh</h4>
-                                            <p>Hiển thị gợi ý khi soạn thảo</p>
-                                        </div>
-                                        <label className={cx('toggle-switch')}>
-                                            <input
-                                                type="checkbox"
-                                                checked={settings.suggestions}
-                                                onChange={(e) => handleSettingChange('suggestions', e.target.checked)}
-                                            />
-                                            <span className={cx('slider')}></span>
-                                        </label>
-                                    </div>
-
-                                    <div className={cx('setting-item')}>
-                                        <div className={cx('setting-info')}>
-                                            <h4>Thông báo</h4>
-                                            <p>Nhận thông báo về thay đổi</p>
-                                        </div>
-                                        <label className={cx('toggle-switch')}>
-                                            <input
-                                                type="checkbox"
-                                                checked={settings.notifications}
-                                                onChange={(e) => handleSettingChange('notifications', e.target.checked)}
-                                            />
-                                            <span className={cx('slider')}></span>
-                                        </label>
-                                    </div>
-
-                                    <div className={cx('setting-item')}>
-                                        <div className={cx('setting-info')}>
-                                            <h4>Chế độ tối</h4>
-                                            <p>Sử dụng giao diện tối</p>
-                                        </div>
-                                        <label className={cx('toggle-switch')}>
-                                            <input
-                                                type="checkbox"
-                                                checked={settings.darkMode}
-                                                onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
-                                            />
-                                            <span className={cx('slider')}></span>
-                                        </label>
-                                    </div>
+                                <div className={cx('setting-item')}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.autoSave}
+                                            onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
+                                        />
+                                        Tự động lưu
+                                    </label>
+                                </div>
+                                <div className={cx('setting-item')}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.suggestions}
+                                            onChange={(e) => handleSettingChange('suggestions', e.target.checked)}
+                                        />
+                                        Gợi ý nội dung
+                                    </label>
+                                </div>
+                                <div className={cx('setting-item')}>
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.notifications}
+                                            onChange={(e) => handleSettingChange('notifications', e.target.checked)}
+                                        />
+                                        Thông báo
+                                    </label>
                                 </div>
                             </div>
                         )}
@@ -484,18 +466,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                         {/* Collaborators Tab */}
                         {activeTab === 'collaborators' && (
                             <div className={cx('collaborators-tab')}>
-                                <CollaboratorManagement
-                                    contractId={resolvedContractId}
-                                    currentUserId={Number(userId) || 0}
-                                />
-                                <div className={cx('collaborator-tips')}>
-                                    <h4>Về cộng tác viên</h4>
-                                    <ul>
-                                        <li>Chủ sở hữu có quyền cao nhất</li>
-                                        <li>Editor có thể chỉnh sửa nội dung</li>
-                                        <li>Viewer chỉ có thể xem</li>
-                                    </ul>
-                                </div>
+                                <CollaboratorManagement contractId={resolvedContractId} currentUserId={userId || 0} />
                             </div>
                         )}
 
@@ -507,32 +478,21 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                                         <div key={item.id} className={cx('activity-item')}>
                                             <div
                                                 className={cx('activity-icon')}
-                                                style={{
-                                                    backgroundColor: getActivityColor(item.type) + '20',
-                                                    color: getActivityColor(item.type),
-                                                }}
+                                                style={{ color: getActivityColor(item.type) }}
                                             >
                                                 <FontAwesomeIcon icon={getActivityIcon(item.type)} />
                                             </div>
-                                            <div className={cx('activity-content')}>
-                                                <p>
-                                                    <strong>{item.action}</strong>: {item.description}
-                                                </p>
-                                                <small>
-                                                    {item.timestamp} - {item.user}
-                                                </small>
+                                            <div className={cx('activity-details')}>
+                                                <div className={cx('activity-description')}>{item.description}</div>
+                                                <div className={cx('activity-meta')}>
+                                                    <span className={cx('user')}>{item.user}</span>
+                                                    <span className={cx('time')}>
+                                                        {auditLogService.formatAuditLogDate(item.timestamp)}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-
-                                <div className={cx('activity-tips')}>
-                                    <h4>Về hoạt động</h4>
-                                    <ul>
-                                        <li>Ghi lại mọi thay đổi</li>
-                                        <li>Dễ dàng theo dõi</li>
-                                        <li>Đảm bảo minh bạch</li>
-                                    </ul>
                                 </div>
                             </div>
                         )}

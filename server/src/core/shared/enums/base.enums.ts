@@ -36,12 +36,12 @@ export enum Status {
 }
 
 export enum ContractStatus {
-    DRAFT = 'DRAFT',
-    PENDING = 'PENDING',
-    APPROVED = 'APPROVED',
-    ACTIVE = 'ACTIVE',
-    EXPIRED = 'EXPIRED',
-    CANCELLED = 'CANCELLED',
+    DRAFT = 'draft',
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    ACTIVE = 'active',
+    EXPIRED = 'expired',
+    CANCELLED = 'cancelled',
 }
 
 export enum ContractPhaseStatus {
