@@ -1,10 +1,12 @@
 import { CollaboratorService } from '@/modules/contract/collaborator.service';
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, ForbiddenException, Inject } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { UserJwtPayload } from '@/core/shared/types/auth.types';
 import { COLLAB_ROLES_METADATA_KEY } from '@/core/shared/decorators/setmeta.decorator';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { DataSource } from 'typeorm';
+import { Contract } from '@/core/domain/contract/contract.entity';
 
 interface RequestWithUser extends Request {
     user?: UserJwtPayload;
@@ -15,6 +17,7 @@ export class CollaboratorGuard implements CanActivate {
     constructor(
         private readonly collaboratorService: CollaboratorService,
         private readonly reflector: Reflector,
+        @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -31,15 +34,26 @@ export class CollaboratorGuard implements CanActivate {
         }
 
         // Determine required collaborator roles from metadata; default to view
-        const requiredRoles = this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]) || [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER];
+        const requiredRoles =
+            this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
+                context.getHandler(),
+                context.getClass(),
+            ]) || [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER];
 
         // Managers bypass collaborator checks
         if ((user.roles || []).includes('MANAGER' as any)) {
             return true;
         }
+
+        // Allow viewing public contracts for read-only methods
+        const method = (request.method || 'GET').toUpperCase();
+        if (method === 'GET' || method === 'HEAD') {
+            const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
+            if (contract?.is_public) {
+                return true;
+            }
+        }
+
         const hasAccess = await this.collaboratorService.hasRole(contractId, user.sub, requiredRoles);
 
         if (!hasAccess) {
