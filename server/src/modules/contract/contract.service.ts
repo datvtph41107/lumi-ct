@@ -34,7 +34,15 @@ export class ContractService {
     ) {}
 
     async create(dto: CreateContractDto, ctx: { userId: number }) {
-        return this.createContract(dto, ctx.userId);
+        const contract = await this.createContract(dto, ctx.userId);
+        await this.notificationService.create({
+            type: 'APPROVAL_REQUIRED' as any,
+            title: 'Contract created',
+            message: `Hợp đồng "${contract.name}" đã được tạo`,
+            userId: ctx.userId,
+            data: contract.id,
+        } as any);
+        return contract;
     }
     async softDelete(id: string, userId: number) {
         return this.deleteContract(id as any, userId);

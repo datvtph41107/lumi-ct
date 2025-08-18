@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 
 // Controllers
 import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
 // Services
 import { TokenService } from './jwt/jwt.service';
 
@@ -48,7 +49,7 @@ import { AuthCoreService } from './auth/auth-core.service';
             }),
         }),
     ],
-    controllers: [AdminAuthController, AuthController],
+    controllers: [AuthController],
     providers: [
         {
             provide: 'REFRESH_JWT_SERVICE',
@@ -65,7 +66,7 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        AdminAuthService,
+        AuthService,
         AuthCoreService,
         // Strategy & Guards
         JwtStrategy,
