@@ -14,9 +14,12 @@ export class UserSession {
     session_id: string;
 
     @Column({ type: 'varchar', length: 255 })
+    jti: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
     refresh_token: string;
 
-    @Column({ type: 'varchar', length: 255 })
+    @Column({ type: 'varchar', length: 255, nullable: true })
     access_token_hash: string;
 
     @Column({ type: 'varchar', length: 45, nullable: true })
@@ -28,7 +31,7 @@ export class UserSession {
     @Column({ type: 'varchar', length: 255, nullable: true })
     user_agent?: string;
 
-    @Column({ type: 'datetime' })
+    @Column({ type: 'datetime', nullable: true })
     expires_at: Date;
 
     @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
@@ -36,6 +39,9 @@ export class UserSession {
 
     @Column({ type: 'boolean', default: true })
     is_active: boolean;
+
+    @Column({ type: 'datetime', nullable: true })
+    revoked_at?: Date;
 
     @Column({ type: 'datetime', nullable: true })
     logout_at?: Date;

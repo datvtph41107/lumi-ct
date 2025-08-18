@@ -53,6 +53,24 @@ export interface CreateReminderDto {
 
 @Injectable()
 export class NotificationService {
+    private readonly notificationRepo: Repository<ContractNotification>;
+    private readonly reminderRepo: Repository<ContractReminder>;
+    private readonly milestoneRepo: Repository<Milestone>;
+    private readonly taskRepo: Repository<Task>;
+    private readonly contractRepo: Repository<Contract>;
+
+    constructor(
+        @Inject('DATA_SOURCE') private readonly db: DataSource,
+        @Inject('LOGGER') private readonly logger: LoggerTypes,
+        @InjectRepository(SystemNotificationSettings) private readonly sysRepo: Repository<SystemNotificationSettings>,
+    ) {
+        this.notificationRepo = this.db.getRepository(ContractNotification);
+        this.reminderRepo = this.db.getRepository(ContractReminder);
+        this.milestoneRepo = this.db.getRepository(Milestone);
+        this.taskRepo = this.db.getRepository(Task);
+        this.contractRepo = this.db.getRepository(Contract);
+    }
+
     async create(input: {
         type: NotificationType;
         title: string;
@@ -97,24 +115,6 @@ export class NotificationService {
                 ended_at: opts.endedAt,
             });
         }
-    }
-
-    private readonly notificationRepo: Repository<ContractNotification>;
-    private readonly reminderRepo: Repository<ContractReminder>;
-    private readonly milestoneRepo: Repository<Milestone>;
-    private readonly taskRepo: Repository<Task>;
-    private readonly contractRepo: Repository<Contract>;
-
-    constructor(
-        @Inject('DATA_SOURCE') private readonly db: DataSource,
-        @Inject('LOGGER') private readonly logger: LoggerTypes,
-        @InjectRepository(SystemNotificationSettings) private readonly sysRepo: Repository<SystemNotificationSettings>,
-    ) {
-        this.notificationRepo = this.db.getRepository(ContractNotification);
-        this.reminderRepo = this.db.getRepository(ContractReminder);
-        this.milestoneRepo = this.db.getRepository(Milestone);
-        this.taskRepo = this.db.getRepository(Task);
-        this.contractRepo = this.db.getRepository(Contract);
     }
 
     // ===== NOTIFICATION MANAGEMENT =====
