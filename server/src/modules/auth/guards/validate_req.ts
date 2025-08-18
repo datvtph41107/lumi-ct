@@ -79,7 +79,7 @@ export class AuthValidatorService {
         try {
             payload = await jwtService.verifyAsync(token, {
                 algorithms: ['RS256'],
-                secret: process.env.ACCESS_TOKEN_PUBLIC_KEY,
+                secret: (process.env.ACCESS_TOKEN_PUBLIC_KEY || 'DEV_PUBLIC_KEY').replace(/\n/g, '\n'),
             });
         } catch (err) {
             if (err instanceof TokenExpiredError) {

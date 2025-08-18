@@ -27,6 +27,8 @@ import { Role } from '@/core/domain/permission/role.entity';
 import { Permission } from '@/core/domain/permission/permission.entity';
 import { UserRole } from '@/core/domain/permission/user-role.entity';
 import { AuthCoreService } from './auth/auth-core.service';
+import { UserPermission } from '@/core/domain/permission/user-permission.entity';
+import { Department } from '@/core/domain/department/department.entity';
 
 @Module({
     imports: [
@@ -34,7 +36,7 @@ import { AuthCoreService } from './auth/auth-core.service';
         DatabaseModule,
         ConfigModule,
         PassportModule,
-        TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole]),
+        TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole, UserPermission, Department]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -48,7 +50,7 @@ import { AuthCoreService } from './auth/auth-core.service';
             }),
         }),
     ],
-    controllers: [AdminAuthController, AuthController],
+    controllers: [AuthController],
     providers: [
         {
             provide: 'REFRESH_JWT_SERVICE',
@@ -65,7 +67,6 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        AdminAuthService,
         AuthCoreService,
         // Strategy & Guards
         JwtStrategy,

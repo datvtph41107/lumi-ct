@@ -1,5 +1,5 @@
 // src/modules/contracts/contracts.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContractController } from './contract.controller';
@@ -21,9 +21,18 @@ import { ContractDraftController } from './contract-draft.controller';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { ContractDraftService } from './contract-draft.service';
+import { NotificationModule } from '@/modules/notification/notification.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { LoggerModule } from '@/core/shared/logger/logger.module';
+import { User } from '@/core/domain/user/user.entity';
+import { DatabaseModule } from '@/providers/database';
 
 @Module({
     imports: [
+        LoggerModule,
+        AuthModule,
+        forwardRef(() => NotificationModule),
+        DatabaseModule,
         TypeOrmModule.forFeature([
             Contract,
             ContractDraft,
@@ -35,12 +44,13 @@ import { ContractDraftService } from './contract-draft.service';
             ContractVersion,
             Collaborator,
             AuditLog,
+            User,
         ]),
     ],
     controllers: [ContractController, ContractDraftController],
     providers: [
         ContractService,
-        AuditLogService,
+        { provide: AuditLogService, useClass: AuditLogService },
         CollaboratorService,
         ContractDraftService,
         { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
