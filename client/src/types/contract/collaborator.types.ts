@@ -1,4 +1,4 @@
-import type { CollaboratorRole } from './contract.types';
+export type CollaboratorRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
 
 export interface Collaborator {
     id: string;

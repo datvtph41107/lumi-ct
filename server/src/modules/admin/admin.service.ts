@@ -8,9 +8,9 @@ import { Role, Status } from '@/core/shared/enums/base.enums';
 // import { UserPermission } from '@/core/domain/permission';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
 import { UserPermission } from '@/core/domain/permission';
+import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 
 @Injectable()
 export class AdminService {

@@ -1,6 +1,6 @@
 // src/providers/cron-task/cron-task.module.ts
 import { Module } from '@nestjs/common';
-import { ContractsModule } from '@/modules/contract/contract.module';
+import { ContractsModule } from '../contract/contract.module';
 import { NotificationService } from '../notification/notification.service';
 // import { SocketService } from '@/core/providers/socket.service'; // nếu có dùng socket
 import { LoggerModule } from '@/core/shared/logger/logger.module';

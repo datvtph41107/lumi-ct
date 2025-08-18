@@ -1,4 +1,4 @@
-import { UserPermission } from '@/core/domain/permission';
+import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import { Department, Role } from '@/core/shared/enums/base.enums';
 
 export enum DepartmentEnum {

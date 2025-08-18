@@ -8,8 +8,8 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role, Status } from '@/core/shared/enums/base.enums';
 import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
+import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
 
 @Injectable()
 export class UserService {

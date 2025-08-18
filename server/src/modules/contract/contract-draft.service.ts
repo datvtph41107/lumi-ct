@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Contract, ContractMode, ContractPriority, ContractStatus } from '@/core/domain/contract/contract.entity';
+import { Contract, ContractMode, ContractPriority } from '@/core/domain/contract/contract.entity';
+import { ContractStatus } from '@/core/shared/enums/base.enums';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 
 interface ListQuery {

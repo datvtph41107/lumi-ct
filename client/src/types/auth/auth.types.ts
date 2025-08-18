@@ -20,9 +20,6 @@ export interface User {
         approve: boolean;
         assign: boolean;
     };
-    profile: {
-        name: string;
-    };
 }
 
 export interface LoginRequest {
@@ -31,25 +28,15 @@ export interface LoginRequest {
     is_manager_login?: boolean;
 }
 
-export type LoginCredentials = LoginRequest;
-export interface RegisterData {
-    username: string;
-    password: string;
-    email?: string;
-}
-
 export interface LoginResponse {
-    user: User;
     accessToken: string;
     tokenExpiry: number;
 }
 
 // Role constants - sử dụng string để match với backend
 export const ROLE = {
-    USER: 'USER',
     STAFF: 'STAFF',
     MANAGER: 'MANAGER',
-    ADMIN: 'ADMIN',
 } as const;
 
 export type Role = (typeof ROLE)[keyof typeof ROLE]; // "USER" | "STAFF" | "MANAGER" | "ADMIN"

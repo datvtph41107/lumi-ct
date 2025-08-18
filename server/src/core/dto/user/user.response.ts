@@ -1,4 +1,4 @@
-import { Role, Status } from '@/core/shared/enums/base.enums';
+import { Role, Status } from '../../shared/enums/base.enums';
 
 export class UserResponse {
     id: number;

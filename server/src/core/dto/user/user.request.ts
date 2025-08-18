@@ -1,6 +1,6 @@
 // src/core/dto/user/create-user.dto.ts
 import { IsString, IsEnum, IsNotEmpty, IsOptional, IsNumber, IsBoolean } from 'class-validator';
-import { Role } from '@/core/shared/enums/base.enums';
+import { Role } from '../../shared/enums/base.enums';
 
 export class CreateUserRequest {
     @IsString()

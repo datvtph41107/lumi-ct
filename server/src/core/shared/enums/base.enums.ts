@@ -73,12 +73,24 @@ export enum NotificationType {
     CONTRACT_CREATED = 'CONTRACT_CREATED', // Tạo mới hợp đồng
     CONTRACT_REMINDER = 'CONTRACT_REMINDER', // Nhắc đến hạn hợp đồng
     CONTRACT_OVERDUE = 'CONTRACT_OVERDUE', // Hết hạn hợp đồng
+    CONTRACT_EXPIRING = 'CONTRACT_EXPIRING', // Hợp đồng sắp hết hạn
+    CONTRACT_EXPIRED = 'CONTRACT_EXPIRED', // Hợp đồng đã hết hạn
+
+    MILESTONE_DUE = 'MILESTONE_DUE', // Milestone sắp đến hạn
+    MILESTONE_OVERDUE = 'MILESTONE_OVERDUE', // Milestone quá hạn
 
     PHASE_REMINDER = 'PHASE_REMINDER', // Nhắc đến hạn pha
     PHASE_OVERDUE = 'PHASE_OVERDUE', // Pha quá hạn
 
+    TASK_DUE = 'TASK_DUE', // Task sắp đến hạn
     TASK_REMINDER = 'TASK_REMINDER', // Nhắc đến hạn công việc
     TASK_OVERDUE = 'TASK_OVERDUE', // Công việc quá hạn
+
+    APPROVAL_REQUIRED = 'APPROVAL_REQUIRED', // Yêu cầu phê duyệt
+    REVIEW_REQUIRED = 'REVIEW_REQUIRED', // Yêu cầu review
+    COLLABORATOR_ADDED = 'COLLABORATOR_ADDED', // Thêm collaborator
+    COLLABORATOR_REMOVED = 'COLLABORATOR_REMOVED', // Xóa collaborator
+    OWNERSHIP_TRANSFERRED = 'OWNERSHIP_TRANSFERRED', // Chuyển quyền sở hữu
 
     SYSTEM_ANNOUNCEMENT = 'SYSTEM_ANNOUNCEMENT', // Thông báo hệ thống
 }

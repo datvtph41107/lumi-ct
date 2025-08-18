@@ -13,6 +13,10 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { User } from '@/core/domain/user/user.entity';
 import { NotificationService } from '@/modules/notification/notification.service';
 import { AuditLogService } from './audit-log.service';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
+import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
+import * as dayjs from 'dayjs';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -27,6 +31,8 @@ export class ContractService {
         @InjectRepository(ContractFile) private readonly fileRepository: Repository<ContractFile>,
         @InjectRepository(AuditLog) private readonly auditLogRepository: Repository<AuditLog>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
+        @InjectRepository(Milestone) private readonly milestoneRepository: Repository<Milestone>,
+        @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
         private readonly dataSource: DataSource,
         private readonly authCoreService: AuthCoreService,
         private readonly notificationService: NotificationService,
@@ -158,5 +164,47 @@ export class ContractService {
     }
     async listReminders(id: string) {
         return this.notificationService.getRemindersByContract(id);
+    }
+
+    // ====== Support methods for cron/notifications ======
+    async findUpcomingContracts(daysBefore: number): Promise<Contract[]> {
+        const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
+        const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
+        return this.contractRepository.find({ where: { end_date: Between(start, end) } as any });
+    }
+
+    async findContractRelatedUsers(contractId: string): Promise<number[]> {
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } });
+        if (!contract) return [];
+        const possible = [contract.created_by, contract.manager_id, contract.drafter_id]
+            .filter(Boolean)
+            .map((v) => parseInt(String(v)));
+        const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
+        return unique as number[];
+    }
+
+    async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {
+        const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
+        const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
+        // milestones store date_range JSON with strings; we approximate by checking updated_at or ignore if not available
+        // If your DB supports JSON queries, adjust accordingly. For now, return empty to avoid incorrect results.
+        return [];
+    }
+
+    async findUpcomingTasks(daysBefore: number): Promise<Task[]> {
+        const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
+        const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
+        return this.taskRepository.find({ where: { due_date: Between(start, end) } as any });
+    }
+
+    async findOverdueContracts(): Promise<Contract[]> {
+        const now = new Date();
+        return this.contractRepository.find({ where: { end_date: LessThan(now) } as any });
+    }
+
+    async updateStatus(entity: 'contract', id: string, status: any): Promise<void> {
+        if (entity === 'contract') {
+            await this.contractRepository.update({ id } as any, { status } as any);
+        }
     }
 }
