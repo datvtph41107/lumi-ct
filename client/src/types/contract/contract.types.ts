@@ -57,6 +57,7 @@ export interface FieldOption {
     label: string;
     description?: string;
     disabled?: boolean;
+    icon?: string;
 }
 export interface FieldValidation {
     required?: boolean;
@@ -82,6 +83,7 @@ export interface TemplateField {
     placeholder?: string;
     defaultValue?: unknown;
     validation?: FieldValidation;
+    required?: boolean;
     options?: FieldOption[];
     layout?: FieldLayout;
     helpText?: string;
@@ -113,8 +115,18 @@ export interface UploadedFile {
     fileUrl: string;
     fileSize: number;
     mimeType: string;
-    uploadedAt: string;
+    uploadedAt: Date;
+    // Compatibility fields used by some components
+    id?: string;
+    name?: string;
+    url?: string;
+    size?: number;
 }
+
+// Backward-compat aliases for older components
+export type FileAttachment = UploadedFile;
+export type Option = FieldOption;
+export type CollaboratorRole = 'owner' | 'editor' | 'reviewer' | 'viewer';
 export interface EditorTemplateStructure {
     templateid: string;
     name: string;
