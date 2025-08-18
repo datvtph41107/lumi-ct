@@ -15,4 +15,10 @@ export class Collaborator extends BaseEntity {
 
     @Column({ type: 'boolean', default: true })
     active: boolean;
+
+    @Column({ type: 'boolean', default: false })
+    can_export: boolean;
+
+    @Column({ type: 'boolean', default: false })
+    can_manage_collaborators: boolean;
 }

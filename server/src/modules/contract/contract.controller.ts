@@ -104,6 +104,18 @@ export class ContractController {
         return this.contractService.getVersion(id, versionId);
     }
 
+    // Reviewer routes
+    @Post(':id/reviews')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.REVIEWER, CollaboratorRole.OWNER)
+    async submitReview(
+        @Param('id') id: string,
+        @Body() body: { summary: string; status: 'approved' | 'changes_requested' },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.submitReview(id, body, Number(user.sub));
+    }
+
     // ===== EXPORT & PRINT =====
     @Get(':id/export/pdf')
     async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {

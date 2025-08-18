@@ -257,4 +257,20 @@ export class ContractService {
     async getAuditSummary(contractId: string) {
         return this.auditLogService.getAuditSummary(contractId);
     }
+
+    async submitReview(
+        contractId: string,
+        body: { summary: string; status: 'approved' | 'changes_requested' },
+        userId: number,
+    ) {
+        // store review as an audit entry with meta
+        await this.auditLogService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'SUBMIT_REVIEW',
+            meta: { summary: body.summary, status: body.status },
+            description: `Review submitted with status ${body.status}`,
+        });
+        return { success: true } as any;
+    }
 }
