@@ -1,4 +1,4 @@
-// src/providers/cron-task/cron-task.module.ts
+// src/modules/cron-task/cron-task.module.ts
 import { Module } from '@nestjs/common';
 import { CronTaskService } from './cron-task.service';
 import { ContractsModule } from '@/modules/contract/contract.module';
@@ -6,7 +6,6 @@ import { ContractsModule } from '@/modules/contract/contract.module';
 import { LoggerModule } from '@/core/shared/logger/logger.module';
 import { DatabaseModule } from '@/providers/database';
 import { NotificationModule } from '@/modules/notification/notification.module';
-// import { CleanupService } from './cleanup.service';
 import { AuthModule } from '../auth/auth.module';
 import { CleanupService } from './cleanup.service';
 

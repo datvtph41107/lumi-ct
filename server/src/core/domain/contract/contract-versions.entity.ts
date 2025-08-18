@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, BaseEntity } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { BaseEntity } from '../base.entity';
 
 @Entity('contract_versions')
 @Index(['contract_id'])

@@ -1,4 +1,4 @@
-// src/providers/cron-task/cron-task.module.ts
+// src/modules/notification/notification.module.ts
 import { Module } from '@nestjs/common';
 import { ContractsModule } from '@/modules/contract/contract.module';
 import { NotificationService } from '../notification/notification.service';
