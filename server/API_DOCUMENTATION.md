@@ -2,13 +2,15 @@
 
 ## Tổng quan
 
-Hệ thống API quản lý hợp đồng cung cấp đầy đủ các tính năng để quản lý vòng đời hợp đồng từ tạo mới, soạn thảo, phê duyệt đến lưu trữ.
+Hệ thống API quản lý hợp đồng cung cấp đầy đủ các tính năng để quản lý vòng đời hợp đồng từ tạo mới, soạn thảo, phê duyệt đến lưu trữ. Hệ thống được xây dựng bằng NestJS với TypeScript và sử dụng MySQL làm cơ sở dữ liệu.
 
 ## Base URL
 
 ```
-http://localhost:3000/api/contracts
+http://localhost:3000/api
 ```
+
+**Swagger Documentation:** `http://localhost:3000/api`
 
 ## Authentication
 
@@ -16,6 +18,78 @@ Tất cả API đều yêu cầu JWT token trong header:
 
 ```
 Authorization: Bearer <jwt_token>
+```
+
+### Authentication Endpoints
+
+#### Login
+```http
+POST /auth/login
+```
+
+**Request Body:**
+```json
+{
+    "username": "user@example.com",
+    "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenExpiry": "2024-01-01T12:00:00Z",
+    "sessionId": "session-uuid",
+    "message": "Login successful"
+}
+```
+
+#### Refresh Token
+```http
+POST /auth/refresh
+```
+
+**Response:**
+```json
+{
+    "accessToken": "new-jwt-token",
+    "tokenExpiry": "2024-01-01T12:00:00Z",
+    "sessionId": "session-uuid",
+    "message": "Token refreshed successfully"
+}
+```
+
+#### Logout
+```http
+POST /auth/logout
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Logged out successfully"
+}
+```
+
+#### Get Current User
+```http
+GET /auth/me
+```
+
+**Response:**
+```json
+{
+    "userData": {
+        "id": 1,
+        "username": "user@example.com",
+        "full_name": "Nguyễn Văn A",
+        "role": "manager",
+        "department": "legal"
+    },
+    "message": "User data retrieved successfully"
+}
 ```
 
 ---
@@ -29,7 +103,6 @@ POST /contracts
 ```
 
 **Request Body:**
-
 ```json
 {
     "name": "Hợp đồng lao động",
@@ -43,7 +116,6 @@ POST /contracts
 ```
 
 **Response:**
-
 ```json
 {
     "success": true,
@@ -63,17 +135,21 @@ GET /contracts?page=1&limit=10&status=active&search=keyword
 ```
 
 **Query Parameters:**
-
 - `page`: Số trang (default: 1)
 - `limit`: Số lượng per page (default: 10)
-- `status`: Trạng thái hợp đồng
-- `priority`: Độ ưu tiên
+- `status`: Trạng thái hợp đồng (draft, pending_review, active, completed, cancelled, expired)
+- `priority`: Độ ưu tiên (low, medium, high, critical)
 - `category`: Danh mục
+- `contract_type`: Loại hợp đồng
+- `drafter_id`: ID người soạn thảo
+- `manager_id`: ID người quản lý
 - `search`: Tìm kiếm theo tên, mã, ghi chú
-- `created_from`: Ngày tạo từ
-- `created_to`: Ngày tạo đến
-- `sort_by`: Sắp xếp theo field
-- `sort_order`: asc/desc
+- `created_from`: Ngày tạo từ (YYYY-MM-DD)
+- `created_to`: Ngày tạo đến (YYYY-MM-DD)
+- `effective_from`: Ngày hiệu lực từ (YYYY-MM-DD)
+- `effective_to`: Ngày hiệu lực đến (YYYY-MM-DD)
+- `sort_by`: Sắp xếp theo field (default: created_at)
+- `sort_order`: asc/desc (default: desc)
 
 ### 1.3 Lấy chi tiết hợp đồng
 
@@ -85,6 +161,15 @@ GET /contracts/{id}
 
 ```http
 PATCH /contracts/{id}
+```
+
+**Request Body:**
+```json
+{
+    "name": "Hợp đồng lao động cập nhật",
+    "priority": "high",
+    "category": "employment"
+}
 ```
 
 ### 1.5 Xóa hợp đồng (soft delete)
@@ -104,7 +189,6 @@ PATCH /contracts/{id}/autosave
 ```
 
 **Request Body:**
-
 ```json
 {
     "stage": "info",
@@ -122,6 +206,17 @@ PATCH /contracts/{id}/autosave
 PATCH /contracts/{id}/stage/{stage}/save
 ```
 
+**Request Body:**
+```json
+{
+    "stage": "content",
+    "data": {
+        "content": "Nội dung hợp đồng...",
+        "terms": ["Điều khoản 1", "Điều khoản 2"]
+    }
+}
+```
+
 ### 2.3 Lấy dữ liệu stage
 
 ```http
@@ -135,7 +230,6 @@ POST /contracts/{id}/transition
 ```
 
 **Request Body:**
-
 ```json
 {
     "from": "info",
@@ -160,7 +254,6 @@ POST /contracts/{id}/versions
 ```
 
 **Request Body:**
-
 ```json
 {
     "version_name": "v2.0",
@@ -203,7 +296,6 @@ POST /contracts/{id}/milestones
 ```
 
 **Request Body:**
-
 ```json
 {
     "name": "Ký kết hợp đồng",
@@ -225,6 +317,15 @@ GET /contracts/{id}/milestones
 PATCH /contracts/milestones/{mid}
 ```
 
+**Request Body:**
+```json
+{
+    "name": "Ký kết hợp đồng cập nhật",
+    "due_date": "2024-01-20",
+    "priority": "critical"
+}
+```
+
 ### 4.4 Xóa milestone
 
 ```http
@@ -238,7 +339,6 @@ POST /contracts/milestones/{mid}/tasks
 ```
 
 **Request Body:**
-
 ```json
 {
     "name": "Chuẩn bị tài liệu",
@@ -261,6 +361,15 @@ GET /contracts/milestones/{mid}/tasks
 PATCH /contracts/tasks/{tid}
 ```
 
+**Request Body:**
+```json
+{
+    "name": "Chuẩn bị tài liệu cập nhật",
+    "status": "completed",
+    "priority": "high"
+}
+```
+
 ### 4.8 Xóa task
 
 ```http
@@ -278,7 +387,6 @@ POST /contracts/{id}/collaborators
 ```
 
 **Request Body:**
-
 ```json
 {
     "user_id": "user-id",
@@ -299,10 +407,37 @@ GET /contracts/{id}/collaborators
 PATCH /contracts/collaborators/{cid}
 ```
 
+**Request Body:**
+```json
+{
+    "role": "editor",
+    "permissions": ["read", "write", "comment"]
+}
+```
+
 ### 5.4 Xóa collaborator
 
 ```http
 DELETE /contracts/collaborators/{cid}
+```
+
+### 5.5 Chuyển quyền sở hữu
+
+```http
+POST /contracts/{id}/transfer-ownership
+```
+
+**Request Body:**
+```json
+{
+    "to_user_id": 123
+}
+```
+
+### 5.6 Lấy quyền hạn
+
+```http
+GET /contracts/{id}/permissions
 ```
 
 ---
@@ -316,7 +451,6 @@ POST /contracts/{id}/files
 ```
 
 **Request Body:**
-
 ```json
 {
     "filename": "contract-document.pdf",
@@ -350,14 +484,6 @@ DELETE /contracts/files/{fid}
 POST /contracts/{id}/approve
 ```
 
-**Request Body:**
-
-```json
-{
-    "comment": "Hợp đồng đã được phê duyệt"
-}
-```
-
 ### 7.2 Từ chối hợp đồng
 
 ```http
@@ -365,11 +491,9 @@ POST /contracts/{id}/reject
 ```
 
 **Request Body:**
-
 ```json
 {
-    "reason": "Thiếu thông tin quan trọng",
-    "comment": "Cần bổ sung thông tin về lương và phụ cấp"
+    "reason": "Thiếu thông tin quan trọng"
 }
 ```
 
@@ -380,7 +504,6 @@ POST /contracts/{id}/request-changes
 ```
 
 **Request Body:**
-
 ```json
 {
     "changes": ["Cập nhật mức lương", "Bổ sung điều khoản bảo mật"]
@@ -411,7 +534,7 @@ GET /contracts/{id}/print
 
 ---
 
-## 9. ANALYTICS & DASHBOARD
+## 9. AUDIT & ANALYTICS
 
 ### 9.1 Analytics hợp đồng
 
@@ -420,7 +543,6 @@ GET /contracts/{id}/analytics
 ```
 
 **Response:**
-
 ```json
 {
     "contract_id": "uuid",
@@ -459,7 +581,6 @@ GET /contracts/dashboard/stats
 ```
 
 **Response:**
-
 ```json
 {
   "overview": {
@@ -481,6 +602,39 @@ GET /contracts/dashboard/stats
   "recent_contracts": [...],
   "upcoming_milestones": [...]
 }
+```
+
+### 9.3 Audit logs
+
+```http
+GET /contracts/{id}/audit?page=1&limit=50&action=contract_created
+```
+
+**Query Parameters:**
+- `action`: Loại hành động
+- `user_id`: ID người dùng
+- `date_from`: Ngày từ (YYYY-MM-DD)
+- `date_to`: Ngày đến (YYYY-MM-DD)
+- `search`: Tìm kiếm
+- `page`: Số trang
+- `limit`: Số lượng per page
+
+### 9.4 Audit summary
+
+```http
+GET /contracts/{id}/audit/summary
+```
+
+### 9.5 User audit logs
+
+```http
+GET /contracts/audit/user?page=1&limit=50
+```
+
+### 9.6 System audit logs
+
+```http
+GET /contracts/audit/system?page=1&limit=50
 ```
 
 ---
@@ -506,7 +660,6 @@ POST /contracts/templates
 ```
 
 **Request Body:**
-
 ```json
 {
     "name": "Hợp đồng lao động chuẩn",
@@ -556,7 +709,6 @@ POST /contracts/{id}/notifications
 ```
 
 **Request Body:**
-
 ```json
 {
     "title": "Hợp đồng cần phê duyệt",
@@ -581,7 +733,6 @@ POST /contracts/{id}/reminders
 ```
 
 **Request Body:**
-
 ```json
 {
     "title": "Nhắc nhở ký hợp đồng",
@@ -601,32 +752,35 @@ GET /contracts/{id}/reminders
 
 ---
 
-## 12. AUDIT LOG
+## 12. USER MANAGEMENT
 
-### 12.1 Lấy audit logs
+### 12.1 Lấy thông tin profile
 
 ```http
-GET /contracts/{id}/audit
+GET /me
 ```
 
-**Response:**
+### 12.2 Tạo nhân viên mới (Manager only)
 
+```http
+POST /manager/staff
+```
+
+**Request Body:**
 ```json
 {
-    "logs": [
-        {
-            "id": "log-uuid",
-            "action": "contract_created",
-            "user_id": "user-uuid",
-            "user_name": "Nguyễn Văn A",
-            "timestamp": "2024-01-01T00:00:00Z",
-            "details": {
-                "contract_name": "Hợp đồng lao động",
-                "contract_id": "contract-uuid"
-            }
-        }
-    ]
+    "username": "newuser@company.com",
+    "password": "password123",
+    "full_name": "Nguyễn Văn B",
+    "role": "staff",
+    "department": "legal"
 }
+```
+
+### 12.3 Lấy danh sách nhân viên (Manager only)
+
+```http
+GET /manager/staff
 ```
 
 ---
@@ -704,7 +858,7 @@ GET /contracts/{id}/audit
 - `high`: Cao
 - `critical`: Khẩn cấp
 
-### Template Types
+### Contract Mode
 
 - `form`: Form-based
 - `editor`: Rich text editor
@@ -716,6 +870,13 @@ GET /contracts/{id}/audit
 - `attachment`: Tệp đính kèm
 - `template`: Template
 - `signature`: Chữ ký
+
+### User Roles
+
+- `staff`: Nhân viên
+- `manager`: Quản lý
+- `admin`: Quản trị viên
+- `super_admin`: Siêu quản trị viên
 
 ---
 
@@ -743,3 +904,57 @@ Tất cả API trả về danh sách đều hỗ trợ pagination:
   }
 }
 ```
+
+---
+
+## CORS Configuration
+
+API hỗ trợ CORS với cấu hình:
+
+- **Origin:** `http://localhost:5173` (client URL)
+- **Credentials:** true (cho phép cookies)
+- **Methods:** GET, POST, PUT, DELETE, PATCH, OPTIONS
+- **Headers:** Content-Type, Authorization, X-Requested-With
+
+---
+
+## Development
+
+### Chạy development server
+
+```bash
+npm run start:dev
+```
+
+### Build production
+
+```bash
+npm run build
+npm run start:prod
+```
+
+### Database migrations
+
+```bash
+npm run migration:generate
+npm run migration:run
+npm run migration:revert
+```
+
+### Seeding data
+
+```bash
+npm run seed
+```
+
+---
+
+## Technologies Used
+
+- **Backend:** NestJS, TypeScript, TypeORM
+- **Database:** MySQL
+- **Authentication:** JWT, Passport
+- **Documentation:** Swagger/OpenAPI
+- **Validation:** class-validator, class-transformer
+- **Logging:** Winston
+- **Testing:** Jest

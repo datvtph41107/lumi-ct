@@ -1,0 +1,861 @@
+{
+  "info": {
+    "name": "Contract Management API",
+    "description": "Complete API collection for Contract Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contracts",
+      "item": [
+        {
+          "name": "Create Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Employment Contract\",\n  \"contract_code\": \"EMP-2024-001\",\n  \"contract_type\": \"employment\",\n  \"category\": \"labor\",\n  \"priority\": \"medium\",\n  \"mode\": \"form\",\n  \"template_id\": \"template-uuid\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts"]
+            }
+          }
+        },
+        {
+          "name": "List Contracts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts?page=1&limit=10&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "active"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Contract",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Contract",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Contract Name\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Contract",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Contract Stages",
+      "item": [
+        {
+          "name": "Auto Save Stage",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"info\",\n  \"data\": {\n    \"contract_name\": \"Employment Contract\",\n    \"parties\": [\"Company ABC\", \"John Doe\"],\n    \"effective_date\": \"2024-01-01\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/autosave",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "autosave"]
+            }
+          }
+        },
+        {
+          "name": "Save Stage",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stage\": \"content\",\n  \"data\": {\n    \"content\": \"Contract content...\",\n    \"terms\": [\"Term 1\", \"Term 2\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/stage/content/save",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "stage", "content", "save"]
+            }
+          }
+        },
+        {
+          "name": "Get Stage Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/stage/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "stage", "info"]
+            }
+          }
+        },
+        {
+          "name": "Transition Stage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"info\",\n  \"to\": \"content\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/transition",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "transition"]
+            }
+          }
+        },
+        {
+          "name": "Preview Contract",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "preview"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Milestones",
+      "item": [
+        {
+          "name": "Create Milestone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Contract Signing\",\n  \"description\": \"Both parties sign the contract\",\n  \"due_date\": \"2024-01-15\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/milestones",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "milestones"]
+            }
+          }
+        },
+        {
+          "name": "List Milestones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/milestones",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "milestones"]
+            }
+          }
+        },
+        {
+          "name": "Update Milestone",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Milestone Name\",\n  \"due_date\": \"2024-01-20\",\n  \"priority\": \"critical\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/milestones/{{milestoneId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "milestones", "{{milestoneId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Milestone",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/milestones/{{milestoneId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "milestones", "{{milestoneId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prepare Documents\",\n  \"description\": \"Prepare all required documents\",\n  \"assigned_to\": 123,\n  \"due_date\": \"2024-01-10\",\n  \"priority\": \"medium\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/milestones/{{milestoneId}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "milestones", "{{milestoneId}}", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/milestones/{{milestoneId}}/tasks",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "milestones", "{{milestoneId}}", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Task Name\",\n  \"status\": \"completed\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "tasks", "{{taskId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/tasks/{{taskId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "tasks", "{{taskId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Collaborators",
+      "item": [
+        {
+          "name": "Add Collaborator",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 456,\n  \"role\": \"reviewer\",\n  \"permissions\": [\"read\", \"comment\", \"approve\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/collaborators",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "collaborators"]
+            }
+          }
+        },
+        {
+          "name": "List Collaborators",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/collaborators",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "collaborators"]
+            }
+          }
+        },
+        {
+          "name": "Update Collaborator",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"editor\",\n  \"permissions\": [\"read\", \"write\", \"comment\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/collaborators/{{collaboratorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "collaborators", "{{collaboratorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Remove Collaborator",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/collaborators/{{collaboratorId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "collaborators", "{{collaboratorId}}"]
+            }
+          }
+        },
+        {
+          "name": "Transfer Ownership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_user_id\": 789\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/transfer-ownership",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "transfer-ownership"]
+            }
+          }
+        },
+        {
+          "name": "Get Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "permissions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "description",
+                  "value": "Contract document",
+                  "type": "text"
+                },
+                {
+                  "key": "file_type",
+                  "value": "contract_document",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/files",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "files"]
+            }
+          }
+        },
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/files",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "files"]
+            }
+          }
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/files/{{fileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "files", "{{fileId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Approval Workflow",
+      "item": [
+        {
+          "name": "Approve Contract",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Reject Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Missing important information\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "reject"]
+            }
+          }
+        },
+        {
+          "name": "Request Changes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"changes\": [\"Update salary amount\", \"Add confidentiality clause\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/request-changes",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "request-changes"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "item": [
+        {
+          "name": "Export PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/export/pdf",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "export", "pdf"]
+            }
+          }
+        },
+        {
+          "name": "Export DOCX",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/export/docx",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "export", "docx"]
+            }
+          }
+        },
+        {
+          "name": "Print View",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/print",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "print"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Contract Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/{{contractId}}/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "{{contractId}}", "analytics"]
+            }
+          }
+        },
+        {
+          "name": "Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/dashboard/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "dashboard", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/templates?type=form&category=employment",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "templates"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "form"
+                },
+                {
+                  "key": "category",
+                  "value": "employment"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/templates/{{templateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "templates", "{{templateId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard Employment Contract\",\n  \"description\": \"Template for employment contracts\",\n  \"type\": \"form\",\n  \"category\": \"employment\",\n  \"structure\": {\n    \"fields\": [\n      {\n        \"name\": \"employee_name\",\n        \"label\": \"Employee Name\",\n        \"type\": \"text\",\n        \"required\": true\n      },\n      {\n        \"name\": \"salary\",\n        \"label\": \"Salary\",\n        \"type\": \"number\",\n        \"required\": true\n      }\n    ]\n  },\n  \"tags\": [\"employment\", \"standard\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/templates",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "templates"]
+            }
+          }
+        },
+        {
+          "name": "Update Template",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Template Name\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contracts/templates/{{templateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "templates", "{{templateId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/templates/{{templateId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["contracts", "templates", "{{templateId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["me"]
+            }
+          }
+        },
+        {
+          "name": "Create Staff (Manager Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newuser@company.com\",\n  \"password\": \"password123\",\n  \"full_name\": \"New User\",\n  \"role\": \"staff\",\n  \"department\": \"legal\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/manager/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["manager", "staff"]
+            }
+          }
+        },
+        {
+          "name": "List Staff (Manager Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/manager/staff",
+              "host": ["{{baseUrl}}"],
+              "path": ["manager", "staff"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
