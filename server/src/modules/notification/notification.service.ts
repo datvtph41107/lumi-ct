@@ -2,12 +2,8 @@ import { Injectable, Inject, BadRequestException, InternalServerErrorException }
 import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import {
-    ContractNotification,
-    NotificationType,
-    NotificationStatus,
-    NotificationChannel,
-} from '@/core/domain/notification/notification.entity';
+import { ContractNotification, NotificationStatus, NotificationChannel } from '@/core/domain/notification/notification.entity';
+import { NotificationType } from '@/core/shared/enums/base.enums';
 import {
     ContractReminder,
     ReminderType,
@@ -564,14 +560,14 @@ export class NotificationService {
     // ===== HELPER METHODS =====
     private mapReminderTypeToNotificationType(reminderType: ReminderType): NotificationType {
         const mapping: Record<ReminderType, NotificationType> = {
-            [ReminderType.MILESTONE_DUE]: NotificationType.MILESTONE_DUE,
-            [ReminderType.MILESTONE_OVERDUE]: NotificationType.MILESTONE_OVERDUE,
-            [ReminderType.TASK_DUE]: NotificationType.TASK_DUE,
+            [ReminderType.MILESTONE_DUE]: NotificationType.PHASE_REMINDER,
+            [ReminderType.MILESTONE_OVERDUE]: NotificationType.PHASE_OVERDUE,
+            [ReminderType.TASK_DUE]: NotificationType.TASK_REMINDER,
             [ReminderType.TASK_OVERDUE]: NotificationType.TASK_OVERDUE,
-            [ReminderType.CONTRACT_EXPIRING]: NotificationType.CONTRACT_EXPIRING,
-            [ReminderType.CONTRACT_EXPIRED]: NotificationType.CONTRACT_EXPIRED,
-            [ReminderType.APPROVAL_REQUIRED]: NotificationType.APPROVAL_REQUIRED,
-            [ReminderType.REVIEW_REQUIRED]: NotificationType.REVIEW_REQUIRED,
+            [ReminderType.CONTRACT_EXPIRING]: NotificationType.CONTRACT_REMINDER,
+            [ReminderType.CONTRACT_EXPIRED]: NotificationType.CONTRACT_OVERDUE,
+            [ReminderType.APPROVAL_REQUIRED]: NotificationType.SYSTEM_ANNOUNCEMENT,
+            [ReminderType.REVIEW_REQUIRED]: NotificationType.SYSTEM_ANNOUNCEMENT,
         };
         return mapping[reminderType];
     }

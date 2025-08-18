@@ -26,7 +26,8 @@ export class AuthController {
         const matched = await bcrypt.compare(body.password, user.password);
         if (!matched) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
 
-        if (body.isManager === true && user.role !== Role.MANAGER) {
+        const isManagerLogin = (body as any).is_manager_login === true;
+        if (isManagerLogin && user.role !== Role.MANAGER) {
             throw new UnauthorizedException('Tài khoản không có quyền quản lý');
         }
 
