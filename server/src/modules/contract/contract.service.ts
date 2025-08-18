@@ -173,6 +173,39 @@ export class ContractService {
         return this.notificationService.getRemindersByContract(id);
     }
 
+    // ===== Versions =====
+    async listVersions(contractId: string) {
+        const rows = await this.versionRepository.find({ where: { contract_id: contractId }, order: { edited_at: 'DESC' as any } });
+        return rows;
+    }
+
+    async createVersion(contractId: string, userId: number, changeSummary?: string) {
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } });
+        if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
+        const version = this.versionRepository.create({
+            contract_id: contractId,
+            version_number: (contract.version || 0) + 1,
+            content_snapshot: {},
+            edited_by: String(userId),
+            edited_at: new Date(),
+            change_summary: changeSummary,
+        } as any);
+        const saved = await this.versionRepository.save(version);
+        await this.contractRepository.update({ id: contractId } as any, {
+            version: saved.version_number,
+            current_version_id: saved.id,
+            updated_by: String(userId),
+        } as any);
+        await this.auditLogService.create({ contract_id: contractId, user_id: userId, action: 'CREATE_VERSION' });
+        return saved;
+    }
+
+    async getVersion(contractId: string, versionId: string) {
+        const row = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
+        if (!row) throw new NotFoundException('Phiên bản không tồn tại');
+        return row;
+    }
+
     // ====== Support methods for cron/notifications ======
     async findUpcomingContracts(daysBefore: number): Promise<Contract[]> {
         const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();

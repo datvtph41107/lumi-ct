@@ -24,6 +24,7 @@ import classNames from 'classnames/bind';
 import { useLocation } from 'react-router-dom';
 import CollaboratorManagement from '~/components/CollaboratorManagement/CollaboratorManagement';
 import { auditLogService } from '~/services/api/audit-log.service';
+import { contractService } from '~/services/api/contract.service';
 import { useEditorStore } from '~/store/editor-store';
 import { useContractDraftStore } from '~/store/contract-draft-store';
 
@@ -69,7 +70,7 @@ interface ActivityItem {
 }
 
 const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor }) => {
-    const [activeTab, setActiveTab] = useState<'info' | 'settings' | 'collaborators' | 'activity'>('info');
+    const [activeTab, setActiveTab] = useState<'info' | 'settings' | 'collaborators' | 'activity' | 'versions'>('info');
     const [contractInfo, setContractInfo] = useState<ContractInfo | null>(null);
     const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
     const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -133,6 +134,9 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                             })),
                         );
                     } catch {}
+                    break;
+                case 'versions':
+                    // versions are loaded lazily in VersionsTab component if implemented
                     break;
             }
         } catch (error) {
@@ -308,6 +312,13 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                     <FontAwesomeIcon icon={faHistory} />
                     Hoạt động
                 </button>
+                <button
+                    className={cx('tab-btn', { active: activeTab === 'versions' })}
+                    onClick={() => setActiveTab('versions')}
+                >
+                    <FontAwesomeIcon icon={faHistory} />
+                    Phiên bản
+                </button>
             </div>
 
             <div className={cx('tab-content')}>
@@ -321,6 +332,7 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                         {activeTab === 'settings' && 'Cài đặt'}
                         {activeTab === 'collaborators' && 'Cộng tác viên'}
                         {activeTab === 'activity' && 'Hoạt động gần đây'}
+                        {activeTab === 'versions' && 'Lịch sử phiên bản'}
                     </h3>
                     {activeTab === 'collaborators' && (
                         <button className={cx('add-collaborator-btn')}>
@@ -496,6 +508,13 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
                                 </div>
                             </div>
                         )}
+
+                        {/* Versions Tab */}
+                        {activeTab === 'versions' && (
+                            <div className={cx('activity-tab')}>
+                                <ContractVersions contractId={resolvedContractId} />
+                            </div>
+                        )}
                     </>
                 )}
             </div>
@@ -504,3 +523,55 @@ const SidebarRight: React.FC<SidebarRightProps> = ({ contractId, userId, editor 
 };
 
 export default SidebarRight;
+
+const ContractVersions = ({ contractId }: { contractId: string }) => {
+    const [rows, setRows] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const load = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await contractService.listVersions(Number(contractId));
+            setRows((res.data as any) || []);
+        } catch (e) {
+            setError('Không thể tải danh sách phiên bản');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        void load();
+    }, [contractId]);
+
+    return (
+        <div className={cx('activity-list')}>
+            {loading && <div className={cx('loading')}>Đang tải...</div>}
+            {error && <div className={cx('error')}>{error}</div>}
+            {!loading && !error && (
+                <table width="100%" cellPadding={6} style={{ borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ textAlign: 'left' }}>
+                            <th>#</th>
+                            <th>Edited At</th>
+                            <th>Edited By</th>
+                            <th>Summary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((v: any) => (
+                            <tr key={v.id} style={{ borderTop: '1px solid #eee' }}>
+                                <td>{v.version_number}</td>
+                                <td>{new Date(v.edited_at).toLocaleString()}</td>
+                                <td>{v.edited_by}</td>
+                                <td>{v.change_summary || '-'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+        </div>
+    );
+};
