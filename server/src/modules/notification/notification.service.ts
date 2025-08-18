@@ -446,9 +446,14 @@ export class NotificationService {
             const dueMilestones = await this.milestoneRepo.find({
                 where: {
                     status: MilestoneStatus.PENDING,
-                    date_range: Between(today, tomorrow),
                 },
             });
+            // schedule pre-due reminders based on date_range
+            for (const m of dueMilestones) {
+                const end = m.date_range?.end_date ? new Date(m.date_range.end_date) : undefined;
+                if (!end) continue;
+                await this.schedulePreDueRemindersForMilestone(m, end);
+            }
 
             for (const milestone of dueMilestones) {
                 await this.createMilestoneDueReminder(milestone);
@@ -458,9 +463,12 @@ export class NotificationService {
             const overdueMilestones = await this.milestoneRepo.find({
                 where: {
                     status: MilestoneStatus.PENDING,
-                    date_range: LessThan(today),
                 },
             });
+            for (const m of overdueMilestones) {
+                const end = m.date_range?.end_date ? new Date(m.date_range.end_date) : undefined;
+                if (end && end < today) await this.createMilestoneOverdueReminder(m);
+            }
 
             for (const milestone of overdueMilestones) {
                 await this.createMilestoneOverdueReminder(milestone);
@@ -488,9 +496,12 @@ export class NotificationService {
             const dueTasks = await this.taskRepo.find({
                 where: {
                     status: TaskStatus.PENDING,
-                    due_date: Between(today, tomorrow),
                 },
             });
+            for (const t of dueTasks) {
+                if (!t.due_date) continue;
+                await this.schedulePreDueRemindersForTask(t, t.due_date);
+            }
 
             for (const task of dueTasks) {
                 await this.createTaskDueReminder(task);
@@ -542,9 +553,11 @@ export class NotificationService {
             const expiredContracts = await this.contractRepo.find({
                 where: {
                     status: ContractStatus.ACTIVE,
-                    end_date: LessThan(today),
                 },
             });
+            for (const c of expiredContracts) {
+                if (c.end_date && c.end_date < today) await this.createContractExpiredReminder(c);
+            }
 
             for (const contract of expiredContracts) {
                 await this.createContractExpiredReminder(contract);
@@ -562,6 +575,48 @@ export class NotificationService {
     }
 
     // ===== HELPER METHODS =====
+    private async schedulePreDueRemindersForMilestone(milestone: Milestone, dueDate: Date): Promise<void> {
+        const advanceDaysList = [7, 3, 1];
+        for (const d of advanceDaysList) {
+            const trigger = new Date(dueDate);
+            trigger.setDate(trigger.getDate() - d);
+            if (trigger > new Date()) {
+                await this.createReminder({
+                    contract_id: milestone.contract_id,
+                    milestone_id: milestone.id,
+                    user_id: parseInt(milestone.assignee_id),
+                    type: ReminderType.MILESTONE_DUE,
+                    frequency: ReminderFrequency.ONCE,
+                    title: `Milestone due in ${d} day(s): ${milestone.name}`,
+                    message: `Milestone "${milestone.name}" is due in ${d} day(s).`,
+                    trigger_date: trigger,
+                    notification_channels: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+                });
+            }
+        }
+    }
+
+    private async schedulePreDueRemindersForTask(task: Task, dueDate: Date): Promise<void> {
+        const advanceDaysList = [7, 3, 1];
+        for (const d of advanceDaysList) {
+            const trigger = new Date(dueDate);
+            trigger.setDate(trigger.getDate() - d);
+            if (trigger > new Date()) {
+                const milestone = await this.milestoneRepo.findOne({ where: { id: task.milestone_id } });
+                await this.createReminder({
+                    contract_id: milestone?.contract_id || '',
+                    task_id: task.id,
+                    user_id: parseInt(task.assignee_id),
+                    type: ReminderType.TASK_DUE,
+                    frequency: ReminderFrequency.ONCE,
+                    title: `Task due in ${d} day(s): ${task.name}`,
+                    message: `Task "${task.name}" is due in ${d} day(s).`,
+                    trigger_date: trigger,
+                    notification_channels: [NotificationChannel.EMAIL, NotificationChannel.IN_APP],
+                });
+            }
+        }
+    }
     private mapReminderTypeToNotificationType(reminderType: ReminderType): NotificationType {
         const mapping: Record<ReminderType, NotificationType> = {
             [ReminderType.MILESTONE_DUE]: NotificationType.MILESTONE_DUE,

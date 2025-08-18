@@ -4,32 +4,26 @@ import { TokenService } from '../jwt/jwt.service';
 import { AuthGuardAccess } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import { User } from '@/core/domain/user/user.entity';
+import { AuthService } from './auth.service';
+import { LoginDto } from '@/core/dto/auth/login.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly tokenService: TokenService) {}
+    constructor(private readonly tokenService: TokenService, private readonly authService: AuthService) {}
 
     @Post('login')
-    async login(@Body() body: { username: string; password: string }, @Res({ passthrough: true }) res: Response) {
-        // TODO: validate user from DB; here only stub to issue tokens
-        const fakeUser = { id: 1, username: body.username, role: 'MANAGER' } as any as User;
-        const context = {
-            permissions: {
-                create_contract: true,
-                create_report: true,
-                read: true,
-                update: true,
-                delete: false,
-                approve: true,
-                assign: true,
-            },
-            department: null,
-        } as any;
-        const sessionId = `${Date.now()}`;
-        const tokens = await this.tokenService.getUserTokens(fakeUser, context, sessionId);
+    async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
+        const { tokens, sessionId, user } = await this.authService.login(body);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
-        return { success: true, data: { access_token: tokens.access_token } };
+        return {
+            success: true,
+            data: {
+                access_token: tokens.access_token,
+                role: user.role,
+                is_manager_login: body.is_manager_login === true,
+            },
+        } as any;
     }
 
     @Post('refresh-token')
