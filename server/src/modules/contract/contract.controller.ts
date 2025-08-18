@@ -14,6 +14,7 @@ import {
     Query,
     Put,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ContractService } from './contract.service';
 
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
@@ -30,6 +31,8 @@ import { RolesGuard } from '@/modules/auth/guards/role.guard';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess, RolesGuard)
+@ApiTags('contracts')
+@ApiBearerAuth()
 export class ContractController {
     constructor(
         private readonly contractService: ContractService,
@@ -113,12 +116,52 @@ export class ContractController {
 
     // ===== VERSIONS =====
     @Get(':id/versions')
+    @ApiOperation({ summary: 'List contract versions' })
+    @ApiParam({ name: 'id', type: String })
     async listVersions(@Param('id') id: string) {
         return this.contractService.listVersions(id);
     }
     @Get(':id/versions/:versionId')
+    @ApiOperation({ summary: 'Get version by id' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiParam({ name: 'versionId', type: String })
     async getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
         return this.contractService.getVersion(id, versionId);
+    }
+
+    // ===== VERSION DIFF & ROLLBACK =====
+    @Get(':id/versions/:versionId/diff')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
+    @ApiOperation({ summary: 'Compare two versions' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiParam({ name: 'versionId', description: 'Source version id', type: String })
+    @ApiQuery({ name: 'target', description: 'Target version id', type: String, required: true })
+    async diffVersion(
+        @Param('id') id: string,
+        @Param('versionId') versionId: string,
+        @Query('target') target: string,
+    ) {
+        return this.contractService.diffVersions(id, versionId, target);
+    }
+
+    @Post(':id/versions/:versionId/rollback')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @ApiOperation({ summary: 'Rollback contract content to a specific version (creates a new version)' })
+    @ApiParam({ name: 'id', type: String })
+    @ApiParam({ name: 'versionId', description: 'Version id to rollback to', type: String })
+    async rollbackVersion(
+        @Param('id') id: string,
+        @Param('versionId') versionId: string,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.rollbackToVersion(id, versionId, Number(user.sub));
     }
 
     // Reviewer routes

@@ -18,6 +18,7 @@ import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
+import { diffJson, JsonDiffChange } from '@/common/utils/json-diff.utils';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -234,6 +235,62 @@ export class ContractService {
         const version = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
         if (!version) throw new NotFoundException('Version not found');
         return version;
+    }
+
+    async diffVersions(
+        contractId: string,
+        sourceVersionId: string,
+        targetVersionId: string,
+    ): Promise<{ changes: JsonDiffChange[]; sourceVersion: number; targetVersion: number }> {
+        const [source, target] = await Promise.all([
+            this.versionRepository.findOne({ where: { id: sourceVersionId, contract_id: contractId } }),
+            this.versionRepository.findOne({ where: { id: targetVersionId, contract_id: contractId } }),
+        ]);
+        if (!source || !target) throw new NotFoundException('One or both versions not found');
+        const changes = diffJson(source.content_snapshot, target.content_snapshot);
+        return { changes, sourceVersion: source.version_number as any, targetVersion: target.version_number as any };
+    }
+
+    async rollbackToVersion(contractId: string, versionId: string, userId: number): Promise<{ version_id: string }> {
+        const version = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
+        if (!version) throw new NotFoundException('Version not found');
+
+        // Update current content with snapshot
+        const content = await this.contentRepository.findOne({ where: { contract_id: contractId } });
+        const snapshot = (version as any).content_snapshot || {};
+        await this.contentRepository.update(
+            { contract_id: contractId } as any,
+            {
+                basic_content: snapshot.basic_content || null,
+                editor_content: snapshot.editor_content || null,
+                uploaded_file: snapshot.uploaded_file || null,
+                mode: snapshot.mode || content?.mode || 'basic',
+            } as any,
+        );
+
+        // Create a new version from the snapshot to preserve history
+        const latest = await this.versionRepository.findOne({
+            where: { contract_id: contractId },
+            order: { version_number: 'DESC' as any },
+        });
+        const nextVersionNumber = (latest?.version_number || 0) + 1;
+        const newVersion = this.versionRepository.create({
+            contract_id: contractId,
+            version_number: nextVersionNumber,
+            content_snapshot: snapshot,
+            edited_by: String(userId),
+            edited_at: new Date(),
+        } as any);
+        const saved = await this.versionRepository.save(newVersion);
+
+        await this.auditLogService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'ROLLBACK_VERSION',
+            meta: { from_version_id: versionId, to_version_number: nextVersionNumber },
+            description: `Rollback to version ${version.version_number}`,
+        });
+        return { version_id: saved.id } as any;
     }
 
     // ===== AUDIT LOG proxied for controller =====
