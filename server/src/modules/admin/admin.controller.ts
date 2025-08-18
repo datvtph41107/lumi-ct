@@ -3,9 +3,8 @@ import { Body, Controller, Delete, Get, Inject, Param, Post, Put, Query, UseGuar
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { AdminService } from './admin.service';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
-import { AuthCoreService } from '../auth/auth/auth.service';
+import { AuthService as AuthCoreService } from '../auth/auth/auth.service';
 import { Repository } from 'typeorm';
-import { Role } from '@/core/domain/permission/role.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Controller('admin')
@@ -15,7 +14,6 @@ export class AdminController {
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         private readonly adminService: AdminService,
         private readonly authCore: AuthCoreService,
-        @InjectRepository(Role) private readonly roleRepo: Repository<Role>,
     ) {}
 
     // ==== Departments (existing) ====
@@ -68,12 +66,8 @@ export class AdminController {
     @Get('users/:id/roles')
     async getUserRoles(@Param('id') id: string) {
         const userRoles = await this.authCore.getUserRoles(Number(id));
-        const roleNames: string[] = [];
-        for (const ur of userRoles) {
-            const role = await this.roleRepo.findOne({ where: { id: ur.role_id } });
-            if (role?.name) roleNames.push(role.name);
-        }
-        return { roles: roleNames };
+        const roleNames: string[] = userRoles.map((r: any) => (r.role_id || '').toUpperCase());
+        return { roles: roleNames } as any;
     }
 
     @Post('users/:id/roles')
@@ -88,48 +82,74 @@ export class AdminController {
     @Get('users/:id/permissions')
     async getEffectivePermissions(@Param('id') id: string) {
         const perms = await this.authCore.getUserPermissions(Number(id));
-        return {
-            permissions: (perms?.permissions || []).map((p: any) => ({
-                resource: p.resource,
-                action: p.action,
-                conditions: p.conditions_schema,
-            })),
-        };
+        const list = Array.isArray(perms.permissions)
+            ? perms.permissions.map((p: any) => ({
+                  resource: p.resource,
+                  action: p.action,
+                  conditions: p.conditions_schema,
+              }))
+            : [];
+        return { permissions: list } as any;
     }
 
     // ==== Roles & permissions ====
     @Get('roles')
     async listRoles() {
-        return { data: [], total: 0 };
+        // Fixed model: only MANAGER and STAFF available
+        return {
+            data: [
+                { id: 'manager', name: 'MANAGER' },
+                { id: 'staff', name: 'STAFF' },
+            ],
+            total: 2,
+        } as any;
     }
     @Post('roles')
     async createRole(
-        @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
+        @Body() _body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
     ) {
-        return { id: body.name || `role-${Date.now()}`, ...body };
+        return { error: 'Role creation disabled. Use fixed MANAGER/STAFF.' } as any;
     }
     @Put('roles/:id')
     async updateRole(
-        @Param('id') id: string,
-        @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
+        @Param('id') _id: string,
+        @Body() _body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
     ) {
-        return { id, ...body };
+        return { error: 'Role update disabled. Use fixed MANAGER/STAFF.' } as any;
     }
     @Delete('roles/:id')
-    async deleteRole(@Param('id') id: string) {
-        return { success: true };
+    async deleteRole(@Param('id') _id: string) {
+        return { error: 'Role delete disabled. Use fixed MANAGER/STAFF.' } as any;
     }
 
     @Get('roles/:id/permissions')
     async getRolePermissions(@Param('id') id: string) {
-        return { permissions: [] };
+        // Provide static permissions mapping
+        const managerPerms = [
+            { resource: 'contract', action: 'create' },
+            { resource: 'contract', action: 'read' },
+            { resource: 'contract', action: 'update' },
+            { resource: 'contract', action: 'delete' },
+            { resource: 'contract', action: 'approve' },
+            { resource: 'contract', action: 'export' },
+            { resource: 'template', action: 'manage' },
+            { resource: 'dashboard', action: 'view' },
+            { resource: 'dashboard', action: 'analytics' },
+            { resource: 'audit', action: 'view' },
+        ];
+        const staffPerms = [
+            { resource: 'contract', action: 'create' },
+            { resource: 'dashboard', action: 'view' },
+        ];
+        const perms = id === 'manager' ? managerPerms : staffPerms;
+        return { permissions: perms } as any;
     }
     @Put('roles/:id/permissions')
     async setRolePermissions(
-        @Param('id') id: string,
-        @Body() body: { permissions: Array<{ resource: string; action: string; conditions?: any }> },
+        @Param('id') _id: string,
+        @Body() _body: { permissions: Array<{ resource: string; action: string; conditions?: any }> },
     ) {
-        return { success: true };
+        return { error: 'Dynamic role permissions disabled.' } as any;
     }
 
     @Get('permissions/catalog')

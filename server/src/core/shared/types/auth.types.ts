@@ -67,7 +67,7 @@ export interface PermissionCheck {
 export interface UserPermissions {
     userId: number;
     permissions: PermissionSet | RolePermission[];
-    roles: Role[];
+    roles: { id: string; name: string }[] | Role[];
     scopes: Record<string, unknown>;
 }
 

@@ -1,12 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Role } from '@/core/domain/permission/role.entity';
-import { Permission } from '@/core/domain/permission/permission.entity';
-import { UserRole } from '@/core/domain/permission/user-role.entity';
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
 import { PermissionCheck, UserPermissions, RolePermission } from '@/core/shared/types/auth.types';
+import { Role as SystemRole } from '@/core/shared/enums/base.enums';
 
 @Injectable()
 export class AuthService {
@@ -14,12 +12,6 @@ export class AuthService {
     private userPermissionsCache = new Map<number, UserPermissions>();
 
     constructor(
-        @InjectRepository(Role)
-        private readonly roleRepository: Repository<Role>,
-        @InjectRepository(Permission)
-        private readonly permissionRepository: Repository<Permission>,
-        @InjectRepository(UserRole)
-        private readonly userRoleRepository: Repository<UserRole>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         @InjectRepository(UserSession)
@@ -82,38 +74,35 @@ export class AuthService {
             return this.userPermissionsCache.get(userId)!;
         }
 
-        const userRoles = await this.userRoleRepository.find({
-            where: { user_id: userId, is_active: true },
-        });
-
-        const roles: Role[] = [];
+        // Simplified role/permission model based on User.role only (MANAGER | STAFF)
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const roles: any[] = [];
         const scopes: Record<string, unknown> = {};
         const aggregatedPermissions: RolePermission[] = [];
 
-        for (const userRole of userRoles) {
-            const role = await this.roleRepository.findOne({
-                where: { id: userRole.role_id },
-            });
-
-            if (role && role.is_active) {
-                roles.push(role);
-
-                // Process role permissions
-                const rolePermissions = role.permissions || [];
-                rolePermissions.forEach((rolePermission) => {
-                    aggregatedPermissions.push({
-                        resource: rolePermission.resource,
-                        action: rolePermission.action,
-                        conditions_schema: rolePermission.conditions,
-                        is_active: true,
-                    });
-                });
-
-                // Handle scopes
-                if (userRole.scope !== 'global') {
-                    scopes[userRole.scope] = userRole.scope_id;
-                }
-            }
+        const isManager = user?.role === SystemRole.MANAGER;
+        if (isManager) {
+            // Manager: system-level permissions
+            roles.push({ id: 'manager', name: 'MANAGER', is_active: true });
+            aggregatedPermissions.push(
+                { resource: 'contract', action: 'create', is_active: true },
+                { resource: 'contract', action: 'read', is_active: true },
+                { resource: 'contract', action: 'update', is_active: true },
+                { resource: 'contract', action: 'delete', is_active: true },
+                { resource: 'contract', action: 'approve', is_active: true },
+                { resource: 'contract', action: 'export', is_active: true },
+                { resource: 'template', action: 'manage', is_active: true },
+                { resource: 'dashboard', action: 'view', is_active: true },
+                { resource: 'dashboard', action: 'analytics', is_active: true },
+                { resource: 'audit', action: 'view', is_active: true },
+            );
+        } else {
+            // Staff: basic access; collaborator governs per-contract
+            roles.push({ id: 'staff', name: 'STAFF', is_active: true });
+            aggregatedPermissions.push(
+                { resource: 'contract', action: 'create', is_active: true },
+                { resource: 'dashboard', action: 'view', is_active: true },
+            );
         }
 
         const userPermissions: UserPermissions = {
@@ -127,49 +116,39 @@ export class AuthService {
         return userPermissions;
     }
 
-    async getUserRoles(userId: number): Promise<UserRole[]> {
-        return this.userRoleRepository.find({
-            where: { user_id: userId, is_active: true },
-            order: { granted_at: 'DESC' },
-        });
+    async getUserRoles(userId: number): Promise<any[]> {
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const roleName = user?.role === SystemRole.MANAGER ? 'MANAGER' : 'STAFF';
+        return [
+            {
+                user_id: userId,
+                role_id: roleName.toLowerCase(),
+                scope: 'global',
+                is_active: true,
+                granted_at: new Date(),
+            },
+        ];
     }
 
     async assignRole(
-        userId: number,
-        roleId: string,
-        scope: string = 'global',
-        scopeId?: number,
-        grantedBy?: number,
-    ): Promise<UserRole> {
-        const existingRole = await this.userRoleRepository.findOne({
-            where: { user_id: userId, role_id: roleId, scope, scope_id: scopeId },
-        });
-        if (existingRole) throw new Error('Role already assigned to user');
-        const userRole = this.userRoleRepository.create({
-            user_id: userId,
-            role_id: roleId,
-            scope,
-            scope_id: scopeId,
-            granted_by: grantedBy,
-            granted_at: new Date(),
-        });
-        const savedRole = await this.userRoleRepository.save(userRole);
-        this.clearUserCache(userId);
-        return savedRole;
+        _userId: number,
+        _roleId: string,
+        _scope: string = 'global',
+        _scopeId?: number,
+        _grantedBy?: number,
+    ): Promise<any> {
+        throw new Error('Dynamic role assignment is disabled. Roles are fixed to MANAGER/STAFF.');
     }
 
-    async removeRole(userId: number, roleId: string, scope: string = 'global', scopeId?: number): Promise<void> {
-        await this.userRoleRepository.delete({ user_id: userId, role_id: roleId, scope, scope_id: scopeId });
-        this.clearUserCache(userId);
+    async removeRole(_userId: number, _roleId: string, _scope: string = 'global', _scopeId?: number): Promise<void> {
+        throw new Error('Dynamic role removal is disabled. Roles are fixed to MANAGER/STAFF.');
     }
 
     async updateUserRoles(
-        userId: number,
-        roles: Array<{ roleId: string; scope?: string; scopeId?: number }>,
+        _userId: number,
+        _roles: Array<{ roleId: string; scope?: string; scopeId?: number }>,
     ): Promise<void> {
-        await this.userRoleRepository.delete({ user_id: userId });
-        for (const role of roles) await this.assignRole(userId, role.roleId, role.scope, role.scopeId);
-        this.clearUserCache(userId);
+        throw new Error('Dynamic role updates are disabled. Roles are fixed to MANAGER/STAFF.');
     }
 
     async validateSession(sessionId: string, accessToken: string): Promise<User> {
@@ -264,7 +243,7 @@ export class AuthService {
                 case 'scope':
                     return userPermissions.scopes[value as string] !== undefined;
                 case 'role':
-                    return userPermissions.roles.some((role) => role.name === value);
+                    return (userPermissions.roles as any[]).some((role) => role.name === value);
             }
         }
         return true;

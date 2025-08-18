@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { AuthCoreService as AuthService } from '../auth/auth.service';
+import { AuthService as AuthService } from '../auth/auth.service';
 import { UserJwtPayload } from '@/core/shared/types/auth.types';
 
 export interface PermissionMetadata {

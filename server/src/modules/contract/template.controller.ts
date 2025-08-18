@@ -5,7 +5,7 @@ import { ContractTemplate } from '@/core/domain/contract/contract-template.entit
 import { AuthGuardAccess } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { AuthCoreService } from '@/modules/auth/auth/auth.service';
+import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
 
 @Controller('contracts/templates')
 @UseGuards(AuthGuardAccess)
