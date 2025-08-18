@@ -9,12 +9,14 @@ import { LoginDto } from '@/core/dto/auth/login.dto';
 import * as bcrypt from 'bcrypt';
 import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
 import { Role } from '@/core/shared/enums/base.enums';
+import { AuthCoreService } from './auth-core.service';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
+        private readonly authCoreService: AuthCoreService,
     ) {}
 
     @Post('login')
@@ -49,7 +51,8 @@ export class AuthController {
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        const tokenExpiry = Math.floor(Date.now() / 1000) + 15 * 60;
+        return { accessToken: tokens.access_token, sessionId, tokenExpiry, user: responseUser } as any;
     }
 
     @Post('refresh-token')
@@ -84,7 +87,26 @@ export class AuthController {
     @Get('me')
     @UseGuards(AuthGuardAccess)
     async me(@CurrentUser() user: any) {
-        return user;
+        const dataSource = this.db;
+        const userRepo = dataSource.getRepository(User);
+        const dbUser = await userRepo.findOne({ where: { id: user.sub } });
+        if (!dbUser) throw new UnauthorizedException('Không tìm thấy người dùng');
+        const context = await buildUserContext(dbUser, dataSource);
+        const responseUser = {
+            id: dbUser.id,
+            username: dbUser.username,
+            role: dbUser.role,
+            isManager: dbUser.role === Role.MANAGER,
+            department: (context as any).department
+                ? {
+                      id: (context as any).department.id,
+                      name: (context as any).department.name,
+                      code: (context as any).department.code,
+                  }
+                : null,
+            permissions: context.permissions,
+        };
+        return { userData: responseUser } as any;
     }
 
     @Get('verify-session')
@@ -100,5 +122,14 @@ export class AuthController {
         const refreshToken = (req as any).cookies?.refreshToken;
         if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
         return { success: true } as any;
+    }
+
+    @Get('permissions')
+    @UseGuards(AuthGuardAccess)
+    async getPermissions(@CurrentUser() user: any) {
+        const userId = user?.sub || user?.id;
+        if (!userId) throw new UnauthorizedException('User not authenticated');
+        const permissions = await this.authCoreService.getUserPermissions(Number(userId));
+        return permissions as any;
     }
 }
