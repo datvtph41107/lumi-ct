@@ -46,23 +46,23 @@ export class CronTaskService {
         const contracts = await this.contractService.findUpcomingContracts(daysBefore);
 
         for (const contract of contracts as any[]) {
-            const relatedUsers = await this.contractService.findContractRelatedUsers((contract as any).id);
+            const relatedUsers = await this.contractService.findContractRelatedUsers(contract.id);
             this.logger.APP.info(
-                `📄 Contract: ${(contract as any).name} (ID: ${(contract as any).id}) - Notifying users: ${relatedUsers.join(', ')}`,
+                `📄 Contract: ${contract.name} (ID: ${contract.id}) - Notifying users: ${relatedUsers.join(', ')}`,
             );
 
             await this.notificationService.notifyManyUsers({
                 userIds: relatedUsers,
                 type: NotificationType.CONTRACT_REMINDER,
                 title: 'Contract Reminder',
-                message: `Contract "${(contract as any).name}" is ${this.formatReminderText(daysBefore, 'starting or ending')}.`,
-                data: `${(contract as any).id}`,
-                startedAt: (contract as any).start_date,
-                endedAt: (contract as any).end_date,
+                message: `Contract "${contract.name}" is ${this.formatReminderText(daysBefore, 'starting or ending')}.`,
+                data: `${contract.id}`,
+                startedAt: contract.start_date,
+                endedAt: contract.end_date,
             });
 
             relatedUsers.forEach((userId) => {
-                this.logger.APP.info(`Notified user ${userId} about contract ${(contract as any).id}`);
+                this.logger.APP.info(`Notified user ${userId} about contract ${contract.id}`);
             });
         }
     }
@@ -130,24 +130,24 @@ export class CronTaskService {
     private async markExpiredContracts() {
         const expiredContracts = await this.contractService.findOverdueContracts();
         for (const contract of expiredContracts as any[]) {
-            await this.contractService.updateStatus('contract', (contract as any).id, ContractStatus.EXPIRED);
-            this.logger.APP.warn(`Contract ${(contract as any).id} marked as EXPIRED`);
+            await this.contractService.updateStatus('contract', contract.id, ContractStatus.EXPIRED);
+            this.logger.APP.warn(`Contract ${contract.id} marked as EXPIRED`);
         }
     }
 
     private async markExpiredPhases() {
         const expiredPhases = await this.contractService.findOverduePhases();
         for (const phase of expiredPhases as any[]) {
-            await this.contractService.updateStatus('phase', (phase as any).id, ContractStatus.EXPIRED);
-            this.logger.APP.warn(`Phase ${(phase as any).id} marked as EXPIRED`);
+            await this.contractService.updateStatus('phase', phase.id, ContractStatus.EXPIRED);
+            this.logger.APP.warn(`Phase ${phase.id} marked as EXPIRED`);
         }
     }
 
     private async markExpiredTasks() {
         const expiredTasks = await this.contractService.findOverdueTasks();
         for (const task of expiredTasks as any[]) {
-            await this.contractService.updateStatus('task', (task as any).id, ContractStatus.EXPIRED);
-            this.logger.APP.warn(`Task ${(task as any).id} marked as EXPIRED`);
+            await this.contractService.updateStatus('task', task.id, ContractStatus.EXPIRED);
+            this.logger.APP.warn(`Task ${task.id} marked as EXPIRED`);
         }
     }
 

@@ -19,20 +19,25 @@ export class AuthController {
 
     @Post('login')
     async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const dataSource = (this as any).db as DataSource;
+        const dataSource: DataSource = this.db as DataSource;
         const userRepo = dataSource.getRepository(User);
         const user = await userRepo.findOne({ where: { username: body.username } });
         if (!user || !user.is_active) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
         const matched = await bcrypt.compare(body.password, user.password);
         if (!matched) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
 
-        if (body.isManager === true && user.role !== Role.MANAGER) {
+        const isManagerLogin = Boolean((body as unknown as { is_manager_login?: boolean }).is_manager_login);
+        if (isManagerLogin && user.role !== Role.MANAGER) {
             throw new UnauthorizedException('Tài khoản không có quyền quản lý');
         }
 
         const context = await buildUserContext(user, dataSource);
         const sessionId = `${Date.now()}`;
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
+        const tokens = await this.tokenService.getUserTokens(
+            user as unknown as any,
+            context as unknown as any,
+            sessionId,
+        );
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
         const responseUser = {
@@ -40,29 +45,33 @@ export class AuthController {
             username: user.username,
             role: user.role,
             isManager: user.role === Role.MANAGER,
-            department: (context as any).department
+            department: (context as unknown as any).department
                 ? {
-                      id: (context as any).department.id,
-                      name: (context as any).department.name,
-                      code: (context as any).department.code,
+                      id: (context as unknown as any).department.id,
+                      name: (context as unknown as any).department.name,
+                      code: (context as unknown as any).department.code,
                   }
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { access_token: tokens.access_token, user: responseUser } as unknown as any;
     }
 
     @Post('refresh-token')
     async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const dataSource = (this as any).db as DataSource;
-        const refreshToken = (req as any).cookies?.refreshToken;
+        const dataSource: DataSource = this.db as DataSource;
+        const refreshToken = (req as unknown as { cookies?: Record<string, string> }).cookies?.refreshToken;
         if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as any;
         const payload = await this.tokenService.verifyRefreshToken(refreshToken);
         const userRepo = dataSource.getRepository(User);
         const user = await userRepo.findOne({ where: { id: payload.userId } });
         if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
         const context = await buildUserContext(user, dataSource);
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
+        const tokens = await this.tokenService.getUserTokens(
+            user as unknown as any,
+            context as unknown as any,
+            payload.sessionId,
+        );
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         const responseUser = {
             id: user.id,
@@ -70,14 +79,14 @@ export class AuthController {
             role: user.role,
             isManager: user.role === Role.MANAGER,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { access_token: tokens.access_token, user: responseUser } as unknown as any;
     }
 
     @Post('logout')
     @UseGuards(AuthGuardAccess)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-        const sessionId = (req as any).cookies?.sessionId;
-        if (sessionId) await this.tokenService.revokeSession(sessionId as any);
+        const sessionId = (req as unknown as { cookies?: Record<string, string> }).cookies?.sessionId;
+        if (sessionId) await this.tokenService.revokeSession(sessionId as unknown as any);
         res.clearCookie('refreshToken', { path: '/' });
         res.clearCookie('sessionId', { path: '/' });
         return { success: true, message: 'Đăng xuất thành công' };
@@ -85,7 +94,7 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuardAccess)
-    async me(@CurrentUser() user: any) {
-        return user;
+    async me(@CurrentUser() user: unknown) {
+        return user as unknown as Record<string, unknown>;
     }
 }

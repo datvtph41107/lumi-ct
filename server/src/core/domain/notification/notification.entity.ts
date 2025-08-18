@@ -1,19 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { BaseEntity } from '../base.entity';
-
-export enum NotificationType {
-    MILESTONE_DUE = 'milestone_due',
-    MILESTONE_OVERDUE = 'milestone_overdue',
-    TASK_DUE = 'task_due',
-    TASK_OVERDUE = 'task_overdue',
-    CONTRACT_EXPIRING = 'contract_expiring',
-    CONTRACT_EXPIRED = 'contract_expired',
-    APPROVAL_REQUIRED = 'approval_required',
-    REVIEW_REQUIRED = 'review_required',
-    COLLABORATOR_ADDED = 'collaborator_added',
-    COLLABORATOR_REMOVED = 'collaborator_removed',
-    OWNERSHIP_TRANSFERRED = 'ownership_transferred',
-}
+import { NotificationType } from '@/core/shared/enums/base.enums';
 
 export enum NotificationStatus {
     PENDING = 'pending',

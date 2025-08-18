@@ -20,7 +20,7 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
 
                 const errorName = err?.name;
                 let errorMessage: string | string[] = 'Internal Server Error';
-                let errorDetail: any = null;
+                let errorDetail: unknown = null;
 
                 if (response && typeof response === 'object') {
                     const resObj = response as Record<string, any>;
@@ -30,10 +30,10 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
 
                         if (Array.isArray(rawMessage)) {
                             errorMessage = 'Validation Failed';
-                            errorDetail = rawMessage;
+                            errorDetail = rawMessage as unknown as string[];
                         } else {
-                            errorMessage = rawMessage;
-                            errorDetail = resObj.dataError ?? '';
+                            errorMessage = String(rawMessage);
+                            errorDetail = (resObj as Record<string, unknown>).dataError ?? '';
                         }
                     } else {
                         errorMessage = err.message;
@@ -49,11 +49,11 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
                     message: errorMessage,
                     error: {
                         name: errorName,
-                        details: errorDetail as string[],
+                        details: errorDetail as string[] | string | null,
                     },
                 };
 
-                return throwError(() => new HttpException(errorResponse, statusCode));
+                return throwError(() => new HttpException(errorResponse as unknown as Record<string, unknown>, statusCode));
             }),
         );
     }

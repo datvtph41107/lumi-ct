@@ -13,6 +13,10 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { User } from '@/core/domain/user/user.entity';
 import { NotificationService } from '@/modules/notification/notification.service';
 import { AuditLogService } from './audit-log.service';
+import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
+import { Task } from '@/core/domain/contract/contract-taks.entity';
+import { Collaborator } from '@/core/domain/permission/collaborator.entity';
+import { ContractStatus as SharedContractStatus } from '@/core/shared/enums/base.enums';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -27,6 +31,9 @@ export class ContractService {
         @InjectRepository(ContractFile) private readonly fileRepository: Repository<ContractFile>,
         @InjectRepository(AuditLog) private readonly auditLogRepository: Repository<AuditLog>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
+        @InjectRepository(Milestone) private readonly milestoneRepository: Repository<Milestone>,
+        @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
+        @InjectRepository(Collaborator) private readonly collaboratorRepository: Repository<Collaborator>,
         private readonly dataSource: DataSource,
         private readonly authCoreService: AuthCoreService,
         private readonly notificationService: NotificationService,
@@ -158,5 +165,87 @@ export class ContractService {
     }
     async listReminders(id: string) {
         return this.notificationService.getRemindersByContract(id);
+    }
+
+    // ======= Queries for CronTaskService =======
+    async findUpcomingContracts(daysBefore: number): Promise<Array<Partial<Contract>>> {
+        const now = new Date();
+        const target = new Date(now);
+        target.setDate(now.getDate() + daysBefore);
+        return this.contractRepository.find({
+            where: [{ start_date: target as any }, { end_date: target as any }] as any,
+            select: ['id', 'name', 'start_date', 'end_date'] as any,
+        });
+    }
+
+    async findContractRelatedUsers(contractId: string): Promise<number[]> {
+        const collaborators = await this.collaboratorRepository.find({ where: { contract_id: contractId } as any });
+        const userIds = new Set<number>();
+        collaborators.forEach((c) => userIds.add(c.user_id));
+        // Optionally include creator/manager if stored on contract
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } });
+        if (contract?.created_by) {
+            const parsed = Number(contract.created_by);
+            if (!Number.isNaN(parsed)) userIds.add(parsed);
+        }
+        return Array.from(userIds);
+    }
+
+    async findUpcomingPhases(daysBefore: number): Promise<Array<Partial<Milestone>>> {
+        const now = new Date();
+        const target = new Date(now);
+        target.setDate(now.getDate() + daysBefore);
+        return this.milestoneRepository
+            .createQueryBuilder('m')
+            .where("JSON_EXTRACT(m.date_range, '$.start_date') = :d OR JSON_EXTRACT(m.date_range, '$.end_date') = :d", {
+                d: target.toISOString().slice(0, 10),
+            })
+            .select(['m.id', 'm.name', 'm.contract_id', 'm.assignee_id', 'm.assignee_name'])
+            .getMany();
+    }
+
+    async findUpcomingTasks(daysBefore: number): Promise<Array<Partial<Task>>> {
+        const now = new Date();
+        const target = new Date(now);
+        target.setDate(now.getDate() + daysBefore);
+        return this.taskRepository.find({
+            where: { due_date: target as any } as any,
+            select: ['id', 'name', 'due_date', 'assignee_id'] as any,
+        });
+    }
+
+    async findOverdueContracts(): Promise<Array<Partial<Contract>>> {
+        const now = new Date();
+        return this.contractRepository.find({
+            where: { end_date: (date: any) => date < now } as any,
+            select: ['id'] as any,
+        });
+    }
+
+    async findOverduePhases(): Promise<Array<Partial<Milestone>>> {
+        const today = new Date().toISOString().slice(0, 10);
+        return this.milestoneRepository
+            .createQueryBuilder('m')
+            .where("JSON_EXTRACT(m.date_range, '$.end_date') < :d", { d: today })
+            .select(['m.id'])
+            .getMany();
+    }
+
+    async findOverdueTasks(): Promise<Array<Partial<Task>>> {
+        const now = new Date();
+        return this.taskRepository.find({
+            where: { due_date: (date: any) => date < now } as any,
+            select: ['id'] as any,
+        });
+    }
+
+    async updateStatus(scope: 'contract' | 'phase' | 'task', id: string, status: SharedContractStatus): Promise<void> {
+        if (scope === 'contract') {
+            await this.contractRepository.update(id, { status: status as any } as any);
+        } else if (scope === 'phase') {
+            await this.milestoneRepository.update(id, { status: 'overdue' as any });
+        } else if (scope === 'task') {
+            await this.taskRepository.update(id, { status: 'overdue' as any });
+        }
     }
 }

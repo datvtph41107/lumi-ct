@@ -21,6 +21,9 @@ import { ContractDraftController } from './contract-draft.controller';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 import { ContractDraftService } from './contract-draft.service';
+import { User } from '@/core/domain/user/user.entity';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { NotificationModule } from '@/modules/notification/notification.module';
 
 @Module({
     imports: [
@@ -35,7 +38,10 @@ import { ContractDraftService } from './contract-draft.service';
             ContractVersion,
             Collaborator,
             AuditLog,
+            User,
         ]),
+        AuthModule,
+        NotificationModule,
     ],
     controllers: [ContractController, ContractDraftController],
     providers: [
