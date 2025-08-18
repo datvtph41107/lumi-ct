@@ -218,6 +218,16 @@ export class ContractService {
         }
     }
 
+    // ===== Versions =====
+    async listVersions(contractId: string) {
+        return this.versionRepository.find({ where: { contract_id: contractId }, order: { version_number: 'DESC' as any } });
+    }
+    async getVersion(contractId: string, versionId: string) {
+        const version = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
+        if (!version) throw new NotFoundException('Version not found');
+        return version;
+    }
+
     // ===== AUDIT LOG proxied for controller =====
     async getAuditLogs(
         contractId: string,

@@ -24,6 +24,8 @@ import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enu
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
+import { Roles } from '@/core/shared/decorators/setmeta.decorator';
+import { Role } from '@/core/shared/enums/base.enums';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
@@ -78,6 +80,28 @@ export class ContractController {
     @Get(':id/audit/summary')
     async getAuditSummary(@Param('id') id: string) {
         return this.contractService.getAuditSummary(id);
+    }
+
+    // ===== APPROVAL FLOW (MANAGER ONLY) =====
+    @Post(':id/approve')
+    @Roles(Role.MANAGER)
+    async approve(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.updateStatus('contract', id, 'approved');
+    }
+    @Post(':id/reject')
+    @Roles(Role.MANAGER)
+    async reject(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.updateStatus('contract', id, 'rejected');
+    }
+
+    // ===== VERSIONS =====
+    @Get(':id/versions')
+    async listVersions(@Param('id') id: string) {
+        return this.contractService.listVersions(id);
+    }
+    @Get(':id/versions/:versionId')
+    async getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
+        return this.contractService.getVersion(id, versionId);
     }
 
     // ===== EXPORT & PRINT =====
