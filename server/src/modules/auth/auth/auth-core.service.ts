@@ -94,7 +94,7 @@ export class AuthCoreService {
                     aggregated.push({
                         resource: rp.resource,
                         action: rp.action,
-                        conditions_schema: rp.conditions,
+                        conditions_schema: (rp as any).conditions,
                         is_active: true,
                     }),
                 );

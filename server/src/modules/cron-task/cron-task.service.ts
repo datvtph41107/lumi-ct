@@ -4,8 +4,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from 'moment-timezone';
 import { ContractService } from '@/modules/contract/contract.service';
 import { NotificationService } from '../notification/notification.service';
-import { ContractStatus } from '@/core/shared/enums/base.enums';
-import { NotificationType } from '@/core/domain/notification/notification.entity';
+// import { ContractStatus } from '@/core/domain/contract/contract.entity';
+// import { NotificationType } from '@/core/domain/notification/notification.entity';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 @Injectable()

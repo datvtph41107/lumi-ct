@@ -9,5 +9,5 @@ export class LoginDto {
 
     @IsOptional()
     @IsBoolean()
-    is_manager_login: boolean;
+    isManager?: boolean;
 }

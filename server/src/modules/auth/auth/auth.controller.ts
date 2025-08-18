@@ -1,58 +1,69 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TokenService } from '../jwt/jwt.service';
 import { AuthGuardAccess } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import { User } from '@/core/domain/user/user.entity';
+import { DataSource } from 'typeorm';
+import { LoginDto } from '@/core/dto/auth/login.dto';
+import * as bcrypt from 'bcrypt';
+import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
+import { Role } from '@/core/shared/enums/base.enums';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly tokenService: TokenService) {}
+    constructor(private readonly tokenService: TokenService, private readonly db: DataSource) {}
 
     @Post('login')
-    async login(@Body() body: { username: string; password: string }, @Res({ passthrough: true }) res: Response) {
-        // TODO: validate user from DB; here only stub to issue tokens
-        const fakeUser = { id: 1, username: body.username, role: 'MANAGER' } as any as User;
-        const context = {
-            permissions: {
-                create_contract: true,
-                create_report: true,
-                read: true,
-                update: true,
-                delete: false,
-                approve: true,
-                assign: true,
-            },
-            department: null,
-        } as any;
+    async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
+        const dataSource = (this as any).db as DataSource;
+        const userRepo = dataSource.getRepository(User);
+        const user = await userRepo.findOne({ where: { username: body.username } });
+        if (!user || !user.is_active) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
+        const matched = await bcrypt.compare(body.password, user.password);
+        if (!matched) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
+
+        if (body.isManager === true && user.role !== Role.MANAGER) {
+            throw new UnauthorizedException('Tài khoản không có quyền quản lý');
+        }
+
+        const context = await buildUserContext(user, dataSource);
         const sessionId = `${Date.now()}`;
-        const tokens = await this.tokenService.getUserTokens(fakeUser, context, sessionId);
+        const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
-        return { success: true, data: { access_token: tokens.access_token } };
+        const responseUser = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            isManager: user.role === Role.MANAGER,
+            department: (context as any).department
+                ? { id: (context as any).department.id, name: (context as any).department.name, code: (context as any).department.code }
+                : null,
+            permissions: context.permissions,
+        };
+        return { access_token: tokens.access_token, user: responseUser } as any;
     }
 
     @Post('refresh-token')
     async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+        const dataSource = (this as any).db as DataSource;
         const refreshToken = (req as any).cookies?.refreshToken;
         if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as any;
         const payload = await this.tokenService.verifyRefreshToken(refreshToken);
-        const fakeUser = { id: payload.userId, username: 'user', role: 'MANAGER' } as any;
-        const context = {
-            permissions: {
-                create_contract: true,
-                create_report: true,
-                read: true,
-                update: true,
-                delete: false,
-                approve: true,
-                assign: true,
-            },
-            department: null,
-        } as any;
-        const tokens = await this.tokenService.getUserTokens(fakeUser, context, payload.sessionId);
+        const userRepo = dataSource.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: payload.userId } });
+        if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
+        const context = await buildUserContext(user, dataSource);
+        const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
-        return { success: true, data: { access_token: tokens.access_token } } as any;
+        const responseUser = {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            isManager: user.role === Role.MANAGER,
+        };
+        return { access_token: tokens.access_token, user: responseUser } as any;
     }
 
     @Post('logout')
@@ -67,7 +78,7 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuardAccess)
-    async me(@CurrentUser() user: User) {
-        return { success: true, data: user };
+    async me(@CurrentUser() user: any) {
+        return user;
     }
 }

@@ -8,7 +8,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Role, Status } from '@/core/shared/enums/base.enums';
 import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { UserPermissionFactory } from '@/common/utils/user-permission-factory,utils';
+import { UserPermissionFactory } from '@/common/utils/user-permission-factory.utils';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
 
 @Injectable()
@@ -116,10 +116,10 @@ export class UserService {
             const userRepo = this.db.getRepository(User);
             const users = await userRepo.find({
                 where: { role: Role.STAFF, department_id: creator.department?.id },
+                select: ['id', 'name', 'username', 'role', 'department_id', 'created_at', 'updated_at'],
             });
-            if (users) {
-                throw new ConflictException('No staff of this department');
-            }
+            if (!users || users.length === 0) return [];
+            return users;
         } catch (error) {
             this.logger.APP.error('Get All Staff of depart error: ' + error);
             throw error;

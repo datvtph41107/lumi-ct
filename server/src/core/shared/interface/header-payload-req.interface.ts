@@ -12,6 +12,7 @@ export interface HeaderUserPayload {
     iat?: number; // issued at
     exp?: number; // expiry
     jti?: string; // token ID
+    sessionId?: string;
 }
 
 export interface HeaderRequest extends Request {
