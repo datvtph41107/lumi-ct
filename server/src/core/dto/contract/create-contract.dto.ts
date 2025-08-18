@@ -1,6 +1,6 @@
 // src/modules/contracts/dto/create-contract.dto.ts
 import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
-import { ContractMode, ContractPriority } from '@/core/domain/contract/contract.entity';
+import { ContractMode, ContractPriority } from '../../domain/contract/contract.entity';
 
 export class CreateContractDto {
     @IsString()

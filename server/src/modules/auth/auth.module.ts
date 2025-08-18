@@ -5,8 +5,10 @@ import { PassportModule } from '@nestjs/passport';
 
 // Controllers
 import { AuthController } from './auth/auth.controller';
+import { AdminController } from '../admin/admin.controller';
 // Services
 import { TokenService } from './jwt/jwt.service';
+import { AdminService } from '../admin/admin.service';
 
 // Guards & Validators
 import { AuthValidatorService } from './guards/validate_req';
@@ -19,7 +21,7 @@ import { JwtStrategy } from './jwt/jwt.strategy';
 
 // External Modules
 import { LoggerModule } from '@/core/shared/logger/logger.module';
-import { DatabaseModule } from '@/providers/database';
+import { DatabaseModule } from '@/providers/database/db.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
@@ -48,7 +50,7 @@ import { AuthCoreService } from './auth/auth-core.service';
             }),
         }),
     ],
-    controllers: [AdminAuthController, AuthController],
+    controllers: [AdminController, AuthController],
     providers: [
         {
             provide: 'REFRESH_JWT_SERVICE',
@@ -65,7 +67,7 @@ import { AuthCoreService } from './auth/auth-core.service';
         },
         // Token & Auth core services
         TokenService,
-        AdminAuthService,
+        AdminService,
         AuthCoreService,
         // Strategy & Guards
         JwtStrategy,

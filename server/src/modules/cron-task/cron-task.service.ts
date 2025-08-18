@@ -2,7 +2,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as moment from 'moment-timezone';
-import { ContractService } from '@/modules/contract/contract.service';
+import { ContractService } from '..//contract/contract.service';
 import { NotificationService } from '../notification/notification.service';
 import { ContractStatus, NotificationType } from '@/core/shared/enums/base.enums';
 // Removed unused imports of ContractPhase and ContractTask to fix build

@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ResponseInterceptor } from './core/shared/filters/response.interceptor';
+import { ResponseInterceptor } from '@/core/shared/filters/response.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import 'reflect-metadata';

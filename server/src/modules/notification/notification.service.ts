@@ -3,11 +3,11 @@ import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import {
-    ContractNotification,
-    NotificationType,
+    Notification,
     NotificationStatus,
     NotificationChannel,
 } from '@/core/domain/notification/notification.entity';
+import { NotificationType } from '@/core/shared/enums/base.enums';
 import {
     ContractReminder,
     ReminderType,
@@ -53,7 +53,7 @@ export interface CreateReminderDto {
 
 @Injectable()
 export class NotificationService {
-    private readonly notificationRepo: Repository<ContractNotification>;
+    private readonly notificationRepo: Repository<Notification>;
     private readonly reminderRepo: Repository<ContractReminder>;
     private readonly milestoneRepo: Repository<Milestone>;
     private readonly taskRepo: Repository<Task>;
@@ -64,7 +64,7 @@ export class NotificationService {
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         @InjectRepository(SystemNotificationSettings) private readonly sysRepo: Repository<SystemNotificationSettings>,
     ) {
-        this.notificationRepo = this.db.getRepository(ContractNotification);
+        this.notificationRepo = this.db.getRepository(Notification);
         this.reminderRepo = this.db.getRepository(ContractReminder);
         this.milestoneRepo = this.db.getRepository(Milestone);
         this.taskRepo = this.db.getRepository(Task);
@@ -118,7 +118,7 @@ export class NotificationService {
     }
 
     // ===== NOTIFICATION MANAGEMENT =====
-    async createNotification(dto: CreateNotificationDto): Promise<ContractNotification> {
+    async createNotification(dto: CreateNotificationDto): Promise<Notification> {
         try {
             const notification = this.notificationRepo.create({
                 ...dto,
@@ -204,7 +204,7 @@ export class NotificationService {
         }
     }
 
-    async getPendingNotifications(): Promise<ContractNotification[]> {
+    async getPendingNotifications(): Promise<Notification[]> {
         const now = new Date();
         return this.notificationRepo.find({
             where: {
@@ -215,11 +215,11 @@ export class NotificationService {
         });
     }
 
-    async getNotificationsByContract(contractId: string): Promise<ContractNotification[]> {
+    async getNotificationsByContract(contractId: string): Promise<Notification[]> {
         return this.notificationRepo.find({ where: { contract_id: contractId }, order: { created_at: 'DESC' as any } });
     }
 
-    async getFailedNotifications(): Promise<ContractNotification[]> {
+    async getFailedNotifications(): Promise<Notification[]> {
         const now = new Date();
         return this.notificationRepo.find({
             where: {
@@ -727,7 +727,7 @@ export class NotificationService {
     }
 
     // ===== NOTIFICATION SENDING METHODS (PLACEHOLDER) =====
-    private async sendEmailNotification(notification: ContractNotification): Promise<void> {
+    private async sendEmailNotification(notification: Notification): Promise<void> {
         // Integrate with your mail provider here (e.g., nodemailer, SES)
         // Example stub that logs payload and simulates async send
         const to = notification.metadata?.recipient_email || 'noreply@example.com';
@@ -738,26 +738,26 @@ export class NotificationService {
         this.logger.APP.info('[Email] sent', { id: notification.id });
     }
 
-    private async sendSMSNotification(notification: ContractNotification): Promise<void> {
+    private async sendSMSNotification(notification: Notification): Promise<void> {
         // Integrate with SMS provider (Twilio, etc.)
         const phone = notification.metadata?.phone;
         this.logger.APP.info('[SMS] sending', { phone });
         await new Promise((r) => setTimeout(r, 25));
     }
 
-    private async sendPushNotification(notification: ContractNotification): Promise<void> {
+    private async sendPushNotification(notification: Notification): Promise<void> {
         // Integrate with push (Firebase/OneSignal/Web Push)
         const deviceToken = notification.metadata?.deviceToken;
         this.logger.APP.info('[PUSH] sending', { deviceToken });
         await new Promise((r) => setTimeout(r, 25));
     }
 
-    private async sendInAppNotification(notification: ContractNotification): Promise<void> {
+    private async sendInAppNotification(notification: Notification): Promise<void> {
         // Store to DB or emit via websocket to client
         this.logger.APP.info('[IN_APP] stored', { id: notification.id });
     }
 
-    private async sendWebhookNotification(notification: ContractNotification): Promise<void> {
+    private async sendWebhookNotification(notification: Notification): Promise<void> {
         // POST to a configured webhook url
         const url = notification.metadata?.webhookUrl;
         this.logger.APP.info('[WEBHOOK] posting', { url });

@@ -1,4 +1,5 @@
-import { Entity, Column, Index, BaseEntity, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity } from '../base.entity';
 
 export enum ContractStatus {
     DRAFT = 'draft',
