@@ -92,6 +92,23 @@ export class ContractController {
         return this.contractService.generatePrintView(id, Number(user.sub));
     }
 
+    // ===== VERSIONS =====
+    @Get(':id/versions')
+    async listVersions(@Param('id') id: string) {
+        return this.contractService.listVersions(id);
+    }
+
+    @Post(':id/versions')
+    @UseGuards(CollaboratorGuard)
+    async createVersion(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload, @Body() body: any) {
+        return this.contractService.createVersion(id, Number(user.sub), body?.change_summary);
+    }
+
+    @Get(':id/versions/:versionId')
+    async getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
+        return this.contractService.getVersion(id, versionId);
+    }
+
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)

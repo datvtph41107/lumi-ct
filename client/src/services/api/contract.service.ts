@@ -392,34 +392,19 @@ class ContractService extends BaseService {
 
     // ==================== VERSION MANAGEMENT ====================
 
-    async createVersion(contractId: number, data: any): Promise<{ data: any }> {
-        // Check permission
-        if (!authCoreService.canUpdateContract(contractId)) {
-            throw new Error('Không có quyền tạo version');
-        }
-
-        const response = await this.post<any>(`/${contractId}/versions`, data);
-        return response;
+    async createVersion(contractId: number, data: { change_summary?: string }): Promise<{ data: any }> {
+        if (!authCoreService.canUpdateContract(contractId)) throw new Error('Không có quyền tạo version');
+        return this.post<any, { change_summary?: string }>(`/${contractId}/versions`, data);
     }
 
     async listVersions(contractId: number): Promise<{ data: any[] }> {
-        // Check permission
-        if (!authCoreService.canReadContract(contractId)) {
-            throw new Error('Không có quyền xem versions');
-        }
-
-        const response = await this.get<any[]>(`/${contractId}/versions`);
-        return response;
+        if (!authCoreService.canReadContract(contractId)) throw new Error('Không có quyền xem versions');
+        return this.get<any[]>(`/${contractId}/versions`);
     }
 
-    async getVersion(contractId: number, versionId: number): Promise<{ data: any }> {
-        // Check permission
-        if (!authCoreService.canReadContract(contractId)) {
-            throw new Error('Không có quyền xem version');
-        }
-
-        const response = await this.get<any>(`/${contractId}/versions/${versionId}`);
-        return response;
+    async getVersion(contractId: number, versionId: string): Promise<{ data: any }> {
+        if (!authCoreService.canReadContract(contractId)) throw new Error('Không có quyền xem version');
+        return this.get<any>(`/${contractId}/versions/${versionId}`);
     }
 
     // ==================== TEMPLATE MANAGEMENT ====================
