@@ -19,12 +19,13 @@ import { ContractService } from './contract.service';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
+import { PermissionGuard, RequirePermissions } from '../auth/guards/permission.guard';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 
 @Controller('contracts')
-@UseGuards(AuthGuardAccess)
+@UseGuards(AuthGuardAccess, PermissionGuard)
 export class ContractController {
     constructor(
         private readonly contractService: ContractService,
@@ -32,22 +33,26 @@ export class ContractController {
     ) {}
 
     @Post()
+    @RequirePermissions({ resource: 'contract', action: 'create' })
     async create(@Body() body: CreateContractDto, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.create(body, { userId: Number(user.sub) });
     }
 
     @Get()
+    @RequirePermissions({ resource: 'contract', action: 'read' })
     async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.listContracts(query, Number(user.sub));
     }
 
     @Get(':id')
+    @RequirePermissions({ resource: 'contract', action: 'read' })
     async get(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.getContract(id, Number(user.sub));
     }
 
     @Patch(':id')
     @UseGuards(CollaboratorGuard)
+    @RequirePermissions({ resource: 'contract', action: 'update' })
     async update(
         @Param('id') id: string,
         @Body() body: Partial<CreateContractDto>,
@@ -57,6 +62,7 @@ export class ContractController {
     }
 
     @Delete(':id')
+    @RequirePermissions({ resource: 'contract', action: 'delete' })
     async remove(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.softDelete(id, Number(user.sub));
     }
@@ -79,10 +85,12 @@ export class ContractController {
 
     // ===== EXPORT & PRINT =====
     @Get(':id/export/pdf')
+    @RequirePermissions({ resource: 'contract', action: 'export' })
     async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportPdf(id, Number(user.sub));
     }
     @Get(':id/export/docx')
+    @RequirePermissions({ resource: 'contract', action: 'export' })
     async exportDocx(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportDocx(id, Number(user.sub));
     }

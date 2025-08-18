@@ -9,11 +9,13 @@ import { LoginDto } from '@/core/dto/auth/login.dto';
 import * as bcrypt from 'bcrypt';
 import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
 import { Role } from '@/core/shared/enums/base.enums';
+import { AuthCoreService } from './auth-core.service';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
+        private readonly authCore: AuthCoreService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
@@ -35,10 +37,13 @@ export class AuthController {
         const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
+        const tokenExpiry = Math.floor(Date.now() / 1000) + 15 * 60;
         const responseUser = {
             id: user.id,
+            name: user.name,
             username: user.username,
             role: user.role,
+            status: user.status,
             isManager: user.role === Role.MANAGER,
             department: (context as any).department
                 ? {
@@ -49,7 +54,7 @@ export class AuthController {
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { accessToken: tokens.access_token, sessionId, tokenExpiry, user: responseUser } as any;
     }
 
     @Post('refresh-token')
@@ -84,7 +89,28 @@ export class AuthController {
     @Get('me')
     @UseGuards(AuthGuardAccess)
     async me(@CurrentUser() user: any) {
-        return user;
+        const dataSource = this.db;
+        const userRepo = dataSource.getRepository(User);
+        const entity = await userRepo.findOne({ where: { id: user.sub } });
+        if (!entity) throw new UnauthorizedException('Không tìm thấy người dùng');
+        const context = await buildUserContext(entity, dataSource);
+        return {
+            userData: {
+                id: entity.id,
+                name: entity.name,
+                username: entity.username,
+                role: entity.role,
+                status: entity.status,
+                department: (context as any).department
+                    ? {
+                          id: (context as any).department.id,
+                          name: (context as any).department.name,
+                          code: (context as any).department.code,
+                      }
+                    : null,
+                permissions: context.permissions,
+            },
+        } as any;
     }
 
     @Get('verify-session')
@@ -100,5 +126,12 @@ export class AuthController {
         const refreshToken = (req as any).cookies?.refreshToken;
         if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
         return { success: true } as any;
+    }
+
+    @Get('permissions')
+    @UseGuards(AuthGuardAccess)
+    async permissions(@CurrentUser() user: any) {
+        const up = await this.authCore.getUserPermissions(Number(user.sub));
+        return up as any;
     }
 }

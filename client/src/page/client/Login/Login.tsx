@@ -2,13 +2,23 @@ import classNames from 'classnames/bind';
 import styles from './Login.module.scss';
 import Form from '~/components/Form';
 import Input from '~/components/Input';
-import type { LoginFormValues } from '~/types/auth/auth.types';
+import type { LoginRequest as LoginFormValues } from '~/types/auth/auth.types';
+import { useAppDispatch } from '~/redux/hooks';
+import { login } from '~/redux/slices/auth.slice';
+import { useNavigate } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
 const Login = () => {
-    const handleSubmit = (data: LoginFormValues) => {
-        console.log('Login submitted:', data);
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const handleSubmit = async (data: LoginFormValues) => {
+        try {
+            await dispatch(login(data as any)).unwrap();
+            navigate('/dashboard');
+        } catch (e) {
+            console.error('Login failed', e);
+        }
     };
 
     return (

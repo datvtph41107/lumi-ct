@@ -1,14 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authService } from '~/services/api/auth.service';
-import type { User, LoginCredentials, RegisterData } from '~/types/auth/auth.types';
+import type { User } from '~/types/auth/auth.types';
 
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
-    login: (credentials: LoginCredentials) => Promise<void>;
-    register: (data: RegisterData) => Promise<void>;
+    login: (credentials: { username: string; password: string; is_manager_login?: boolean }) => Promise<void>;
+    register: (data: any) => Promise<void>;
     logout: () => Promise<void>;
     refreshToken: () => Promise<void>;
     clearError: () => void;
@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             setIsLoading(true);
             const response = await authService.getCurrentUser();
-            setUser(response.data);
+            setUser(response.data.userData);
             setIsAuthenticated(true);
         } catch (err) {
             setUser(null);
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const login = async (credentials: LoginCredentials) => {
+    const login = async (credentials: { username: string; password: string; is_manager_login?: boolean }) => {
         try {
             setIsLoading(true);
             setError(null);
@@ -63,13 +63,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const register = async (data: RegisterData) => {
+    const register = async (data: any) => {
         try {
             setIsLoading(true);
             setError(null);
 
-            const response = await authService.register(data);
-            setUser(response.data.user);
+            // No register API currently; noop
+            setUser(null);
             setIsAuthenticated(true);
 
             // Token will be automatically set as httpOnly cookie by the server
@@ -94,8 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const refreshToken = async () => {
         try {
-            const response = await authService.refreshToken();
-            setUser(response.data.user);
+            await authService.refreshToken();
             setIsAuthenticated(true);
         } catch (err) {
             setUser(null);
