@@ -3,11 +3,11 @@ import { DataSource, Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import {
-    ContractNotification,
-    NotificationType,
+    Notification as ContractNotification,
     NotificationStatus,
     NotificationChannel,
 } from '@/core/domain/notification/notification.entity';
+import { NotificationType } from '@/core/shared/enums/base.enums';
 import {
     ContractReminder,
     ReminderType,

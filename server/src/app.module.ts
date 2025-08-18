@@ -9,9 +9,27 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmWinstonLogger } from '@/core/shared/logger/logger.typeorm';
 
 @Module({
     imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        TypeOrmModule.forRootAsync({
+            useFactory: () => ({
+                type: 'mysql' as const,
+                host: process.env.DB_HOST,
+                port: parseInt(process.env.DB_PORT || '3306'),
+                username: process.env.DB_USER,
+                password: process.env.DB_PASS,
+                database: process.env.DB_NAME,
+                synchronize: process.env.DB_HOST !== 'production',
+                logging: true,
+                logger: new TypeOrmWinstonLogger(),
+                entities: [join(__dirname, '..', 'src/core/domain/**/*.entity.{js,ts}')],
+            }),
+        }),
         ScheduleModule.forRoot(),
         ServeStaticModule.forRoot({
             rootPath: join(__dirname, '..', 'src/common/storage/uploads'),

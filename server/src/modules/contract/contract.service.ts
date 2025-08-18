@@ -17,6 +17,7 @@ import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
 import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as dayjs from 'dayjs';
+import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -206,5 +207,27 @@ export class ContractService {
         if (entity === 'contract') {
             await this.contractRepository.update({ id } as any, { status } as any);
         }
+    }
+
+    // ===== AUDIT LOG proxied for controller =====
+    async getAuditLogs(
+        contractId: string,
+        query: { action?: string; user_id?: number; date_from?: string; date_to?: string; search?: string; page?: number; limit?: number },
+    ): Promise<{ data: AuditLogWithUser[]; pagination: AuditLogPagination }> {
+        const filters: any = {
+            action: query.action,
+            user_id: query.user_id,
+            search: query.search,
+        };
+        if (query.date_from) filters.date_from = new Date(query.date_from);
+        if (query.date_to) filters.date_to = new Date(query.date_to);
+        return this.auditLogService.findByContract(contractId, filters, {
+            page: Number(query.page || 1),
+            limit: Math.min(Number(query.limit || 20), 100),
+        });
+    }
+
+    async getAuditSummary(contractId: string) {
+        return this.auditLogService.getAuditSummary(contractId);
     }
 }
