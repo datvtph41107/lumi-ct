@@ -75,7 +75,7 @@ export class AuthController {
     @UseGuards(AuthGuardAccess)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
         const sessionId = (req as any).cookies?.sessionId;
-        if (sessionId) await this.tokenService.revokeSession(sessionId as any);
+        if (sessionId) await this.tokenService.revokeSession(sessionId);
         res.clearCookie('refreshToken', { path: '/' });
         res.clearCookie('sessionId', { path: '/' });
         return { success: true, message: 'Đăng xuất thành công' };

@@ -48,21 +48,21 @@ export class AdminController {
 
     // ==== Users management ====
     @Get('users')
-    async listUsers(@Query() query: any) {
-        return { data: [], total: 0 };
+    async listUsers(@Query() _query: any) {
+        return { data: [], total: 0 } as const;
     }
 
     @Post('users')
-    async createUser(@Body() body: any) {
-        return { id: Date.now(), ...body };
+    async createUser(@Body() body: Record<string, unknown>) {
+        return { id: Date.now(), ...body } as const;
     }
     @Put('users/:id')
-    async updateUser(@Param('id') id: string, @Body() body: any) {
-        return { id, ...body };
+    async updateUser(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+        return { id, ...body } as const;
     }
     @Delete('users/:id')
-    async deactivateUser(@Param('id') id: string) {
-        return { success: true };
+    async deactivateUser(@Param('id') _id: string) {
+        return { success: true } as const;
     }
 
     @Get('users/:id/roles')
@@ -100,36 +100,36 @@ export class AdminController {
     // ==== Roles & permissions ====
     @Get('roles')
     async listRoles() {
-        return { data: [], total: 0 };
+        return { data: [], total: 0 } as const;
     }
     @Post('roles')
     async createRole(
         @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
     ) {
-        return { id: body.name || `role-${Date.now()}`, ...body };
+        return { id: body.name || `role-${Date.now()}`, ...body } as const;
     }
     @Put('roles/:id')
     async updateRole(
         @Param('id') id: string,
         @Body() body: Partial<{ name: string; displayName?: string; description?: string; priority?: number }>,
     ) {
-        return { id, ...body };
+        return { id, ...body } as const;
     }
     @Delete('roles/:id')
-    async deleteRole(@Param('id') id: string) {
-        return { success: true };
+    async deleteRole(@Param('id') _id: string) {
+        return { success: true } as const;
     }
 
     @Get('roles/:id/permissions')
-    async getRolePermissions(@Param('id') id: string) {
-        return { permissions: [] };
+    async getRolePermissions(@Param('id') _id: string) {
+        return { permissions: [] } as const;
     }
     @Put('roles/:id/permissions')
     async setRolePermissions(
-        @Param('id') id: string,
-        @Body() body: { permissions: Array<{ resource: string; action: string; conditions?: any }> },
+        @Param('id') _id: string,
+        @Body() _body: { permissions: Array<{ resource: string; action: string; conditions?: any }> },
     ) {
-        return { success: true };
+        return { success: true } as const;
     }
 
     @Get('permissions/catalog')
@@ -148,6 +148,6 @@ export class AdminController {
                 'analytics',
                 'view',
             ],
-        };
+        } as const;
     }
 }

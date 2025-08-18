@@ -1,5 +1,244 @@
 # Contract Management API Documentation
 
+## Overview
+
+Hệ thống API quản lý hợp đồng phục vụ 2 phòng ban (Hành chính/ Kế toán) với 2 vai trò (Manager/Staff), hỗ trợ soạn thảo, workflow, collaborator, thông báo (cron + queue) và audit-log. Tất cả API trả về chuẩn Success/Error thông qua ResponseInterceptor.
+
+Base prefix: `${PREFIX}` (ví dụ `/api`), tất cả route bên dưới giả định đã thêm prefix.
+
+Auth: JWT RS256 access token (15m) + refresh token (cookie HttpOnly, HS256, 7d). Session được quản lý trong bảng `user_sessions` với cơ chế idle và revoke.
+
+---
+
+## 0. Authentication
+
+### POST /auth/login
+- Body:
+```json
+{ "username": "admin", "password": "***", "is_manager_login": true }
+```
+- Response: `{ success, data: { access_token, user } }` (refreshToken + sessionId set via cookie)
+
+### POST /auth/refresh-token
+- Lấy access token mới từ cookie refreshToken
+
+### POST /auth/logout
+- Thu hồi session, xóa cookies
+
+### GET /auth/me
+- Trả về payload user hiện tại
+
+### GET /auth/verify-session
+- Kiểm tra session còn hợp lệ
+
+### POST /auth/update-activity
+- Cập nhật last_activity của session
+
+---
+
+## 1. Users
+
+Yêu cầu AuthGuardAccess. Một số route yêu cầu RolesGuard/PermissionsGuard.
+
+### GET /me
+- Lấy thông tin user hiện tại
+
+### POST /manager/staff
+- Roles: MANAGER hoặc SUPER_ADMIN
+- Body: `CreateUserRequest { name, username, password, department_id, ... }`
+- Tạo mới nhân viên trong phòng ban của manager
+
+### GET /manager/staff
+- Liệt kê toàn bộ staff của phòng ban của manager
+
+---
+
+## 2. Admin
+
+Yêu cầu AuthGuardAccess.
+
+### GET /admin/departments
+### GET /admin/departments/:id
+### PUT /admin/departments/:id
+### POST /admin/departments/manager
+
+### GET /admin/users
+### POST /admin/users
+### PUT /admin/users/:id
+### DELETE /admin/users/:id
+
+### GET /admin/users/:id/roles
+### POST /admin/users/:id/roles
+
+### GET /admin/users/:id/permissions
+
+### GET /admin/roles
+### POST /admin/roles
+### PUT /admin/roles/:id
+### DELETE /admin/roles/:id
+### GET /admin/roles/:id/permissions
+### PUT /admin/roles/:id/permissions
+
+### GET /admin/permissions/catalog
+
+---
+
+## 3. Contracts
+
+Yêu cầu AuthGuardAccess, một số route cần CollaboratorGuard.
+
+### POST /contracts
+- Body: `CreateContractDto { name, contract_code?, contract_type?, category?, priority?, mode, template_id? }`
+
+### GET /contracts
+- Query: `page, limit, status?, priority?, category?, search?, created_from?, created_to?, sort_by?, sort_order?`
+
+### GET /contracts/:id
+### PATCH /contracts/:id
+### DELETE /contracts/:id
+
+### GET /contracts/:id/preview
+### GET /contracts/:id/audit
+### GET /contracts/:id/audit/summary
+
+### GET /contracts/:id/export/pdf
+### GET /contracts/:id/export/docx
+### GET /contracts/:id/print
+
+### POST /contracts/:id/notifications
+- Body: `CreateNotificationDto { type, channel, title, message, scheduled_at?, metadata? }`
+
+### GET /contracts/:id/notifications
+
+### POST /contracts/:id/reminders
+- Body: `CreateReminderDto { type, frequency, title, message, trigger_date, advance_days?, notification_channels?, recipients?, milestone_id?, task_id?, metadata? }`
+
+### GET /contracts/:id/reminders
+
+---
+
+## 4. Contract Drafts
+
+### GET /contract-drafts
+- Query: `search?, mode?, status?, page?, limit?`
+
+### GET /contract-drafts/:id
+
+### POST /contract-drafts
+- Body (client flow payload giản lược):
+```json
+{
+  "contractData": { "name": "...", "contractCode": "...", "contractType": "custom", "category": "business", "priority": "medium", "content": { "mode": "basic", "templateId": "..." } },
+  "flow": { "selectedMode": "basic" }
+}
+```
+
+### PATCH /contract-drafts/:id
+- Body: cập nhật contractData/flow, auto-save stage
+
+### DELETE /contract-drafts/:id
+
+---
+
+## 5. Templates
+
+### GET /contracts/templates
+### GET /contracts/templates/:id
+### POST /contracts/templates
+### PATCH /contracts/templates/:id
+### DELETE /contracts/templates/:id
+
+---
+
+## 6. Collaborators
+
+### POST /contracts/:id/collaborators
+- Body: `{ user_id: number, role: 'OWNER'|'EDITOR'|'REVIEWER'|'VIEWER' }`
+
+### GET /contracts/:id/collaborators
+### PATCH /contracts/collaborators/:collaboratorId
+- Body: `{ role?: ..., active?: boolean }`
+
+### DELETE /contracts/collaborators/:collaboratorId
+### POST /contracts/:id/transfer-ownership
+- Body: `{ from_user_id: number, to_user_id: number }`
+
+### GET /contracts/:id/permissions
+- Trả về `{ permissions: { is_owner, can_edit, can_review, can_view } }`
+
+---
+
+## 7. Notifications (System)
+
+### GET /notifications/settings
+### PUT /notifications/settings
+- Body:
+```json
+{
+  "enableEmailNotifications": true,
+  "enableSMSNotifications": false,
+  "enableInAppNotifications": true,
+  "enablePushNotifications": true,
+  "workingHours": { "start": "09:00", "end": "17:00", "timezone": "Asia/Ho_Chi_Minh", "workingDays": [1,2,3,4,5] },
+  "quietHours": { "enabled": false, "start": "22:00", "end": "08:00" },
+  "escalationRules": { "enabled": false, "escalateAfter": { "value": 24, "unit": "hours" }, "escalateTo": [] },
+  "defaultRecipients": []
+}
+```
+
+### GET /notifications/pending
+### GET /notifications/failed
+### POST /notifications/:id/retry
+
+Cronjobs: xử lý pending/failed notifications mỗi phút; xử lý reminders mỗi 5 phút; check milestones/tasks/contract expiry 9h hằng ngày.
+
+---
+
+## 8. Upload
+
+### POST /upload/file
+- FormData: `file` (PDF/DOCX)
+- Validation: size <= 5MB, mimetype PDF/DOCX
+
+---
+
+## 9. Response format
+
+Thành công:
+```json
+{ "success": true, "message": "Request successful", "data": { /* payload */ } }
+```
+
+Lỗi:
+```json
+{ "success": false, "message": "...", "error": { "name": "...", "details": "..." } }
+```
+
+---
+
+## 10. Entities (tóm tắt, không dùng relation trực tiếp)
+- `contracts`: hợp đồng, trường `mode`, `status`, `template_id`, v.v.
+- `contract_reminders`: nhắc hạn theo `type`, `frequency`, `trigger_date`, `recipients`, `notification_channels`
+- `notifications`: thông báo `type`, `channel`, `status`
+- `milestones`, `tasks`: quản lý tiến độ
+- `collaborators`: composite key (`contract_id`, `user_id`) + `role`
+- `audit_logs`: lưu hành động
+- `user_sessions`, `revoked_tokens`
+- `departments`, `users`, `user_permissions`, `roles`, `permissions`, `user_roles`
+
+---
+
+## 11. Authorization
+
+- Access: JWT guard + token revoke check
+- Admin path `/admin` yêu cầu role Admin/Super Admin
+- CollaboratorGuard bắt buộc cho sửa/xóa contract, thêm collaborator
+- Fine-grained check thông qua `AuthCoreService` với context: ownerId, status, type, assignedUsers, scope, role
+
+---
+
+Ghi chú: Một số phần gửi thông báo bên ngoài (email/SMS/push/webhook) ở dạng placeholder; cần tích hợp provider thực tế. Audit interceptor ghi lại các thao tác đột biến (POST/PATCH/PUT/DELETE).
+
 ## Tổng quan
 
 Hệ thống API quản lý hợp đồng cung cấp đầy đủ các tính năng để quản lý vòng đời hợp đồng từ tạo mới, soạn thảo, phê duyệt đến lưu trữ.

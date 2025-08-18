@@ -8,11 +8,8 @@ import {
     Patch,
     UseGuards,
     Delete,
-    HttpCode,
-    HttpStatus,
     Inject,
     Query,
-    Put,
 } from '@nestjs/common';
 import { ContractService } from './contract.service';
 
@@ -22,6 +19,7 @@ import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
+import { CreateNotificationDto, CreateReminderDto } from '@/core/dto/contract/notification.dto';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
@@ -95,7 +93,11 @@ export class ContractController {
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)
-    async createNotification(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
+    async createNotification(
+        @Param('id') id: string,
+        @Body() dto: CreateNotificationDto,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         return this.contractService.createNotification(id, dto, Number(user.sub));
     }
 
@@ -106,7 +108,11 @@ export class ContractController {
 
     @Post(':id/reminders')
     @UseGuards(CollaboratorGuard)
-    async updateReminder(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
+    async updateReminder(
+        @Param('id') id: string,
+        @Body() dto: CreateReminderDto,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         return this.contractService.createReminder(id, dto, Number(user.sub));
     }
 
