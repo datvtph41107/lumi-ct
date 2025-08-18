@@ -19,6 +19,8 @@ import { ContractService } from './contract.service';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
+import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
@@ -48,6 +50,7 @@ export class ContractController {
 
     @Patch(':id')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async update(
         @Param('id') id: string,
         @Body() body: Partial<CreateContractDto>,
@@ -95,6 +98,7 @@ export class ContractController {
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async createNotification(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createNotification(id, dto, Number(user.sub));
     }
@@ -106,6 +110,7 @@ export class ContractController {
 
     @Post(':id/reminders')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async updateReminder(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createReminder(id, dto, Number(user.sub));
     }
