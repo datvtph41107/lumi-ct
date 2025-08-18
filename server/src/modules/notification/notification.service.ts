@@ -16,7 +16,8 @@ import {
 } from '@/core/domain/contract/contract-reminder.entity';
 import { Milestone, MilestoneStatus } from '@/core/domain/contract/contract-milestones.entity';
 import { Task, TaskStatus } from '@/core/domain/contract/contract-taks.entity';
-import { Contract, ContractStatus } from '@/core/domain/contract/contract.entity';
+import { Contract } from '@/core/domain/contract/contract.entity';
+import { ContractStatus } from '@/core/shared/enums/base.enums';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
 
