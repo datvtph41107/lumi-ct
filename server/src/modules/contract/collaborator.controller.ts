@@ -1,22 +1,20 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuardAccess } from '@/modules/auth/guards/jwt-auth.guard';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { Role } from '@/core/shared/enums/base.enums';
+import { Roles } from '@/core/shared/decorators/setmeta.decorator';
+import { RolesGuard } from '@/modules/auth/guards/role.guard';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
-@ApiTags('contracts')
-@ApiBearerAuth()
 export class CollaboratorController {
     constructor(private readonly collab: CollaboratorService) {}
 
     @Post(':id/collaborators')
-    @ApiOperation({ summary: 'Add or reactivate a collaborator on a contract' })
-    @ApiParam({ name: 'id', type: String })
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async add(
         @Param('id') contractId: string,
@@ -34,8 +32,6 @@ export class CollaboratorController {
     }
 
     @Get(':id/collaborators')
-    @ApiOperation({ summary: 'List collaborators' })
-    @ApiParam({ name: 'id', type: String })
     async list(@Param('id') contractId: string, @Query() query: any) {
         // TODO: apply filters from query if needed
         const rows = await this.collab.list(contractId);
@@ -48,8 +44,6 @@ export class CollaboratorController {
     }
 
     @Patch('collaborators/:collaboratorId')
-    @ApiOperation({ summary: 'Update collaborator role or deactivate' })
-    @ApiParam({ name: 'collaboratorId', description: 'Format: <contract_id>_<user_id>', type: String })
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async update(
         @Param('collaboratorId') collaboratorId: string,
@@ -67,8 +61,6 @@ export class CollaboratorController {
     }
 
     @Delete('collaborators/:collaboratorId')
-    @ApiOperation({ summary: 'Remove collaborator (revoke access)' })
-    @ApiParam({ name: 'collaboratorId', description: 'Format: <contract_id>_<user_id>', type: String })
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async remove(@Param('collaboratorId') collaboratorId: string, @CurrentUser() user: HeaderUserPayload) {
         const { contract_id, user_id } = this.parseCollaboratorId(collaboratorId);
@@ -77,8 +69,6 @@ export class CollaboratorController {
     }
 
     @Post(':id/transfer-ownership')
-    @ApiOperation({ summary: 'Transfer contract ownership to another collaborator' })
-    @ApiParam({ name: 'id', type: String })
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async transfer(
         @Param('id') contractId: string,
@@ -95,8 +85,6 @@ export class CollaboratorController {
     }
 
     @Get(':id/permissions')
-    @ApiOperation({ summary: 'Get effective collaborator permissions for current user' })
-    @ApiParam({ name: 'id', type: String })
     async getPermissions(@Param('id') contractId: string, @CurrentUser() user: HeaderUserPayload) {
         const uid = Number(user.sub);
         const [is_owner, can_edit, can_review, can_view] = await Promise.all([

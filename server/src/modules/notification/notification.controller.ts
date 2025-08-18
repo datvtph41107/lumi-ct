@@ -4,24 +4,19 @@ import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/core/shared/decorators/setmeta.decorator';
 import { Role } from '@/core/shared/enums/base.enums';
 import { RolesGuard } from '@/modules/auth/guards/role.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @Controller('notifications')
 @UseGuards(AuthGuardAccess, RolesGuard)
-@ApiTags('notifications')
-@ApiBearerAuth()
 export class NotificationController {
     constructor(private readonly service: NotificationService) {}
 
     @Get('settings')
-    @ApiOperation({ summary: 'Get global system notification settings (manager only)' })
     @Roles(Role.MANAGER)
     getGlobalSettings() {
         return this.service.getGlobalSettings();
     }
 
     @Put('settings')
-    @ApiOperation({ summary: 'Update global system notification settings (manager only)' })
     @Roles(Role.MANAGER)
     updateGlobalSettings(@Body() body: any) {
         return this.service.updateGlobalSettings(body);

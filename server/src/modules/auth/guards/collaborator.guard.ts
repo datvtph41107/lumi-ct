@@ -34,8 +34,12 @@ export class CollaboratorGuard implements CanActivate {
         const requiredRoles = this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
             context.getHandler(),
             context.getClass(),
-        ]) || [CollaboratorRole.OWNER, CollaboratorRole.EDITOR, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER];
+        ]) || [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER];
 
+        // Managers bypass collaborator checks
+        if ((user.roles || []).includes('MANAGER' as any)) {
+            return true;
+        }
         const hasAccess = await this.collaboratorService.hasRole(contractId, user.sub, requiredRoles);
 
         if (!hasAccess) {

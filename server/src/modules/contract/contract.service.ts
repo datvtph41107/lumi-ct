@@ -281,7 +281,7 @@ export class ContractService {
             edited_by: String(userId),
             edited_at: new Date(),
         } as any);
-        const saved = await this.versionRepository.save(newVersion);
+        const savedVersion = await this.versionRepository.save(newVersion);
 
         await this.auditLogService.create({
             contract_id: contractId,
@@ -290,7 +290,7 @@ export class ContractService {
             meta: { from_version_id: versionId, to_version_number: nextVersionNumber },
             description: `Rollback to version ${version.version_number}`,
         });
-        return { version_id: saved.id } as any;
+        return { version_id: (savedVersion as any).id } as any;
     }
 
     // ===== AUDIT LOG proxied for controller =====

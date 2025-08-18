@@ -250,21 +250,17 @@ export class CollaboratorService {
     }
 
     async canEdit(contract_id: string, user_id: number): Promise<boolean> {
-        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER, CollaboratorRole.EDITOR]);
+        // Only owner can edit now (editor removed)
+        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER]);
     }
 
     async canReview(contract_id: string, user_id: number): Promise<boolean> {
-        return this.hasRole(contract_id, user_id, [
-            CollaboratorRole.OWNER,
-            CollaboratorRole.EDITOR,
-            CollaboratorRole.REVIEWER,
-        ]);
+        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER]);
     }
 
     async canView(contract_id: string, user_id: number): Promise<boolean> {
         return this.hasRole(contract_id, user_id, [
             CollaboratorRole.OWNER,
-            CollaboratorRole.EDITOR,
             CollaboratorRole.REVIEWER,
             CollaboratorRole.VIEWER,
         ]);
@@ -308,8 +304,8 @@ export class CollaboratorService {
                 throw new BadRequestException('Target user is not a collaborator on this contract');
             }
 
-            // Update roles
-            currentOwner.role = CollaboratorRole.EDITOR;
+            // Update roles: demote previous owner to viewer by default
+            currentOwner.role = CollaboratorRole.VIEWER;
             newOwner.role = CollaboratorRole.OWNER;
 
             await qr.manager.save([currentOwner, newOwner]);
