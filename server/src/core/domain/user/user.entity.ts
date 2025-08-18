@@ -1,5 +1,5 @@
 // === src/domain/user/user.entity.ts ===
-import { Role, Status } from 'src/core/shared/enums/base.enums';
+import { Role, Status } from '@/core/shared/enums/base.enums';
 import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 import { BaseEntity } from '../base.entity';
 
