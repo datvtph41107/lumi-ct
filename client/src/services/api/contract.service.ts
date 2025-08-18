@@ -1,18 +1,15 @@
 import { BaseService } from './base.service';
 import { authCoreService } from '~/core/auth/AuthCoreSerivce';
-import type {
-    Contract,
-    CreateContractDto,
-    UpdateContractDto,
-    ContractFilters,
-    ContractPagination,
-    ContractListResponse,
-    Milestone,
-    Task,
-    ContractFile,
-    Collaborator,
-    AuditLog,
-} from '~/types/contract/contract.types';
+import type { Contract, Milestone, Task } from '~/types/contract/contract.types';
+import type { Collaborator } from '~/types/contract/collaborator.types';
+import type { PaginatedResponse } from '~/types/api.types';
+type CreateContractDto = { name: string; type?: string; mode: 'basic' | 'editor' | 'upload'; templateId?: string };
+type UpdateContractDto = Partial<CreateContractDto> & { status?: string };
+type ContractFilters = { status?: string; type?: string; search?: string };
+type ContractPagination = { page?: number; limit?: number };
+type ContractListResponse = { data: Contract[]; total: number; page: number };
+type ContractFile = { id: string; fileName: string; fileUrl: string; fileSize: number; mimeType: string };
+type AuditLog = { id: string; action: string; user_id?: number; created_at: string; description?: string };
 
 class ContractService extends BaseService {
     constructor() {

@@ -6,8 +6,29 @@ import classNames from "classnames/bind";
 import styles from "../SidebarRight.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFlag, faChevronUp, faChevronDown, faPlus, faCheck, faTrash, faClock, faUser, faEdit } from "@fortawesome/free-solid-svg-icons";
-import type { Milestone, Task } from "~/types/milestones";
-import { milestoneTypes, priorityOptions, defaultNotificationDays } from "~/types/milestones";
+type Milestone = {
+    id: number;
+    title: string;
+    description?: string;
+    type: string;
+    dueDate: Date;
+    priority: string;
+    assignee: string;
+    status?: string;
+    completedAt?: Date;
+};
+type Task = { id: number; title: string; assignee: string; dueDate: Date; status?: string };
+const milestoneTypes = [
+    { value: "custom", label: "Tùy chỉnh", icon: "📌", color: "#3498db" },
+    { value: "payment", label: "Thanh toán", icon: "💰", color: "#2ecc71" },
+    { value: "delivery", label: "Giao hàng", icon: "📦", color: "#9b59b6" },
+];
+const priorityOptions = [
+    { value: "low", label: "Thấp" },
+    { value: "medium", label: "Trung bình" },
+    { value: "high", label: "Cao" },
+];
+const defaultNotificationDays = { milestone: [7, 3, 1] };
 import SidebarDropdown from "../../../Dropdown/Dropdown";
 
 const cx = classNames.bind(styles);

@@ -9,7 +9,7 @@ interface UsePaginationOptions<T> {
 
 interface UsePaginationReturn<T> {
     data: T[];
-    meta: PaginatedResponse<T>["meta"] | null;
+    meta: { total: number; page: number; totalPages?: number; limit?: number } | null;
     loading: boolean;
     error: ApiError | null;
     params: PaginationParams;
@@ -22,7 +22,7 @@ interface UsePaginationReturn<T> {
 
 export function usePagination<T>({ apiFunction, initialParams = {}, autoFetch = true }: UsePaginationOptions<T>): UsePaginationReturn<T> {
     const [data, setData] = useState<T[]>([]);
-    const [meta, setMeta] = useState<PaginatedResponse<T>["meta"] | null>(null);
+    const [meta, setMeta] = useState<{ total: number; page: number; totalPages?: number; limit?: number } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<ApiError | null>(null);
     const [params, setParamsState] = useState<PaginationParams>({
@@ -38,7 +38,7 @@ export function usePagination<T>({ apiFunction, initialParams = {}, autoFetch = 
         try {
             const response = await apiFunction(params);
             setData(response.data);
-            setMeta(response.meta);
+            setMeta({ total: response.total, page: response.page, limit: response.limit });
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError);
@@ -52,7 +52,7 @@ export function usePagination<T>({ apiFunction, initialParams = {}, autoFetch = 
     }, []);
 
     const nextPage = useCallback(() => {
-        if (meta && params.page! < meta.totalPages) {
+        if (meta && meta.totalPages && params.page! < meta.totalPages) {
             setParams({ page: params.page! + 1 });
         }
     }, [meta, params.page, setParams]);
