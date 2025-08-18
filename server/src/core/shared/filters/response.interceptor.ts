@@ -14,7 +14,7 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
                     data,
                 }),
             ),
-            catchError((err: Error): Observable<never> => {
+            catchError((err: any): Observable<never> => {
                 const statusCode = err instanceof HttpException ? err.getStatus() : 500;
                 const response = err instanceof HttpException ? err.getResponse() : null;
 
@@ -49,7 +49,7 @@ export class ResponseInterceptor<T = any> implements NestInterceptor<T, SuccessR
                     message: errorMessage,
                     error: {
                         name: errorName,
-                        details: errorDetail as string[],
+                        details: errorDetail,
                     },
                 };
 
