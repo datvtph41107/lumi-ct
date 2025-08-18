@@ -4,7 +4,7 @@ import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
 export interface CreateAuditLogDto {
-    contract_id?: string;
+    contract_id?: string | number;
     user_id?: number;
     action: string;
     meta?: Record<string, any>;
@@ -13,7 +13,7 @@ export interface CreateAuditLogDto {
 
 export interface AuditLogWithUser {
     id: string;
-    contract_id?: string;
+    contract_id?: string | number;
     user_id?: number;
     action: string;
     meta?: Record<string, any>;
@@ -21,7 +21,7 @@ export interface AuditLogWithUser {
     created_at: Date;
     user_name?: string;
     user_email?: string;
-    user_avatar?: string;
+    user_avatar?: string | null;
 }
 
 export interface AuditLogFilters {
@@ -46,26 +46,14 @@ export class AuditLogService {
     constructor(
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         @Inject('LOGGER') private readonly logger: LoggerTypes,
-    ) {
-        this.repo = this.db.getRepository(AuditLog);
-    }
+    ) { this.repo = this.db.getRepository(AuditLog); }
 
     async create(payload: CreateAuditLogDto): Promise<AuditLog> {
-        if (!payload.action) {
-            throw new BadRequestException('Action is required to create audit log');
-        }
+        if (!payload.action) throw new BadRequestException('Action is required to create audit log');
         try {
-            const ent = this.repo.create(payload);
-            const saved = await this.repo.save(ent);
-
-            this.logger.APP.info('Audit log created', {
-                action: payload.action,
-                contract_id: payload.contract_id,
-                user_id: payload.user_id,
-                audit_id: saved.id,
-            });
-
-            return saved;
+            const saved = await this.repo.save(payload as any);
+            this.logger.APP.info('Audit log created', { action: payload.action, contract_id: payload.contract_id, user_id: payload.user_id });
+            return saved as any;
         } catch (err: unknown) {
             this.logger.APP.error('[AuditLogService] create error', { err, payload });
             throw new InternalServerErrorException('Failed to create audit log');

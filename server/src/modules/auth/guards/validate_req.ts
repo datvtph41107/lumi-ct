@@ -3,7 +3,7 @@ import { JwtService, TokenExpiredError } from '@nestjs/jwt';
 import { HeaderRequest, HeaderUserPayload } from '../../../core/shared/interface/header-payload-req.interface';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { DataSource } from 'typeorm';
-import { UserPermission } from '@/core/domain/permission';
+import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
 
 @Injectable()

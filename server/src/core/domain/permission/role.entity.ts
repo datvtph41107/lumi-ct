@@ -24,4 +24,7 @@ export class Role extends BaseEntity {
 
     @Column({ type: 'int', default: 1 })
     priority: number;
+
+    @Column({ type: 'json', nullable: true })
+    permissions?: Array<{ resource: string; action: string; conditions?: any }>;
 }
