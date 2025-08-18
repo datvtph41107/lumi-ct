@@ -60,6 +60,7 @@ export class TokenService {
 
         const accessTokenPayload: AdminJwtPayload = {
             sub: admin.id,
+            username: admin.name || 'admin',
             roles: [admin.role],
             client_id: this.clientId,
             scope: ['read', 'write'],
