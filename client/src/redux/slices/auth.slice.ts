@@ -120,8 +120,8 @@ const { slice, thunks, actions } = createApiSlice({
                 const response = action.payload as LoginResponse;
                 state.loading = false;
                 state.isAuthenticated = true;
-                state.sessionId = response.sessionId as any;
-                state.tokenExpiry = response.tokenExpiry as any;
+                state.sessionId = (response as any).sessionId as any;
+                state.tokenExpiry = (response as any).tokenExpiry as any;
                 state.isSessionValid = true;
                 state.lastActivity = new Date().toISOString();
                 if ((response as any).user) {
@@ -146,7 +146,7 @@ const { slice, thunks, actions } = createApiSlice({
             .addCase(getCurrentUser.fulfilled, (state, action) => {
                 const response = action.payload as UserResponse;
                 state.loading = false;
-                state.user = response.userData as any;
+                state.user = (response as any).userData as any;
                 state.isAuthenticated = true;
                 state.lastActivity = new Date().toISOString();
             })

@@ -35,8 +35,10 @@ export interface LoginResponse {
 
 // Role constants - sử dụng string để match với backend
 export const ROLE = {
+    ADMIN: 'ADMIN',
     STAFF: 'STAFF',
     MANAGER: 'MANAGER',
+    VIEWER: 'VIEWER',
 } as const;
 
 export type Role = (typeof ROLE)[keyof typeof ROLE]; // "USER" | "STAFF" | "MANAGER" | "ADMIN"
