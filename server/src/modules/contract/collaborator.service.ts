@@ -165,6 +165,11 @@ export class CollaboratorService {
             user_id: collab.user_id,
             role: collab.role,
             active: collab.active,
+            // expose custom privileges if needed
+            // @ts-ignore
+            can_export: (collab as any).can_export,
+            // @ts-ignore
+            can_manage_collaborators: (collab as any).can_manage_collaborators,
             user_name: `User ${collab.user_id}`, // Placeholder
             user_email: `user${collab.user_id}@example.com`, // Placeholder
             user_avatar: null as any,

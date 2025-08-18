@@ -4,6 +4,7 @@ import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
@@ -11,6 +12,7 @@ export class CollaboratorController {
     constructor(private readonly collab: CollaboratorService) {}
 
     @Post(':id/collaborators')
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async add(
         @Param('id') contractId: string,
         @Body() body: { user_id: number; role: CollaboratorRole },
@@ -33,6 +35,7 @@ export class CollaboratorController {
     }
 
     @Patch('collaborators/:collaboratorId')
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async update(
         @Param('collaboratorId') collaboratorId: string,
         @Body() body: { role?: CollaboratorRole; active?: boolean },
@@ -49,6 +52,7 @@ export class CollaboratorController {
     }
 
     @Delete('collaborators/:collaboratorId')
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async remove(@Param('collaboratorId') collaboratorId: string, @CurrentUser() user: HeaderUserPayload) {
         const { contract_id, user_id } = this.parseCollaboratorId(collaboratorId);
         await this.collab.remove(contract_id, user_id, Number(user.sub));
@@ -56,6 +60,7 @@ export class CollaboratorController {
     }
 
     @Post(':id/transfer-ownership')
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async transfer(
         @Param('id') contractId: string,
         @Body() body: { from_user_id: number; to_user_id: number },

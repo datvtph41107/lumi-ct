@@ -310,7 +310,17 @@ export class NotificationService {
         }
 
         Object.assign(reminder, updates);
-        return this.reminderRepo.save(reminder);
+        const saved = await this.reminderRepo.save(reminder);
+        // Smart re-schedule: push next_retry_at/scheduled_at for notifications related to this reminder
+        const pending = await this.notificationRepo.find({
+            where: { contract_id: reminder.contract_id, status: NotificationStatus.PENDING },
+        });
+        for (const n of pending) {
+            // reschedule to now for immediate retry to reflect new settings
+            n.scheduled_at = new Date();
+            await this.notificationRepo.save(n);
+        }
+        return saved;
     }
 
     async deleteReminder(reminderId: string): Promise<void> {

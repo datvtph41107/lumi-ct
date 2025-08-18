@@ -9,11 +9,13 @@ import { LoginDto } from '@/core/dto/auth/login.dto';
 import * as bcrypt from 'bcrypt';
 import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
 import { Role } from '@/core/shared/enums/base.enums';
+import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
+        private readonly authService: AuthService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
@@ -33,7 +35,7 @@ export class AuthController {
         const context = await buildUserContext(user, dataSource);
         const sessionId = `${Date.now()}`;
         const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
-        res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
+        res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
         const responseUser = {
             id: user.id,
@@ -49,7 +51,7 @@ export class AuthController {
                 : null,
             permissions: context.permissions,
         };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return { accessToken: tokens.accessToken, tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60, user: responseUser } as any;
     }
 
     @Post('refresh-token')
@@ -59,13 +61,13 @@ export class AuthController {
         if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as any;
         const payload = await this.tokenService.verifyRefreshToken(refreshToken);
         const userRepo = dataSource.getRepository(User);
-        const user = await userRepo.findOne({ where: { id: payload.userId } });
+        const user = await userRepo.findOne({ where: { id: payload.userId } as any });
         if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
         const context = await buildUserContext(user, dataSource);
         const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
-        res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
+        res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
         return {
-            accessToken: tokens.access_token,
+            accessToken: tokens.accessToken,
             sessionId: payload.sessionId,
             tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
         } as any;
@@ -100,5 +102,12 @@ export class AuthController {
         const refreshToken = (req as any).cookies?.refreshToken;
         if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
         return { success: true } as any;
+    }
+
+    @Get('permissions')
+    @UseGuards(AuthGuardAccess)
+    async getPermissions(@CurrentUser() user: any) {
+        const perms = await this.authService.getUserPermissions(Number(user.sub));
+        return perms;
     }
 }

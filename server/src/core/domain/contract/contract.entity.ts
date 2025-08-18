@@ -77,6 +77,9 @@ export class Contract extends BaseEntity {
     @Column({ type: 'boolean', default: false })
     is_draft: boolean;
 
+    @Column({ type: 'boolean', default: false })
+    is_public: boolean;
+
     @Column({ type: 'datetime', nullable: true })
     last_auto_save?: Date;
 

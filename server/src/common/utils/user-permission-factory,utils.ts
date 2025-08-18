@@ -1,4 +1,3 @@
-import { UserPermission } from '@/core/domain/permission/user-permission.entity';
 import { Department, Role } from '@/core/shared/enums/base.enums';
 
 export enum DepartmentEnum {
@@ -12,7 +11,7 @@ export class UserPermissionFactory {
      * @param role Vai trò user (Role.STAFF hoặc Role.MANAGER)
      * @param departmentCode code phòng ban (HC: Hành chính, KT: Kế toán)
      */
-    static createDefaultPermissions(role: Role, departmentCode: string): Partial<UserPermission> {
+    static createDefaultPermissions(role: Role, departmentCode: string): Record<string, boolean> {
         if (role === Role.MANAGER) {
             return this.createManagerPermissions();
         } else if (role === Role.STAFF) {
@@ -25,7 +24,7 @@ export class UserPermissionFactory {
         return this.createEmptyPermissions();
     }
 
-    private static createManagerPermissions(): Partial<UserPermission> {
+    private static createManagerPermissions(): Record<string, boolean> {
         return {
             create_contract: true,
             create_report: true,
@@ -37,7 +36,7 @@ export class UserPermissionFactory {
         };
     }
 
-    private static createStaffHCPermissions(): Partial<UserPermission> {
+    private static createStaffHCPermissions(): Record<string, boolean> {
         return {
             create_contract: true,
             create_report: true,
@@ -49,7 +48,7 @@ export class UserPermissionFactory {
         };
     }
 
-    private static createStaffKTPermissions(): Partial<UserPermission> {
+    private static createStaffKTPermissions(): Record<string, boolean> {
         return {
             create_contract: false,
             create_report: true,
@@ -61,7 +60,7 @@ export class UserPermissionFactory {
         };
     }
 
-    private static createEmptyPermissions(): Partial<UserPermission> {
+    private static createEmptyPermissions(): Record<string, boolean> {
         return {
             create_contract: false,
             create_report: false,

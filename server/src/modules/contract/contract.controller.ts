@@ -19,9 +19,13 @@ import { ContractService } from './contract.service';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
+import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
+import { Roles } from '@/core/shared/decorators/setmeta.decorator';
+import { Role } from '@/core/shared/enums/base.enums';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
@@ -48,6 +52,7 @@ export class ContractController {
 
     @Patch(':id')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async update(
         @Param('id') id: string,
         @Body() body: Partial<CreateContractDto>,
@@ -77,6 +82,40 @@ export class ContractController {
         return this.contractService.getAuditSummary(id);
     }
 
+    // ===== APPROVAL FLOW (MANAGER ONLY) =====
+    @Post(':id/approve')
+    @Roles(Role.MANAGER)
+    async approve(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.updateStatus('contract', id, 'approved');
+    }
+    @Post(':id/reject')
+    @Roles(Role.MANAGER)
+    async reject(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+        return this.contractService.updateStatus('contract', id, 'rejected');
+    }
+
+    // ===== VERSIONS =====
+    @Get(':id/versions')
+    async listVersions(@Param('id') id: string) {
+        return this.contractService.listVersions(id);
+    }
+    @Get(':id/versions/:versionId')
+    async getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
+        return this.contractService.getVersion(id, versionId);
+    }
+
+    // Reviewer routes
+    @Post(':id/reviews')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.REVIEWER, CollaboratorRole.OWNER)
+    async submitReview(
+        @Param('id') id: string,
+        @Body() body: { summary: string; status: 'approved' | 'changes_requested' },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.submitReview(id, body, Number(user.sub));
+    }
+
     // ===== EXPORT & PRINT =====
     @Get(':id/export/pdf')
     async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
@@ -95,6 +134,7 @@ export class ContractController {
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async createNotification(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createNotification(id, dto, Number(user.sub));
     }
@@ -106,6 +146,7 @@ export class ContractController {
 
     @Post(':id/reminders')
     @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
     async updateReminder(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createReminder(id, dto, Number(user.sub));
     }

@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthCoreService } from '@/modules/auth/auth/auth.service';
+import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
@@ -106,12 +106,15 @@ export class ContractService {
     async getContract(id: string, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
-        const can = await this.authCoreService.canReadContract(userId, 0 as any, {
-            ownerId: contract.created_by,
-            status: contract.status,
-            type: contract.contract_type,
-        });
-        if (!can) throw new ForbiddenException('Không có quyền xem hợp đồng này');
+        // Allow public contracts without further checks
+        if (!contract.is_public) {
+            const can = await this.authCoreService.canReadContract(userId, 0 as any, {
+                ownerId: contract.created_by,
+                status: contract.status,
+                type: contract.contract_type,
+            });
+            if (!can) throw new ForbiddenException('Không có quyền xem hợp đồng này');
+        }
         return contract;
     }
 
@@ -183,7 +186,7 @@ export class ContractService {
     async findContractRelatedUsers(contractId: string): Promise<number[]> {
         const contract = await this.contractRepository.findOne({ where: { id: contractId } });
         if (!contract) return [];
-        const possible = [contract.created_by, contract.manager_id, contract.drafter_id]
+        const possible = [contract.created_by, (contract as any).manager_id, contract.drafter_id]
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
@@ -215,6 +218,16 @@ export class ContractService {
         }
     }
 
+    // ===== Versions =====
+    async listVersions(contractId: string) {
+        return this.versionRepository.find({ where: { contract_id: contractId }, order: { version_number: 'DESC' as any } });
+    }
+    async getVersion(contractId: string, versionId: string) {
+        const version = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
+        if (!version) throw new NotFoundException('Version not found');
+        return version;
+    }
+
     // ===== AUDIT LOG proxied for controller =====
     async getAuditLogs(
         contractId: string,
@@ -243,5 +256,21 @@ export class ContractService {
 
     async getAuditSummary(contractId: string) {
         return this.auditLogService.getAuditSummary(contractId);
+    }
+
+    async submitReview(
+        contractId: string,
+        body: { summary: string; status: 'approved' | 'changes_requested' },
+        userId: number,
+    ) {
+        // store review as an audit entry with meta
+        await this.auditLogService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'SUBMIT_REVIEW',
+            meta: { summary: body.summary, status: body.status },
+            description: `Review submitted with status ${body.status}`,
+        });
+        return { success: true } as any;
     }
 }

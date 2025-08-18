@@ -3,12 +3,12 @@ import { User } from '@/core/domain/user/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { v4 as uuidv4 } from 'uuid';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import { AdminJwtPayload, UserContext, UserJwtPayload } from '@/core/shared/types/auth.types';
+import { AdminJwtPayload, UserContext, UserJwtPayload, AuthTokens, SessionData } from '@/core/shared/types/auth.types';
 import { DataSource } from 'typeorm';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-import { AuthTokens, SessionData as AuthSessionData } from '@/core/shared/types/auth.types';
+import { SessionData as AuthSessionData } from '@/core/shared/types/auth.types';
 
 @Injectable()
 export class TokenService {
@@ -31,23 +31,25 @@ export class TokenService {
         const accessTokenPayload: UserJwtPayload = {
             sub: user.id,
             username: user.username,
-            roles: [user.role],
-            permissions: context.permissions,
-            department: context.department,
+            email: user.email || '',
+            roles: [user.role as any],
+            permissions: context.permissions as any,
+            department: context.department as any,
             client_id: this.clientId,
             scope: ['read'],
             jti,
             iat: now,
             sessionId,
-        } as UserJwtPayload;
+        } as unknown as UserJwtPayload;
 
         const refreshTokenPayload = { sub: user.id, jti, iat: now, sessionId } as any;
 
         await this.createUserSession(user.id, sessionId, jti);
 
         return {
-            access_token: this.signToken(accessTokenPayload, this.accessTokenExpireSeconds),
-            refresh_token: this.signTokenHS256(refreshTokenPayload, this.refreshTokenExpireSeconds),
+            accessToken: this.signToken(accessTokenPayload, this.accessTokenExpireSeconds),
+            refreshToken: this.signTokenHS256(refreshTokenPayload, this.refreshTokenExpireSeconds),
+            expiresIn: this.accessTokenExpireSeconds,
         };
     }
 
@@ -58,6 +60,7 @@ export class TokenService {
 
         const accessTokenPayload: AdminJwtPayload = {
             sub: admin.id,
+            username: admin.name || 'admin',
             roles: [admin.role],
             client_id: this.clientId,
             scope: ['read', 'write'],
@@ -96,7 +99,7 @@ export class TokenService {
 
     async verifyRefreshToken(token: string): Promise<SessionData> {
         try {
-            const payload = this.refreshJwtService.verify<HeaderUserPayload & { sessionId: string }>(token);
+            const payload = this.refreshJwtService.verify<{ sub: number; jti: string; sessionId: string }>(token);
             if (!payload.jti || !payload.sessionId) throw new Error('Missing jti or sessionId');
             const revoked = await this.isTokenRevoked(payload.jti);
             if (revoked) throw new UnauthorizedException('Refresh token has been revoked');
@@ -113,7 +116,7 @@ export class TokenService {
             }
             await this.updateSessionActivity(payload.sessionId);
 
-            return { userId: session.user_id, sessionId: payload.sessionId, lastActivity: session.last_activity };
+            return { userId: session.user_id, sessionId: payload.sessionId, lastActivity: session.last_activity } as any;
         } catch (err) {
             this.logger.APP.error(`verifyRefreshToken error: ${err}`);
             throw new UnauthorizedException('Invalid or expired refresh token');

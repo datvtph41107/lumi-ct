@@ -1,5 +1,5 @@
 // src/modules/contracts/dto/create-contract.dto.ts
-import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsUUID, IsBoolean } from 'class-validator';
 import { ContractMode, ContractPriority } from '../../domain/contract/contract.entity';
 
 export class CreateContractDto {
@@ -28,4 +28,8 @@ export class CreateContractDto {
     @IsOptional()
     @IsUUID()
     template_id?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    is_public?: boolean;
 }
