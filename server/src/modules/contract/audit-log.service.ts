@@ -53,15 +53,23 @@ export class AuditLogService {
     async create(payload: CreateAuditLogDto): Promise<AuditLog> {
         if (!payload.action) throw new BadRequestException('Action is required to create audit log');
         try {
-            const saved = await this.repo.save(payload as any);
+            const ent = this.repo.create({
+                contract_id: payload.contract_id as string,
+                user_id: payload.user_id,
+                action: payload.action,
+                meta: payload.meta,
+                description: payload.description,
+            } as Partial<AuditLog>);
+            const saved = await this.repo.save(ent);
             this.logger.APP.info('Audit log created', {
                 action: payload.action,
                 contract_id: payload.contract_id,
                 user_id: payload.user_id,
             });
-            return saved as any;
+            return saved;
         } catch (err: unknown) {
-            this.logger.APP.error('[AuditLogService] create error', { err, payload });
+            const e = err as Error;
+            this.logger.APP.error('[AuditLogService] create error', { error: e.message, payload });
             throw new InternalServerErrorException('Failed to create audit log');
         }
     }
@@ -118,7 +126,7 @@ export class AuditLogService {
             contract_id: log.contract_id,
             user_id: log.user_id,
             action: log.action,
-            meta: log.meta,
+            meta: log.meta as Record<string, unknown> | undefined,
             description: log.description,
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
@@ -176,7 +184,7 @@ export class AuditLogService {
             contract_id: log.contract_id,
             user_id: log.user_id,
             action: log.action,
-            meta: log.meta,
+            meta: log.meta as Record<string, unknown> | undefined,
             description: log.description,
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
@@ -237,7 +245,7 @@ export class AuditLogService {
             contract_id: log.contract_id,
             user_id: log.user_id,
             action: log.action,
-            meta: log.meta,
+            meta: log.meta as Record<string, unknown> | undefined,
             description: log.description,
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,
@@ -267,7 +275,7 @@ export class AuditLogService {
             contract_id: log.contract_id,
             user_id: log.user_id,
             action: log.action,
-            meta: log.meta,
+            meta: log.meta as Record<string, unknown> | undefined,
             description: log.description,
             created_at: log.created_at,
             user_name: log.user_id ? `User ${log.user_id}` : undefined,

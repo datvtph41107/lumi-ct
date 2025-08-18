@@ -14,19 +14,34 @@ export class ContractDraftController {
     ) {}
 
     @Get()
-    async listDrafts(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
-        const result = await this.draftService.listDrafts(query || {}, Number(user.sub));
-        return { success: true, ...result } as any;
+    async listDrafts(@Query() query: Record<string, unknown>, @CurrentUser() user: HeaderUserPayload) {
+        const result = await this.draftService.listDrafts((query || {}) as any, Number(user.sub));
+        return { success: true, ...result } as const;
     }
 
     @Get(':id')
     async getDraft(@Param('id') id: string) {
         const data = await this.draftService.getDraft(id);
-        return { success: true, data } as any;
+        return { success: true, data } as const;
     }
 
     @Post()
-    async createDraft(@Body() body: any, @CurrentUser() user: HeaderUserPayload) {
+    async createDraft(
+        @Body()
+        body: {
+            contractData?: {
+                name?: string;
+                contractCode?: string;
+                contractType?: string;
+                category?: string;
+                priority?: string;
+                content?: { mode?: string; templateId?: string };
+            };
+            flow?: { selectedMode?: string; currentStage?: string };
+            selectedTemplate?: { id?: string } | null;
+        },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         const name = body?.contractData?.name || 'Untitled Contract';
         const mode = body?.flow?.selectedMode || body?.contractData?.content?.mode || 'basic';
         const template_id = body?.contractData?.content?.templateId || body?.selectedTemplate?.id;
@@ -43,18 +58,22 @@ export class ContractDraftController {
             },
             Number(user.sub),
         );
-        return { success: true, data: result } as any;
+        return { success: true, data: result } as const;
     }
 
     @Patch(':id')
-    async updateDraft(@Param('id') id: string, @Body() updates: any, @CurrentUser() user: HeaderUserPayload) {
+    async updateDraft(
+        @Param('id') id: string,
+        @Body() updates: Record<string, unknown>,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
         const updated = await this.draftService.updateDraft(id, updates, Number(user.sub));
-        return { success: true, data: updated } as any;
+        return { success: true, data: updated } as const;
     }
 
     @Delete(':id')
     async deleteDraft(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         const res = await this.draftService.deleteDraft(id, Number(user.sub));
-        return { success: true, data: res } as any;
+        return { success: true, data: res } as const;
     }
 }

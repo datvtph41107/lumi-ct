@@ -15,7 +15,7 @@ import { NotificationService } from '@/modules/notification/notification.service
 import { AuditLogService } from './audit-log.service';
 import { Milestone } from '@/core/domain/contract/contract-milestones.entity';
 import { Task } from '@/core/domain/contract/contract-taks.entity';
-import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
+import { Between, LessThan } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
 
@@ -44,14 +44,14 @@ export class ContractService {
         return this.createContract(dto, ctx.userId);
     }
     async softDelete(id: string, userId: number) {
-        return this.deleteContract(id as any, userId);
+        return this.deleteContract(id, userId);
     }
 
-    async listContracts(query: any, userId: number) {
+    async listContracts(query: Record<string, unknown>, _userId: number) {
         const page = Number(query.page || 1);
         const limit = Number(query.limit || 10);
         const [data, total] = await this.contractRepository.findAndCount({
-            where: { deleted_at: null as any },
+            where: { deleted_at: null as unknown as Date },
             take: limit,
             skip: (page - 1) * limit,
             order: { id: 'DESC' as any },
@@ -115,7 +115,7 @@ export class ContractService {
         return contract;
     }
 
-    async updateContract(id: string, updateDto: any, userId: number): Promise<Contract> {
+    async updateContract(id: string, updateDto: Partial<Contract>, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
         const can = await this.authCoreService.canUpdateContract(userId, 0 as any, {
@@ -128,32 +128,32 @@ export class ContractService {
         return this.contractRepository.save(contract);
     }
 
-    async deleteContract(id: number, userId: number): Promise<void> {
-        const contract = await this.contractRepository.findOne({ where: { id: String(id) } as any });
+    async deleteContract(id: string, userId: number): Promise<void> {
+        const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
         const can = await this.authCoreService.canDeleteContract(userId, 0 as any, {
             ownerId: contract.created_by,
             status: contract.status,
         });
         if (!can) throw new ForbiddenException('Không có quyền xóa hợp đồng này');
-        await this.contractRepository.update(String(id), { deleted_at: new Date(), deleted_by: String(userId) } as any);
-        await this.auditLogService.create({ contract_id: String(id), user_id: userId, action: 'DELETE_CONTRACT' });
+        await this.contractRepository.update(id as any, { deleted_at: new Date(), deleted_by: String(userId) } as any);
+        await this.auditLogService.create({ contract_id: id, user_id: userId, action: 'DELETE_CONTRACT' });
     }
 
-    async exportDocx(id: string, userId: number) {
+    exportDocx(id: string, _userId: number) {
         return { fileUrl: `/exports/${id}.docx` };
     }
-    async exportPdf(id: string, userId: number) {
+    exportPdf(id: string, _userId: number) {
         const filename = `contract-${id}.pdf`;
         const content = `%PDF-1.4\n% Stub PDF for contract ${id}\n`;
         const contentBase64 = Buffer.from(content).toString('base64');
-        return { filename, contentBase64, contentType: 'application/pdf' } as any;
+        return { filename, contentBase64, contentType: 'application/pdf' } as const;
     }
-    async generatePrintView(id: string, userId?: number) {
-        return { html: `<html><body>Contract ${id}</body></html>` };
+    generatePrintView(id: string, _userId?: number) {
+        return { html: `<html><body>Contract ${id}</body></html>` } as const;
     }
 
-    async createNotification(id: string, dto: any, userId: number) {
+    async createNotification(id: string, dto: { type: string; title: string; message: string }, userId: number) {
         await this.notificationService.create({
             type: dto.type,
             title: dto.title,
@@ -161,12 +161,12 @@ export class ContractService {
             userId,
             data: id,
         });
-        return { success: true };
+        return { success: true } as const;
     }
     async listNotifications(id: string) {
         return this.notificationService.getNotificationsByContract(id);
     }
-    async createReminder(id: string, dto: any, userId: number) {
+    async createReminder(id: string, dto: Record<string, unknown>, userId: number) {
         return this.notificationService.createReminder({ contract_id: id, user_id: userId, ...dto });
     }
     async listReminders(id: string) {
@@ -187,14 +187,11 @@ export class ContractService {
             .filter(Boolean)
             .map((v) => parseInt(String(v)));
         const unique = Array.from(new Set(possible.filter((n) => Number.isFinite(n))));
-        return unique as number[];
+        return unique;
     }
 
-    async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {
-        const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
-        const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
-        // milestones store date_range JSON with strings; we approximate by checking updated_at or ignore if not available
-        // If your DB supports JSON queries, adjust accordingly. For now, return empty to avoid incorrect results.
+    async findUpcomingPhases(_daysBefore: number): Promise<Milestone[]> {
+        // milestones store date_range JSON; returning empty to avoid incorrect results without JSON queries
         return [];
     }
 
@@ -209,7 +206,7 @@ export class ContractService {
         return this.contractRepository.find({ where: { end_date: LessThan(now) } as any });
     }
 
-    async updateStatus(entity: 'contract', id: string, status: any): Promise<void> {
+    async updateStatus(entity: 'contract', id: string, status: Contract['status']): Promise<void> {
         if (entity === 'contract') {
             await this.contractRepository.update({ id } as any, { status } as any);
         }
@@ -228,14 +225,14 @@ export class ContractService {
             limit?: number;
         },
     ): Promise<{ data: AuditLogWithUser[]; pagination: AuditLogPagination }> {
-        const filters: any = {
+        const filters: Record<string, unknown> = {
             action: query.action,
             user_id: query.user_id,
             search: query.search,
         };
-        if (query.date_from) filters.date_from = new Date(query.date_from);
-        if (query.date_to) filters.date_to = new Date(query.date_to);
-        return this.auditLogService.findByContract(contractId, filters, {
+        if (query.date_from) (filters as any).date_from = new Date(query.date_from);
+        if (query.date_to) (filters as any).date_to = new Date(query.date_to);
+        return this.auditLogService.findByContract(contractId, filters as any, {
             page: Number(query.page || 1),
             limit: Math.min(Number(query.limit || 20), 100),
         });

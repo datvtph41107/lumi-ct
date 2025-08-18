@@ -1,5 +1,5 @@
 // src/core/domain/contract/contract-query.builder.ts
-import { DataSource, ObjectLiteral, SelectQueryBuilder } from 'typeorm';
+import { ObjectLiteral, SelectQueryBuilder } from 'typeorm';
 import { BaseQueryBuilder } from './base.query';
 import moment from 'moment-timezone';
 
@@ -19,7 +19,7 @@ export class ContractQueryBuilder<T extends ObjectLiteral> extends BaseQueryBuil
         return this;
     }
 
-    withCollaborator(userId: number, dataSource: DataSource) {
+    withCollaborator(userId: number) {
         this.qb.andWhere(
             `EXISTS (
                 SELECT 1 FROM collaborators col

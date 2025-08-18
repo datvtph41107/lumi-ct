@@ -1,3 +1,4 @@
+// src/modules/contract/collaborator.controller.ts
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuardAccess } from '@/modules/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
@@ -21,15 +22,15 @@ export class CollaboratorController {
     }
 
     @Get(':id/collaborators')
-    async list(@Param('id') contractId: string, @Query() query: any) {
+    async list(@Param('id') contractId: string, @Query() _query: Record<string, unknown>) {
         // TODO: apply filters from query if needed
         const rows = await this.collab.list(contractId);
-        return { data: rows, pagination: { page: 1, limit: rows.length, total: rows.length, total_pages: 1 } } as any;
+        return { data: rows, pagination: { page: 1, limit: rows.length, total: rows.length, total_pages: 1 } } as const;
     }
 
     private parseCollaboratorId(collaboratorId: string): { contract_id: string; user_id: number } {
         const [contract_id, userStr] = (collaboratorId || '').split('_');
-        return { contract_id, user_id: parseInt(userStr) } as any;
+        return { contract_id, user_id: Number.parseInt(userStr, 10) };
     }
 
     @Patch('collaborators/:collaboratorId')
@@ -45,14 +46,14 @@ export class CollaboratorController {
         if (body.role) {
             return this.collab.updateRole(contract_id, user_id, body.role, Number(user.sub));
         }
-        return { ok: true } as any;
+        return { ok: true } as const;
     }
 
     @Delete('collaborators/:collaboratorId')
     async remove(@Param('collaboratorId') collaboratorId: string, @CurrentUser() user: HeaderUserPayload) {
         const { contract_id, user_id } = this.parseCollaboratorId(collaboratorId);
         await this.collab.remove(contract_id, user_id, Number(user.sub));
-        return { message: 'Removed' } as any;
+        return { message: 'Removed' } as const;
     }
 
     @Post(':id/transfer-ownership')
@@ -67,7 +68,7 @@ export class CollaboratorController {
             Number(body.to_user_id),
             Number(user.sub),
         );
-        return { success: true, message: 'Ownership transferred' } as any;
+        return { success: true, message: 'Ownership transferred' } as const;
     }
 
     @Get(':id/permissions')
@@ -79,6 +80,6 @@ export class CollaboratorController {
             this.collab.canReview(contractId, uid),
             this.collab.canView(contractId, uid),
         ]);
-        return { permissions: { is_owner, can_edit, can_review, can_view } } as any;
+        return { permissions: { is_owner, can_edit, can_review, can_view } } as const;
     }
 }

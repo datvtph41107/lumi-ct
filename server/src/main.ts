@@ -22,7 +22,7 @@ async function bootstrap() {
     // Cookie parser middleware
     app.use(cookieParser());
     SwaggerModule.setup('api', app, document);
-    app.setGlobalPrefix(process.env.PREFIX as string);
+    app.setGlobalPrefix(process.env.PREFIX || 'api');
     app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalPipes(
         new ValidationPipe({
@@ -35,4 +35,4 @@ async function bootstrap() {
     await app.listen(process.env.PORT ?? 3000);
 }
 
-bootstrap();
+void bootstrap();
