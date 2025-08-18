@@ -51,6 +51,7 @@ export class AuthGuardAccess extends AuthGuard('jwt') {
             console.log(err, user, info);
             throw new UnauthorizedException(ERROR_MESSAGES.AUTH.UNAUTHORIZED);
         }
+        // Attach decoded payload as request.user for downstream usage
         return user as HeaderRequest;
     }
 }

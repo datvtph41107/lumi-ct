@@ -49,6 +49,7 @@ export class AdminController {
     // ==== Users management ====
     @Get('users')
     async listUsers(@Query() query: any) {
+        // TODO: implement listing with pagination
         return { data: [], total: 0 };
     }
 
@@ -100,6 +101,7 @@ export class AdminController {
     // ==== Roles & permissions ====
     @Get('roles')
     async listRoles() {
+        // TODO: implement roles listing
         return { data: [], total: 0 };
     }
     @Post('roles')
