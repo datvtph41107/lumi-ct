@@ -1,11 +1,5 @@
 import { Entity, Column, Index, BaseEntity, PrimaryGeneratedColumn } from 'typeorm';
-
-export enum ContractStatus {
-    DRAFT = 'draft',
-    IN_REVIEW = 'in_review',
-    ACTIVE = 'active',
-    CANCELLED = 'cancelled',
-}
+import { ContractStatus } from '@/core/shared/enums/base.enums';
 
 export enum ContractPriority {
     LOW = 'low',
