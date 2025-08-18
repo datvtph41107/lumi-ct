@@ -4,10 +4,10 @@ import { catchError, map } from 'rxjs/operators';
 import { ApiSuccessResponse, ApiErrorResponse } from '@/core/shared/types/common.types';
 
 interface HttpExceptionResponse {
-  message: string | string[];
-  error?: string;
-  statusCode: number;
-  dataError?: unknown;
+    message: string | string[];
+    error?: string;
+    statusCode: number;
+    dataError?: unknown;
 }
 
 @Injectable()

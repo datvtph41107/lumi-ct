@@ -56,9 +56,9 @@ export class PermissionGuard implements CanActivate {
                 permission.action,
                 {
                     ...permission.conditions,
-                    ...request.body as Record<string, unknown>,
-                    ...request.params as Record<string, unknown>,
-                    ...request.query as Record<string, unknown>,
+                    ...(request.body as Record<string, unknown>),
+                    ...(request.params as Record<string, unknown>),
+                    ...(request.query as Record<string, unknown>),
                 },
             );
 

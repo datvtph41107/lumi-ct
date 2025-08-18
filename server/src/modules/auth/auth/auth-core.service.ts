@@ -39,17 +39,17 @@ export class AuthCoreService {
 
         const userPermissions = await this.getUserPermissions(userId);
         let hasAccess = false;
-        
+
         // Type-safe permission checking
         if (Array.isArray(userPermissions.permissions)) {
-            for (const permission of userPermissions.permissions as RolePermission[]) {
+            for (const permission of userPermissions.permissions) {
                 if (permission.resource === resource && permission.action === action) {
                     if (permission.conditions_schema && context) {
                         hasAccess = this.evaluateConditions(
-                            permission.conditions_schema, 
-                            context, 
-                            userId, 
-                            userPermissions
+                            permission.conditions_schema,
+                            context,
+                            userId,
+                            userPermissions,
                         );
                     } else {
                         hasAccess = true;
@@ -58,7 +58,7 @@ export class AuthCoreService {
                 }
             }
         }
-        
+
         this.permissionCache.set(cacheKey, hasAccess);
         return hasAccess;
     }
@@ -82,22 +82,22 @@ export class AuthCoreService {
             return this.userPermissionsCache.get(userId)!;
         }
 
-        const userRoles = await this.userRoleRepository.find({ 
-            where: { user_id: userId, is_active: true } 
+        const userRoles = await this.userRoleRepository.find({
+            where: { user_id: userId, is_active: true },
         });
-        
+
         const roles: Role[] = [];
         const scopes: Record<string, unknown> = {};
         const aggregatedPermissions: RolePermission[] = [];
 
         for (const userRole of userRoles) {
-            const role = await this.roleRepository.findOne({ 
-                where: { id: userRole.role_id } 
+            const role = await this.roleRepository.findOne({
+                where: { id: userRole.role_id },
             });
-            
+
             if (role && role.is_active) {
                 roles.push(role);
-                
+
                 // Process role permissions
                 const rolePermissions = role.permissions || [];
                 rolePermissions.forEach((rolePermission) => {
@@ -108,7 +108,7 @@ export class AuthCoreService {
                         is_active: true,
                     });
                 });
-                
+
                 // Handle scopes
                 if (userRole.scope !== 'global') {
                     scopes[userRole.scope] = userRole.scope_id;
@@ -116,13 +116,13 @@ export class AuthCoreService {
             }
         }
 
-        const userPermissions: UserPermissions = { 
-            userId, 
-            permissions: aggregatedPermissions, 
-            roles, 
-            scopes 
+        const userPermissions: UserPermissions = {
+            userId,
+            permissions: aggregatedPermissions,
+            roles,
+            scopes,
         };
-        
+
         this.userPermissionsCache.set(userId, userPermissions);
         return userPermissions;
     }
@@ -199,19 +199,19 @@ export class AuthCoreService {
     async canReadContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'read', { contractId, ...context });
     }
-    
+
     async canUpdateContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'update', { contractId, ...context });
     }
-    
+
     async canDeleteContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'delete', { contractId, ...context });
     }
-    
+
     async canApproveContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'approve', { contractId, ...context });
     }
-    
+
     async canRejectContract(userId: number, contractId: number, context?: Record<string, unknown>): Promise<boolean> {
         return this.hasPermission(userId, 'contract', 'reject', { contractId, ...context });
     }

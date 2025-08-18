@@ -32,12 +32,12 @@ export class AuditInterceptor implements NestInterceptor {
                         contract_id: req.params?.id,
                         user_id: user?.sub ? Number(user.sub) : undefined,
                         action: `${method} ${path}`,
-                        meta: { 
-                            body: req.body, 
-                            params: req.params, 
-                            query: req.query, 
-                            result: res, 
-                            duration 
+                        meta: {
+                            body: req.body,
+                            params: req.params,
+                            query: req.query,
+                            result: res,
+                            duration,
                         },
                     });
                 },

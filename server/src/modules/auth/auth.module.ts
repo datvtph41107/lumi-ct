@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { AuthController } from './auth/auth.controller';
@@ -20,12 +21,16 @@ import { JwtStrategy } from './jwt/jwt.strategy';
 // External Modules
 import { LoggerModule } from '@/core/shared/logger/logger.module';
 import { DatabaseModule } from '@/providers/database';
-import { TypeOrmModule } from '@nestjs/typeorm';
+
+// Entities
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
 import { Role } from '@/core/domain/permission/role.entity';
 import { Permission } from '@/core/domain/permission/permission.entity';
 import { UserRole } from '@/core/domain/permission/user-role.entity';
+import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
+
+// Core Services
 import { AuthCoreService } from './auth/auth-core.service';
 
 @Module({
@@ -34,7 +39,7 @@ import { AuthCoreService } from './auth/auth-core.service';
         DatabaseModule,
         ConfigModule,
         PassportModule,
-        TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole]),
+        TypeOrmModule.forFeature([User, UserSession, Role, Permission, UserRole, RevokedToken]),
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -73,6 +78,15 @@ import { AuthCoreService } from './auth/auth-core.service';
         RolesGuard,
         AuthValidatorService,
     ],
-    exports: [AuthValidatorService, PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService],
+    exports: [
+        AuthValidatorService,
+        PassportModule,
+        JwtModule,
+        TokenService,
+        AuthGuardAccess,
+        AuthCoreService,
+        PermissionGuard,
+        RolesGuard,
+    ],
 })
 export class AuthModule {}

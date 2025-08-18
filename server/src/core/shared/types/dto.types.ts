@@ -54,27 +54,30 @@ export abstract class BaseFilterDto extends BasePaginationDto {
 }
 
 // Transform decorators for common use cases
-export const TransformToNumber = () => Transform(({ value }) => {
-    if (typeof value === 'string') {
-        const num = parseInt(value, 10);
-        return isNaN(num) ? value : num;
-    }
-    return value;
-});
+export const TransformToNumber = () =>
+    Transform(({ value }) => {
+        if (typeof value === 'string') {
+            const num = parseInt(value, 10);
+            return isNaN(num) ? value : num;
+        }
+        return value;
+    });
 
-export const TransformToBoolean = () => Transform(({ value }) => {
-    if (typeof value === 'string') {
-        return value === 'true' || value === '1';
-    }
-    return Boolean(value);
-});
+export const TransformToBoolean = () =>
+    Transform(({ value }) => {
+        if (typeof value === 'string') {
+            return value === 'true' || value === '1';
+        }
+        return Boolean(value);
+    });
 
-export const TransformToArray = () => Transform(({ value }) => {
-    if (typeof value === 'string') {
-        return value.split(',').map(item => item.trim());
-    }
-    return Array.isArray(value) ? value : [value];
-});
+export const TransformToArray = () =>
+    Transform(({ value }) => {
+        if (typeof value === 'string') {
+            return value.split(',').map((item) => item.trim());
+        }
+        return Array.isArray(value) ? value : [value];
+    });
 
 // Validation decorators
 export const IsOptionalNumber = () => [IsOptional(), Type(() => Number), IsNumber()];
@@ -86,7 +89,7 @@ export class BaseResponseDto<T = unknown> {
     success: boolean;
     message: string;
     data?: T;
-    
+
     constructor(data?: T, message = 'Success') {
         this.success = true;
         this.message = message;
@@ -104,23 +107,20 @@ export class PaginatedResponseDto<T = unknown> extends BaseResponseDto<{
         currentPage: number;
     };
 }> {
-    constructor(
-        items: T[], 
-        totalItems: number, 
-        currentPage: number, 
-        itemsPerPage: number,
-        message = 'Success'
-    ) {
+    constructor(items: T[], totalItems: number, currentPage: number, itemsPerPage: number, message = 'Success') {
         const totalPages = Math.ceil(totalItems / itemsPerPage);
-        super({
-            items,
-            meta: {
-                totalItems,
-                itemCount: items.length,
-                itemsPerPage,
-                totalPages,
-                currentPage,
+        super(
+            {
+                items,
+                meta: {
+                    totalItems,
+                    itemCount: items.length,
+                    itemsPerPage,
+                    totalPages,
+                    currentPage,
+                },
             },
-        }, message);
+            message,
+        );
     }
 }

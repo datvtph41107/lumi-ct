@@ -6,48 +6,48 @@ import { Role, AdminRole, Permission } from '@/core/shared/enums/base.enums';
 
 // JWT Payload types
 export interface BaseJwtPayload {
-  client_id?: string;
-  scope?: string[];
-  iat?: number;
-  exp?: number;
-  jti?: string;
-  sessionId?: string;
+    client_id?: string;
+    scope?: string[];
+    iat?: number;
+    exp?: number;
+    jti?: string;
+    sessionId?: string;
 }
 
 export interface UserJwtPayload extends BaseJwtPayload {
-  sub: number;
-  username: string;
-  email: string;
-  roles: Role[];
-  permissions: PermissionSet;
-  department?: {
-    id: number;
-    name: string;
-    code: string;
-  };
+    sub: number;
+    username: string;
+    email: string;
+    roles: Role[];
+    permissions: PermissionSet;
+    department?: {
+        id: number;
+        name: string;
+        code: string;
+    };
 }
 
 export interface AdminJwtPayload extends BaseJwtPayload {
-  sub: number;
-  username: string;
-  roles: AdminRole[];
+    sub: number;
+    username: string;
+    roles: AdminRole[];
 }
 
 // Permission types
 export interface PermissionSet {
-  [Permission.CREATE_CONTRACT]: boolean;
-  [Permission.CREATE_REPORT]: boolean;
-  [Permission.READ]: boolean;
-  [Permission.UPDATE]: boolean;
-  [Permission.DELETE]: boolean;
-  [Permission.APPROVE]: boolean;
-  [Permission.ASSIGN]: boolean;
+    [Permission.CREATE_CONTRACT]: boolean;
+    [Permission.CREATE_REPORT]: boolean;
+    [Permission.READ]: boolean;
+    [Permission.UPDATE]: boolean;
+    [Permission.DELETE]: boolean;
+    [Permission.APPROVE]: boolean;
+    [Permission.ASSIGN]: boolean;
 }
 
 export interface PermissionCheck {
-  resource: string;
-  action: string;
-  conditions?: Record<string, unknown>;
+    resource: string;
+    action: string;
+    conditions?: Record<string, unknown>;
 }
 
 export interface UserPermissions {
@@ -66,32 +66,34 @@ export interface RolePermission {
 
 // Authentication types
 export interface LoginCredentials {
-  username: string;
-  password: string;
+    username: string;
+    password: string;
 }
 
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
 }
 
 export interface SessionData {
-  userId: number;
-  sessionId: string;
-  userAgent?: string;
-  ipAddress?: string;
-  createdAt: Date;
-  expiresAt: Date;
+    userId: number;
+    sessionId: string;
+    userAgent?: string;
+    ipAddress?: string;
+    createdAt: Date;
+    expiresAt: Date;
 }
 
 // Request context types
 export interface AuthenticatedRequest {
-  user: UserJwtPayload;
-  sessionId: string;
+    user: UserJwtPayload;
+    sessionId: string;
 }
 
 export interface RequestWithUser extends Request {
-  user: UserJwtPayload;
-  cookies: Record<string, string>;
+    user: UserJwtPayload;
+    cookies: Record<string, string>;
 }
+export interface UserContext { permissions: PermissionSet; department?: { id: number; name: string; code: string; }; }
+export interface HeaderUserPayload extends UserJwtPayload {}

@@ -24,11 +24,7 @@ export class TokenService {
         @Inject('LOGGER') private readonly logger: LoggerTypes,
     ) {}
 
-    async getUserTokens(
-        user: User,
-        context: UserContext,
-        sessionId: string,
-    ): Promise<AuthTokens> {
+    async getUserTokens(user: User, context: UserContext, sessionId: string): Promise<AuthTokens> {
         const jti = uuidv4();
         const now = Math.floor(Date.now() / 1000);
 
