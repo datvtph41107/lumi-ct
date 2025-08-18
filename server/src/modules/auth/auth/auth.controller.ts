@@ -64,13 +64,11 @@ export class AuthController {
         const context = await buildUserContext(user, dataSource);
         const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
         res.cookie('refreshToken', tokens.refresh_token, { httpOnly: true, sameSite: 'strict', path: '/' });
-        const responseUser = {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            isManager: user.role === Role.MANAGER,
-        };
-        return { access_token: tokens.access_token, user: responseUser } as any;
+        return {
+            accessToken: tokens.access_token,
+            sessionId: payload.sessionId,
+            tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
+        } as any;
     }
 
     @Post('logout')
@@ -87,5 +85,20 @@ export class AuthController {
     @UseGuards(AuthGuardAccess)
     async me(@CurrentUser() user: any) {
         return user;
+    }
+
+    @Get('verify-session')
+    @UseGuards(AuthGuardAccess)
+    async verifySession(@Req() req: Request) {
+        const sessionId = (req as any).cookies?.sessionId;
+        return { isValid: !!sessionId, sessionId, lastActivity: new Date().toISOString() } as any;
+    }
+
+    @Post('update-activity')
+    @UseGuards(AuthGuardAccess)
+    async updateActivity(@Req() req: Request) {
+        const refreshToken = (req as any).cookies?.refreshToken;
+        if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
+        return { success: true } as any;
     }
 }
