@@ -3,9 +3,10 @@ import { NotificationService } from './notification.service';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '@/core/shared/decorators/setmeta.decorator';
 import { Role } from '@/core/shared/enums/base.enums';
+import { RolesGuard } from '@/modules/auth/guards/role.guard';
 
 @Controller('notifications')
-@UseGuards(AuthGuardAccess)
+@UseGuards(AuthGuardAccess, RolesGuard)
 export class NotificationController {
     constructor(private readonly service: NotificationService) {}
 

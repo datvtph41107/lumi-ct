@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { UserJwtPayload } from '@/core/shared/types/auth.types';
 import { COLLAB_ROLES_METADATA_KEY } from '@/core/shared/decorators/setmeta.decorator';
-import { CollaboratorRole } from '@/core/domain/permission';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 
 interface RequestWithUser extends Request {
     user?: UserJwtPayload;

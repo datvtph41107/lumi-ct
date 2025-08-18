@@ -1,12 +1,6 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
 import { BaseEntity } from '../base.entity';
-
-export enum CollaboratorRole {
-    OWNER = 'owner',
-    EDITOR = 'editor',
-    REVIEWER = 'reviewer',
-    VIEWER = 'viewer',
-}
+import { CollaboratorRole } from './collaborator-role.enum';
 
 @Entity('collaborators')
 export class Collaborator extends BaseEntity {
