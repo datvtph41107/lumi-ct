@@ -73,9 +73,7 @@ export class AuthService {
         if (this.userPermissionsCache.has(userId)) {
             return this.userPermissionsCache.get(userId)!;
         }
-
-        // Simplified role/permission model based on User.role only (MANAGER | STAFF)
-        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const user = await this.userRepository.findOne({ where: { id: userId } });
         const roles: any[] = [];
         const scopes: Record<string, unknown> = {};
         const aggregatedPermissions: RolePermission[] = [];
@@ -117,7 +115,7 @@ export class AuthService {
     }
 
     async getUserRoles(userId: number): Promise<any[]> {
-        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const user = await this.userRepository.findOne({ where: { id: userId } });
         const roleName = user?.role === SystemRole.MANAGER ? 'MANAGER' : 'STAFF';
         return [
             {
@@ -130,28 +128,7 @@ export class AuthService {
         ];
     }
 
-    async assignRole(
-        _userId: number,
-        _roleId: string,
-        _scope: string = 'global',
-        _scopeId?: number,
-        _grantedBy?: number,
-    ): Promise<any> {
-        throw new Error('Dynamic role assignment is disabled. Roles are fixed to MANAGER/STAFF.');
-    }
-
-    async removeRole(_userId: number, _roleId: string, _scope: string = 'global', _scopeId?: number): Promise<void> {
-        throw new Error('Dynamic role removal is disabled. Roles are fixed to MANAGER/STAFF.');
-    }
-
-    async updateUserRoles(
-        _userId: number,
-        _roles: Array<{ roleId: string; scope?: string; scopeId?: number }>,
-    ): Promise<void> {
-        throw new Error('Dynamic role updates are disabled. Roles are fixed to MANAGER/STAFF.');
-    }
-
-    async validateSession(sessionId: string, accessToken: string): Promise<User> {
+    async validateSession(sessionId: string): Promise<User> {
         const session = await this.sessionRepository.findOne({ where: { session_id: sessionId, is_active: true } });
         if (!session) throw new UnauthorizedException('Session không hợp lệ');
         if (session.expires_at < new Date()) {
@@ -243,7 +220,7 @@ export class AuthService {
                 case 'scope':
                     return userPermissions.scopes[value as string] !== undefined;
                 case 'role':
-                    return (userPermissions.roles as any[]).some((role) => role.name === value);
+                    return userPermissions.roles.some((role) => role.name === value);
             }
         }
         return true;

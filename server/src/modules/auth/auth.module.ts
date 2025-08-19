@@ -10,7 +10,6 @@ import { AuthController } from './auth/auth.controller';
 import { TokenService } from './jwt/jwt.service';
 
 // Guards & Validators
-import { AuthValidatorService } from './guards/validate_req';
 import { AuthGuardAccess } from './guards/jwt-auth.guard';
 import { PermissionGuard } from './guards/permission.guard';
 import { RolesGuard } from './guards/role.guard';
@@ -73,17 +72,7 @@ import { AuthService as AuthCoreService } from './auth/auth.service';
         AuthGuardAccess,
         PermissionGuard,
         RolesGuard,
-        AuthValidatorService,
     ],
-    exports: [
-        AuthValidatorService,
-        PassportModule,
-        JwtModule,
-        TokenService,
-        AuthGuardAccess,
-        AuthCoreService,
-        PermissionGuard,
-        RolesGuard,
-    ],
+    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, PermissionGuard, RolesGuard],
 })
 export class AuthModule {}

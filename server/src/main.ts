@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ResponseInterceptor } from '@/core/shared/filters/response.interceptor';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
@@ -9,8 +8,6 @@ import 'reflect-metadata';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
-    const config = new DocumentBuilder().setTitle('Contract Management API').setVersion('0.1').build();
-    const document = SwaggerModule.createDocument(app, config);
     app.enableCors({
         origin: [process.env.CLIENT_URL || 'http://localhost:5173'],
         credentials: true, // Important: Allow cookies
@@ -21,7 +18,6 @@ async function bootstrap() {
 
     // Cookie parser middleware
     app.use(cookieParser());
-    SwaggerModule.setup('api', app, document);
     app.setGlobalPrefix(process.env.PREFIX as string);
     app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalPipes(
