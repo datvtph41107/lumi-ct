@@ -3,8 +3,7 @@
  */
 
 import { Department } from '@/core/domain/department';
-import { Role, AdminRole, Permission } from '@/core/shared/enums/base.enums';
-import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { Role, AdminRole } from '@/core/shared/enums/base.enums';
 
 // JWT Payload types
 export interface BaseJwtPayload {
@@ -16,16 +15,12 @@ export interface BaseJwtPayload {
     sessionId?: string;
 }
 
+export interface UiCapabilities {
+    is_manager: boolean;
+}
+
 export interface UserContext {
-    permissions: {
-        create_contract: boolean;
-        create_report: boolean;
-        read: boolean;
-        update: boolean;
-        delete: boolean;
-        approve: boolean;
-        assign: boolean;
-    };
+    capabilities: UiCapabilities;
     department: Department | null;
 }
 
@@ -34,7 +29,7 @@ export interface UserJwtPayload extends BaseJwtPayload {
     username: string;
     email: string;
     roles: Role[];
-    permissions: ;
+    permissions: UiCapabilities; // kept name for backward compat with HeaderUserPayload
     department?: {
         id: number;
         name: string;
@@ -48,17 +43,7 @@ export interface AdminJwtPayload extends BaseJwtPayload {
     roles: AdminRole[];
 }
 
-// Permission types
-
-
-// Collaborator capability view for frontend and guards
-export interface CollaboratorCapabilities {
-    is_owner: boolean;
-    can_edit: boolean; // true if owner or manager
-    can_review: boolean; // true if reviewer or owner or manager
-    can_view: boolean; // true if viewer/reviewer/owner or manager
-    role?: CollaboratorRole | null;
-}
+// Removed dynamic permission engine types to simplify model.
 
 // Authentication types
 export interface LoginCredentials {

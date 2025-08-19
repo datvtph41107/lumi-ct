@@ -1,3 +1,131 @@
+# Contract Management API
+
+## Authentication
+
+- POST /auth/login
+  - body: { username, password, is_manager_login?: boolean }
+  - returns: { accessToken, tokenExpiry, user }
+- POST /auth/refresh-token
+- POST /auth/logout
+- GET /auth/me
+
+## Contracts
+
+- GET /contracts
+  - query:
+    - query?: string
+    - startDate?: string (YYYY-MM-DD HH:mm:ss)
+    - endDate?: string (YYYY-MM-DD HH:mm:ss)
+    - page?: number (default 1)
+    - size?: number (default 20)
+    - asc?: boolean | 'ASC' | 'DESC'
+    - type?: string
+    - status?: string
+    - department_id?: number
+  - desc: Paginated list with filters using ContractQueryBuilder
+
+- POST /contracts
+  - body: CreateContractDto
+  - desc: Create contract (Manager/Staff). Status=draft, pending approval.
+
+- GET /contracts/:id
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer) or public if GET
+
+- PATCH /contracts/:id
+  - guard: CollaboratorGuard (Owner/Editor)
+  - desc: If status=pending then only Owner/Manager can update.
+
+- DELETE /contracts/:id
+  - guard: CollaboratorGuard (Owner)
+
+- GET /contracts/:id/preview
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer)
+
+- GET /contracts/:id/export/pdf
+  - guard: CollaboratorGuard (Owner/Editor)
+  - desc: Requires can_export=true unless Manager.
+
+- GET /contracts/:id/export/docx
+  - guard: CollaboratorGuard (Owner/Editor)
+  - desc: Requires can_export=true unless Manager.
+
+- GET /contracts/:id/print
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer)
+
+### Audit
+- GET /contracts/:id/audit
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer)
+- GET /contracts/:id/audit/summary
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer)
+
+### Reviews
+- POST /contracts/:id/reviews
+  - guard: CollaboratorGuard (Reviewer/Owner/Editor)
+
+### Notifications & Reminders
+- POST /contracts/:id/notifications (Owner/Editor)
+- GET /contracts/:id/notifications
+- POST /contracts/:id/reminders (Owner/Editor)
+- GET /contracts/:id/reminders
+
+## Collaborators
+
+- GET /contracts/:id/collaborators
+  - guard: CollaboratorGuard (Owner/Editor/Reviewer/Viewer)
+
+- POST /contracts/:id/collaborators
+  - guard: CollaboratorGuard (Owner)
+  - body: { user_id: number, role: 'owner'|'editor'|'reviewer'|'viewer', assignment_note?: string }
+
+- PATCH /contracts/collaborators/:collaboratorId
+  - guard: CollaboratorGuard (Owner)
+  - body: { role?: 'owner'|'editor'|'reviewer'|'viewer', active?: boolean }
+
+- DELETE /contracts/collaborators/:collaboratorId
+  - guard: CollaboratorGuard (Owner)
+
+- POST /contracts/:id/transfer-ownership
+  - guard: CollaboratorGuard (Owner)
+  - body: { from_user_id: number, to_user_id: number }
+
+## Admin (Manager only)
+
+- GET /admin/departments
+- GET /admin/departments/:id
+- PUT /admin/departments/:id
+- POST /admin/departments/manager
+- GET /admin/users
+- POST /admin/users
+- PUT /admin/users/:id
+- DELETE /admin/users/:id
+- GET /admin/users/:id/roles
+- POST /admin/users/:id/roles
+- GET /admin/users/:id/permissions
+- GET /admin/roles
+- GET /admin/roles/:id/permissions
+
+## Authorization model
+
+- System Role: MANAGER, STAFF
+  - Page/module access controlled by @Roles and RolesGuard
+- Contract Collaborator: OWNER, EDITOR, REVIEWER, VIEWER
+  - Contract actions controlled by @CollaboratorRoles and CollaboratorGuard
+  - Export actions require can_export flag (owner/editor) unless Manager
+
+## Querying & Pagination
+
+- Use FilterQuery and paginate util for all list endpoints
+- ContractQueryBuilder supports:
+  - search(query)
+  - createdBetween(start, end)
+  - withType(type)
+  - withStatus(status)
+  - withDepartment(departmentId)
+  - withManagerOrCreator(userId)
+  - withCollaborator(userId)
+  - whereStartOrEndDateIn(days)
+  - whereStartOrEndDatePassed()
+
 # Contract Management API Documentation
 
 ## Tổng quan
