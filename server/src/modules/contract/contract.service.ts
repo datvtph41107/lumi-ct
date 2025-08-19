@@ -399,11 +399,6 @@ export class ContractService {
         return unique;
     }
 
-    async findUpcomingPhases(_daysBefore: number): Promise<Milestone[]> {
-        // Not implemented; return empty to avoid incorrect results
-        return [];
-    }
-
     async findUpcomingTasks(daysBefore: number): Promise<Task[]> {
         const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
         const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
