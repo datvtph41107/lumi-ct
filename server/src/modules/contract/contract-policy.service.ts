@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Role as SystemRole } from '@/core/shared/enums/base.enums';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { RoleService, UserRoleContext } from '@/core/shared/services/role.service';
 
 export interface ContractCapabilities {
     is_owner: boolean;
@@ -15,28 +15,28 @@ export interface ContractCapabilities {
     can_approve: boolean;
 }
 
+export interface ContractUser extends UserRoleContext {
+    sub: number;
+}
+
 @Injectable()
 export class ContractPolicyService {
     constructor(
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         private readonly collab: CollaboratorService,
+        private readonly roleService: RoleService,
     ) {}
 
-    private isManager(user: { roles?: any[]; role?: any }): boolean {
-        if (Array.isArray(user?.roles)) return user.roles.includes(SystemRole.MANAGER);
-        return (user?.role || '').toString().toUpperCase() === 'MANAGER';
-    }
-
-    async canView(contractId: string, user: { sub: number; roles?: any[]; role?: any }): Promise<boolean> {
-        if (this.isManager(user)) return true;
+    async canView(contractId: string, user: ContractUser): Promise<boolean> {
+        if (this.roleService.isManager(user)) return true;
         const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
         if (!contract) return false;
         if (contract.is_public) return true;
         return this.collab.canView(contractId, user.sub);
     }
 
-    async canEdit(contractId: string, user: { sub: number; roles?: any[]; role?: any }): Promise<boolean> {
-        if (this.isManager(user)) return true;
+    async canEdit(contractId: string, user: ContractUser): Promise<boolean> {
+        if (this.roleService.isManager(user)) return true;
         const allowed = await this.collab.canEdit(contractId, user.sub);
         if (!allowed) return false;
         const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
@@ -47,20 +47,17 @@ export class ContractPolicyService {
         return true;
     }
 
-    async canExport(contractId: string, user: { sub: number; roles?: any[]; role?: any }): Promise<boolean> {
-        if (this.isManager(user)) return true;
+    async canExport(contractId: string, user: ContractUser): Promise<boolean> {
+        if (this.roleService.isManager(user)) return true;
         return this.collab.canExport(contractId, user.sub);
     }
 
-    async canApprove(_contractId: string, user: { roles?: any[]; role?: any }): Promise<boolean> {
-        return this.isManager(user);
+    async canApprove(_contractId: string, user: UserRoleContext): Promise<boolean> {
+        return this.roleService.isManager(user);
     }
 
-    async canManageCollaborators(
-        contractId: string,
-        user: { sub: number; roles?: any[]; role?: any },
-    ): Promise<boolean> {
-        if (this.isManager(user)) return true;
+    async canManageCollaborators(contractId: string, user: ContractUser): Promise<boolean> {
+        if (this.roleService.isManager(user)) return true;
         // Owner or explicit flag on collaborator
         const entRole = await this.collab.getRole(contractId, user.sub);
         if (entRole === CollaboratorRole.OWNER) return true;
@@ -70,10 +67,7 @@ export class ContractPolicyService {
         return !!ent?.can_manage_collaborators;
     }
 
-    async getCapabilities(
-        contractId: string,
-        user: { sub: number; roles?: any[]; role?: any },
-    ): Promise<ContractCapabilities> {
+    async getCapabilities(contractId: string, user: ContractUser): Promise<ContractCapabilities> {
         const [is_owner, can_view, can_edit, can_review, can_export, can_manage_collaborators, can_approve] =
             await Promise.all([
                 this.collab.isOwner(contractId, user.sub),

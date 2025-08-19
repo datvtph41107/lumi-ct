@@ -11,17 +11,27 @@ import { buildUserContext } from '@/common/utils/context/builder-user-context.ut
 import { Role } from '@/core/shared/enums/base.enums';
 import { AuthService } from './auth.service';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
+import { 
+    LoginResponse, 
+    RefreshTokenResponse, 
+    SessionVerificationResponse, 
+    UserCapabilitiesResponse,
+    ApiSuccessResponse
+} from '@/core/shared/types/api-response.types';
+import { UserContext } from '@/core/shared/types/auth.types';
+import { RoleService } from '@/core/shared/services/role.service';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
         private readonly authService: AuthService,
+        private readonly roleService: RoleService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
     @Post('login')
-    async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
+    async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response): Promise<LoginResponse> {
         const userRepo = this.db.getRepository(User);
         const user = await userRepo.findOne({ where: { username: body.username } });
         if (!user || !user.is_active) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
@@ -32,43 +42,48 @@ export class AuthController {
             throw new UnauthorizedException('Tài khoản không có quyền quản lý');
         }
 
-        const context = await buildUserContext(user, this.db);
+        const context: UserContext = await buildUserContext(user, this.db);
         const sessionId = `${Date.now()}`;
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
+        const tokens = await this.tokenService.getUserTokens(user, context, sessionId);
         res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
         res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'strict', path: '/' });
+        
         const responseUser = {
             id: user.id,
             username: user.username,
             role: user.role,
-            isManager: user.role === Role.MANAGER,
-            department: (context as any).department
+            isManager: this.roleService.isManager({ role: user.role }),
+            department: context.department
                 ? {
-                      id: (context as any).department.id,
-                      name: (context as any).department.name,
-                      code: (context as any).department.code,
+                      id: context.department.id,
+                      name: context.department.name,
+                      code: context.department.code,
                   }
                 : null,
             permissions: context.capabilities,
         };
+        
         return {
             accessToken: tokens.accessToken,
             tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
             user: responseUser,
-        } as any;
+        };
     }
 
     @Post('refresh-token')
-    async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<RefreshTokenResponse | { success: false; message: string }> {
         const refreshToken = (req as any).cookies?.refreshToken as string | undefined;
         if (!refreshToken) return { success: false, message: 'No refresh token cookie found' };
+        
         const payload = await this.tokenService.verifyRefreshToken(refreshToken);
         const userRepo = this.db.getRepository(User);
-        const user = await userRepo.findOne({ where: { id: payload.userId } as any });
+        const user = await userRepo.findOne({ where: { id: payload.userId } });
         if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
-        const context = await buildUserContext(user, this.db);
-        const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
+        
+        const context: UserContext = await buildUserContext(user, this.db);
+        const tokens = await this.tokenService.getUserTokens(user, context, payload.sessionId);
         res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
+        
         return {
             accessToken: tokens.accessToken,
             sessionId: payload.sessionId,
@@ -78,7 +93,7 @@ export class AuthController {
 
     @Post('logout')
     @UseGuards(AuthGuardAccess)
-    async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<ApiSuccessResponse> {
         const sessionId = (req as any).cookies?.sessionId as string | undefined;
         if (sessionId) await this.tokenService.revokeSession(sessionId);
         res.clearCookie('refreshToken', { path: '/' });
@@ -88,20 +103,24 @@ export class AuthController {
 
     @Get('me')
     @UseGuards(AuthGuardAccess)
-    async me(@CurrentUser() user: HeaderUserPayload) {
+    async me(@CurrentUser() user: HeaderUserPayload): Promise<HeaderUserPayload> {
         return user;
     }
 
     @Get('verify-session')
     @UseGuards(AuthGuardAccess)
-    async verifySession(@Req() req: Request) {
+    async verifySession(@Req() req: Request): Promise<SessionVerificationResponse> {
         const sessionId = (req as any).cookies?.sessionId as string | undefined;
-        return { isValid: !!sessionId, sessionId, lastActivity: new Date().toISOString() };
+        return { 
+            isValid: !!sessionId, 
+            sessionId, 
+            lastActivity: new Date().toISOString() 
+        };
     }
 
     @Post('update-activity')
     @UseGuards(AuthGuardAccess)
-    async updateActivity(@Req() req: Request) {
+    async updateActivity(@Req() req: Request): Promise<ApiSuccessResponse> {
         const refreshToken = (req as any).cookies?.refreshToken as string | undefined;
         if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
         return { success: true };
@@ -109,10 +128,8 @@ export class AuthController {
 
     @Get('permissions')
     @UseGuards(AuthGuardAccess)
-    async getPermissions(@CurrentUser() user: HeaderUserPayload) {
-        const isManager = Array.isArray(user.roles)
-            ? user.roles.includes(Role.MANAGER)
-            : user.roles === Role.MANAGER.toString();
+    async getPermissions(@CurrentUser() user: HeaderUserPayload): Promise<UserCapabilitiesResponse> {
+        const isManager = this.roleService.isManager({ roles: user.roles });
         return { capabilities: { is_manager: isManager } };
     }
 }

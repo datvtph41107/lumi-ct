@@ -27,6 +27,7 @@ import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 
 // Core Services
 import { AuthService as AuthCoreService } from './auth/auth.service';
+import { RoleService } from '@/core/shared/services/role.service';
 
 @Module({
     imports: [
@@ -66,11 +67,12 @@ import { AuthService as AuthCoreService } from './auth/auth.service';
         // Token & Auth core services
         TokenService,
         AuthCoreService,
+        RoleService,
         // Strategy & Guards
         JwtStrategy,
         AuthGuardAccess,
         RolesGuard,
     ],
-    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, RolesGuard],
+    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, RolesGuard, RoleService],
 })
 export class AuthModule {}
