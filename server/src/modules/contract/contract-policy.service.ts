@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
-import { RoleService, UserRoleContext } from '@/core/shared/services/role.service';
+import { isManager, UserRoleContext } from '@/core/shared/utils/role.utils';
 
 export interface ContractCapabilities {
     is_owner: boolean;
@@ -24,11 +24,10 @@ export class ContractPolicyService {
     constructor(
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         private readonly collab: CollaboratorService,
-        private readonly roleService: RoleService,
     ) {}
 
     async canView(contractId: string, user: ContractUser): Promise<boolean> {
-        if (this.roleService.isManager(user)) return true;
+        if (isManager(user)) return true;
         const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
         if (!contract) return false;
         if (contract.is_public) return true;
@@ -36,7 +35,7 @@ export class ContractPolicyService {
     }
 
     async canEdit(contractId: string, user: ContractUser): Promise<boolean> {
-        if (this.roleService.isManager(user)) return true;
+        if (isManager(user)) return true;
         const allowed = await this.collab.canEdit(contractId, user.sub);
         if (!allowed) return false;
         const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
@@ -48,16 +47,16 @@ export class ContractPolicyService {
     }
 
     async canExport(contractId: string, user: ContractUser): Promise<boolean> {
-        if (this.roleService.isManager(user)) return true;
+        if (isManager(user)) return true;
         return this.collab.canExport(contractId, user.sub);
     }
 
     async canApprove(_contractId: string, user: UserRoleContext): Promise<boolean> {
-        return this.roleService.isManager(user);
+        return isManager(user);
     }
 
     async canManageCollaborators(contractId: string, user: ContractUser): Promise<boolean> {
-        if (this.roleService.isManager(user)) return true;
+        if (isManager(user)) return true;
         // Owner or explicit flag on collaborator
         const entRole = await this.collab.getRole(contractId, user.sub);
         if (entRole === CollaboratorRole.OWNER) return true;

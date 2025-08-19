@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { Role, Status } from '@/core/shared/enums/base.enums';
 import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
-import { RoleService } from '@/core/shared/services/role.service';
+import { isManager, getPrimaryRole } from '@/core/shared/utils/role.utils';
 import {
     UserResponse,
     PaginatedResponse,
@@ -24,7 +24,6 @@ export class UserService {
     constructor(
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
-        private readonly roleService: RoleService,
     ) {}
 
     async getUserProfile(payload: HeaderUserPayload) {
@@ -253,7 +252,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
 
-        const roleName = this.roleService.getPrimaryRole({ role: user.role });
+        const roleName = getPrimaryRole({ role: user.role });
         return { roles: [roleName] };
     }
 
@@ -283,7 +282,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
 
-        const isManager = this.roleService.isManager({ role: user.role });
-        return { capabilities: { is_manager: isManager } };
+        const userIsManager = isManager({ role: user.role });
+        return { capabilities: { is_manager: userIsManager } };
     }
 }

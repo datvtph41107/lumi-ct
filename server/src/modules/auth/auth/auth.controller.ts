@@ -19,14 +19,13 @@ import {
     ApiSuccessResponse
 } from '@/core/shared/types/api-response.types';
 import { UserContext } from '@/core/shared/types/auth.types';
-import { RoleService } from '@/core/shared/services/role.service';
+import { isManager } from '@/core/shared/utils/role.utils';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
         private readonly authService: AuthService,
-        private readonly roleService: RoleService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
@@ -52,7 +51,7 @@ export class AuthController {
             id: user.id,
             username: user.username,
             role: user.role,
-            isManager: this.roleService.isManager({ role: user.role }),
+            isManager: isManager({ role: user.role }),
             department: context.department
                 ? {
                       id: context.department.id,
@@ -129,7 +128,7 @@ export class AuthController {
     @Get('permissions')
     @UseGuards(AuthGuardAccess)
     async getPermissions(@CurrentUser() user: HeaderUserPayload): Promise<UserCapabilitiesResponse> {
-        const isManager = this.roleService.isManager({ roles: user.roles });
-        return { capabilities: { is_manager: isManager } };
+        const userIsManager = isManager({ roles: user.roles });
+        return { capabilities: { is_manager: userIsManager } };
     }
 }

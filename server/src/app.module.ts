@@ -8,7 +8,6 @@ import { join } from 'path';
 // Core modules
 import { HttpLoggerModule } from '@/core/shared/logger/http/http-logger.module';
 import { TypeOrmWinstonLogger } from '@/core/shared/logger/logger.typeorm';
-import { SharedModule } from '@/core/shared/shared.module';
 
 // Feature modules
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -45,7 +44,6 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
             serveRoot: '/uploads',
         }),
         HttpLoggerModule,
-        SharedModule,
         AuthModule,
         AdminModule,
         UserModule,
