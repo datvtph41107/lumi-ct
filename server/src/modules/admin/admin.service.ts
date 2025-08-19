@@ -1,6 +1,7 @@
 import { Department } from '@/core/domain/department';
 import { User } from '@/core/domain/user';
-import { DepartmentResponse, ManagerInfo } from '@/core/dto/department/department.response';
+import { ManagerInfo } from '@/core/dto/department/department.response';
+import { DepartmentResponse as ApiDepartmentResponse } from '@/core/shared/types/api-response.types';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
@@ -19,7 +20,7 @@ export class AdminService {
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
-    async getAllDepartments(): Promise<DepartmentResponse[]> {
+    async getAllDepartments(): Promise<ApiDepartmentResponse[]> {
         const repo = this.db.getRepository(Department);
         const departments = await repo.find({
             select: ['id', 'name', 'code', 'created_at', 'updated_at', 'manager_id'],
@@ -30,24 +31,27 @@ export class AdminService {
             throw new BadRequestException(ERROR_MESSAGES.DEPARTMENT.NOT_FOUND);
         }
 
-        const result: DepartmentResponse[] = [];
-        //  const groupDepartments: Array<Department & { manager: Partial<User> | null }> = [];
+        const result: ApiDepartmentResponse[] = [];
         for (const dept of departments) {
             const manager = await this.getManagerInfo(dept.manager_id);
             result.push({
                 id: dept.id,
                 name: dept.name,
                 code: dept.code,
-                created_at: dept.created_at,
-                updated_at: dept.updated_at,
-                manager,
+                managerId: dept.manager_id,
+                manager: manager
+                    ? {
+                          id: manager.id,
+                          username: manager.username,
+                      }
+                    : undefined,
             });
         }
 
         return result;
     }
 
-    async getOneDepartment(id: number): Promise<DepartmentResponse> {
+    async getOneDepartment(id: number): Promise<ApiDepartmentResponse> {
         try {
             const repo = this.db.getRepository(Department);
             const department = await repo.findOne({
@@ -62,8 +66,16 @@ export class AdminService {
 
             const manager = await this.getManagerInfo(department.manager_id);
             return {
-                ...department,
-                manager,
+                id: department.id,
+                name: department.name,
+                code: department.code,
+                managerId: department.manager_id,
+                manager: manager
+                    ? {
+                          id: manager.id,
+                          username: manager.username,
+                      }
+                    : undefined,
             };
         } catch (error) {
             this.logger.APP.error('Get department error: ' + error);
@@ -93,7 +105,7 @@ export class AdminService {
         }
     }
 
-    async updateManagerDepartment(id: number, idManager: number) {
+    async updateManagerDepartment(id: number, idManager: number): Promise<ApiDepartmentResponse> {
         try {
             const departmentRepo = this.db.getRepository(Department);
             const department = await departmentRepo.findOne({ where: { id } });
@@ -102,7 +114,21 @@ export class AdminService {
             }
 
             department.manager_id = idManager;
-            await departmentRepo.save(department);
+            const updatedDepartment = await departmentRepo.save(department);
+
+            const manager = await this.getManagerInfo(idManager);
+            return {
+                id: updatedDepartment.id,
+                name: updatedDepartment.name,
+                code: updatedDepartment.code,
+                managerId: updatedDepartment.manager_id,
+                manager: manager
+                    ? {
+                          id: manager.id,
+                          username: manager.username,
+                      }
+                    : undefined,
+            };
         } catch (error) {
             this.logger.APP.error('Update manager failed: ' + error);
             throw error;

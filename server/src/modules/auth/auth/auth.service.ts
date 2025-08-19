@@ -66,40 +66,6 @@ export class AuthService {
         await this.sessionRepository.update({ session_id: sessionId }, { last_activity: new Date() });
     }
 
-    // Minimal helpers retained for compatibility (could be removed if unused):
-    async canCreateContract(): Promise<boolean> {
-        return true;
-    }
-    async canReadContract(): Promise<boolean> {
-        return true;
-    }
-    async canUpdateContract(): Promise<boolean> {
-        return true;
-    }
-    async canDeleteContract(): Promise<boolean> {
-        return true;
-    }
-    async canApproveContract(): Promise<boolean> {
-        return true;
-    }
-    async canRejectContract(): Promise<boolean> {
-        return true;
-    }
-    async canExportContract(): Promise<boolean> {
-        return true;
-    }
-    async canManageTemplates(): Promise<boolean> {
-        return true;
-    }
-    async canViewDashboard(): Promise<boolean> {
-        return true;
-    }
-    async canViewAnalytics(): Promise<boolean> {
-        return true;
-    }
-
-    // Removed dynamic condition evaluation.
-
     private async invalidateSession(sessionId: string, reason: string): Promise<void> {
         await this.sessionRepository.update(
             { session_id: sessionId },
@@ -107,7 +73,7 @@ export class AuthService {
         );
     }
 
-    private clearUserCache(_userId: number): void {}
-
-    clearAllCaches(): void {}
+    private clearUserCache(_userId: number): void {
+        // Cache clearing logic can be implemented here when needed
+    }
 }
