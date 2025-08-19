@@ -34,11 +34,16 @@ export class CollaboratorGuard implements CanActivate {
         }
 
         // Determine required collaborator roles from metadata; default to view
-        const requiredRoles =
-            this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
-                context.getHandler(),
-                context.getClass(),
-            ]) || [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER];
+        const metaRoles = this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        const requiredRoles = metaRoles || [
+            CollaboratorRole.OWNER,
+            CollaboratorRole.EDITOR,
+            CollaboratorRole.REVIEWER,
+            CollaboratorRole.VIEWER,
+        ];
 
         // Managers bypass collaborator checks
         if ((user.roles || []).includes('MANAGER' as any)) {
