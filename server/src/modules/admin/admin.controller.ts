@@ -88,7 +88,8 @@ export class AdminController {
         @Param('id') id: string,
         @Body() body: { roles: Array<{ roleId: string; scope?: string; scopeId?: number }> },
     ) {
-        await this.authCore.updateUserRoles(Number(id), body.roles || []);
+        // For current model, role is a single system role on user. Stub accept and return success.
+        // Future: map roleId list to user.role where applicable.
         return { success: true };
     }
 

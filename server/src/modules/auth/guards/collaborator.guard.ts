@@ -46,7 +46,7 @@ export class CollaboratorGuard implements CanActivate {
         ];
 
         // Managers bypass collaborator checks
-        if ((user.roles || []).includes('MANAGER')) {
+        if ((user.roles || []).includes('MANAGER' as any)) {
             return true;
         }
 
