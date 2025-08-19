@@ -3,7 +3,7 @@
  */
 
 import { Department } from '@/core/domain/department';
-import { Role, AdminRole, Permission } from '@/core/shared/enums/base.enums';
+import { Role, AdminRole } from '@/core/shared/enums/base.enums';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 
 // JWT Payload types
@@ -16,16 +16,18 @@ export interface BaseJwtPayload {
     sessionId?: string;
 }
 
+export interface PermissionSet {
+    create_contract: boolean;
+    create_report: boolean;
+    read: boolean;
+    update: boolean;
+    delete: boolean;
+    approve: boolean;
+    assign: boolean;
+}
+
 export interface UserContext {
-    permissions: {
-        create_contract: boolean;
-        create_report: boolean;
-        read: boolean;
-        update: boolean;
-        delete: boolean;
-        approve: boolean;
-        assign: boolean;
-    };
+    permissions: PermissionSet;
     department: Department | null;
 }
 
@@ -34,7 +36,7 @@ export interface UserJwtPayload extends BaseJwtPayload {
     username: string;
     email: string;
     roles: Role[];
-    permissions: ;
+    permissions: PermissionSet;
     department?: {
         id: number;
         name: string;
@@ -48,8 +50,26 @@ export interface AdminJwtPayload extends BaseJwtPayload {
     roles: AdminRole[];
 }
 
-// Permission types
+// Permission types used by AuthService and guards
+export interface RolePermission {
+    resource: string;
+    action: string;
+    is_active: boolean;
+    conditions_schema?: Record<string, unknown>;
+}
 
+export interface UserPermissions {
+    userId: number;
+    permissions: RolePermission[];
+    roles: any[];
+    scopes: Record<string, unknown>;
+}
+
+export interface PermissionCheck {
+    resource: string;
+    action: string;
+    conditions?: Record<string, unknown>;
+}
 
 // Collaborator capability view for frontend and guards
 export interface CollaboratorCapabilities {

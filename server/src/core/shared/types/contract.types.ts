@@ -171,7 +171,7 @@ export interface AuditLogEntry {
 export interface CollaboratorData {
     user_id: number;
     contract_id: ID;
-    role: 'owner' | 'editor' | 'viewer';
+    role: 'owner' | 'editor' | 'reviewer' | 'viewer';
     permissions: string[];
     added_by: number;
     added_at: Timestamp;
