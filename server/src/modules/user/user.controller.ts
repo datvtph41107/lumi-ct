@@ -5,7 +5,6 @@ import { UserService } from './user.service';
 import { RolesGuard } from '../auth/guards/role.guard';
 import { Roles } from '@/core/shared/decorators/setmeta.decorator';
 import { AdminRole, Role } from '@/core/shared/enums/base.enums';
-import { PermissionsGuard } from '../auth/guards/permission.guard';
 import { CreateUserRequest } from '@/core/dto/user/user.request';
 import { HeaderRequest, HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 

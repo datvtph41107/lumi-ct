@@ -8,12 +8,12 @@ export const PERMISSIONS_METADATA_KEY = 'permissions';
 export const ROLES_METADATA_KEY = 'roles';
 export const COLLAB_ROLES_METADATA_KEY = 'collab_roles';
 
+// Deprecated permissions decorator (kept for compatibility, unused)
 export interface PermissionMetadata {
     permissions?: Permission[];
     departments?: Department[];
 }
-
-export const Permissions = (...configs: PermissionMetadata[]) => SetMetadata(PERMISSIONS_METADATA_KEY, configs);
+export const Permissions = () => SetMetadata(PERMISSIONS_METADATA_KEY, []);
 
 // System Role based guard metadata
 export const Roles = (...roles: (Role | AdminRole)[]) => SetMetadata(ROLES_METADATA_KEY, roles);

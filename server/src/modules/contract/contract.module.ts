@@ -4,13 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { ContractController } from './contract.controller';
-import { ContractDraftController } from './contract-draft.controller';
-import { ContractTemplateController } from './template.controller';
-import { CollaboratorController } from './collaborator.controller';
 
 // Services
 import { ContractService } from './contract.service';
-import { ContractDraftService } from './contract-draft.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
 import { ContractPolicyService } from './contract-policy.service';
@@ -31,36 +27,35 @@ import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([
-            Contract,
-            ContractDraft,
-            Milestone,
-            Task,
-            ContractFile,
-            ContractTemplate,
-            ContractContent,
-            ContractVersion,
-            Collaborator,
-            AuditLog,
-        ]),
-        // External module dependencies
-        forwardRef(() => import('@/modules/auth/auth.module').then((m) => m.AuthModule)),
-        forwardRef(() => import('@/modules/notification/notification.module').then((m) => m.NotificationModule)),
-        forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
-    ],
-    controllers: [ContractController, ContractDraftController, ContractTemplateController, CollaboratorController],
-    providers: [
-        ContractService,
-        ContractDraftService,
-        AuditLogService,
-        CollaboratorService,
-        ContractPolicyService,
-        {
-            provide: APP_INTERCEPTOR,
-            useClass: AuditInterceptor,
-        },
-    ],
-    exports: [ContractService, ContractDraftService, CollaboratorService, AuditLogService, ContractPolicyService],
+	imports: [
+		TypeOrmModule.forFeature([
+			Contract,
+			ContractDraft,
+			Milestone,
+			Task,
+			ContractFile,
+			ContractTemplate,
+			ContractContent,
+			ContractVersion,
+			Collaborator,
+			AuditLog,
+		]),
+		// External module dependencies
+		forwardRef(() => import('@/modules/auth/auth.module').then((m) => m.AuthModule)),
+		forwardRef(() => import('@/modules/notification/notification.module').then((m) => m.NotificationModule)),
+		forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
+	],
+	controllers: [ContractController],
+	providers: [
+		ContractService,
+		AuditLogService,
+		CollaboratorService,
+		ContractPolicyService,
+		{
+			provide: APP_INTERCEPTOR,
+			useClass: AuditInterceptor,
+		},
+	],
+	exports: [ContractService, CollaboratorService, AuditLogService, ContractPolicyService],
 })
 export class ContractsModule {}

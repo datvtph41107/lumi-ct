@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
 import { Role } from '@/core/shared/enums/base.enums';
 import { AuthService } from './auth.service';
+import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -21,8 +22,7 @@ export class AuthController {
 
 	@Post('login')
 	async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
-		const dataSource = this.db;
-		const userRepo = dataSource.getRepository(User);
+		const userRepo = this.db.getRepository(User);
 		const user = await userRepo.findOne({ where: { username: body.username } });
 		if (!user || !user.is_active) throw new UnauthorizedException('Thông tin đăng nhập không hợp lệ');
 		const matched = await bcrypt.compare(body.password, user.password);
@@ -32,7 +32,7 @@ export class AuthController {
 			throw new UnauthorizedException('Tài khoản không có quyền quản lý');
 		}
 
-		const context = await buildUserContext(user, dataSource);
+		const context = await buildUserContext(user, this.db);
 		const sessionId = `${Date.now()}`;
 		const tokens = await this.tokenService.getUserTokens(user as any, context as any, sessionId);
 		res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
@@ -43,44 +43,31 @@ export class AuthController {
 			role: user.role,
 			isManager: user.role === Role.MANAGER,
 			department: (context as any).department
-				? {
-					id: (context as any).department.id,
-					name: (context as any).department.name,
-					code: (context as any).department.code,
-				}
+				? { id: (context as any).department.id, name: (context as any).department.name, code: (context as any).department.code }
 				: null,
 			permissions: context.capabilities,
 		};
-		return {
-			accessToken: tokens.accessToken,
-			tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
-			user: responseUser,
-		} as any;
+		return { accessToken: tokens.accessToken, tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60, user: responseUser } as any;
 	}
 
 	@Post('refresh-token')
 	async refreshFromCookie(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-		const dataSource = (this as any).db as DataSource;
-		const refreshToken = (req as any).cookies?.refreshToken;
+		const refreshToken = (req as any).cookies?.refreshToken as string | undefined;
 		if (!refreshToken) return { success: false, message: 'No refresh token cookie found' } as any;
 		const payload = await this.tokenService.verifyRefreshToken(refreshToken);
-		const userRepo = dataSource.getRepository(User);
+		const userRepo = this.db.getRepository(User);
 		const user = await userRepo.findOne({ where: { id: payload.userId } as any });
 		if (!user) throw new UnauthorizedException('Không tìm thấy người dùng');
-		const context = await buildUserContext(user, dataSource);
+		const context = await buildUserContext(user, this.db);
 		const tokens = await this.tokenService.getUserTokens(user as any, context as any, payload.sessionId);
 		res.cookie('refreshToken', tokens.refreshToken, { httpOnly: true, sameSite: 'strict', path: '/' });
-		return {
-			accessToken: tokens.accessToken,
-			sessionId: payload.sessionId,
-			tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
-		} as any;
+		return { accessToken: tokens.accessToken, sessionId: payload.sessionId, tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60 } as any;
 	}
 
 	@Post('logout')
 	@UseGuards(AuthGuardAccess)
 	async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-		const sessionId = (req as any).cookies?.sessionId;
+		const sessionId = (req as any).cookies?.sessionId as string | undefined;
 		if (sessionId) await this.tokenService.revokeSession(sessionId);
 		res.clearCookie('refreshToken', { path: '/' });
 		res.clearCookie('sessionId', { path: '/' });
@@ -89,29 +76,29 @@ export class AuthController {
 
 	@Get('me')
 	@UseGuards(AuthGuardAccess)
-	async me(@CurrentUser() user: any) {
+	async me(@CurrentUser() user: HeaderUserPayload) {
 		return user;
 	}
 
 	@Get('verify-session')
 	@UseGuards(AuthGuardAccess)
 	async verifySession(@Req() req: Request) {
-		const sessionId = (req as any).cookies?.sessionId;
+		const sessionId = (req as any).cookies?.sessionId as string | undefined;
 		return { isValid: !!sessionId, sessionId, lastActivity: new Date().toISOString() } as any;
 	}
 
 	@Post('update-activity')
 	@UseGuards(AuthGuardAccess)
 	async updateActivity(@Req() req: Request) {
-		const refreshToken = (req as any).cookies?.refreshToken;
+		const refreshToken = (req as any).cookies?.refreshToken as string | undefined;
 		if (refreshToken) await this.tokenService.updateLastActivity(refreshToken);
 		return { success: true } as any;
 	}
 
 	@Get('permissions')
 	@UseGuards(AuthGuardAccess)
-	async getPermissions(@CurrentUser() user: any) {
-		// Return minimal UI capabilities instead of dynamic permissions
-		return { capabilities: { is_manager: Array.isArray(user.roles) ? user.roles.includes(Role.MANAGER) : false } };
+	async getPermissions(@CurrentUser() user: HeaderUserPayload) {
+		const isManager = Array.isArray(user.roles) ? user.roles.includes(Role.MANAGER) : user.roles === Role.MANAGER.toString();
+		return { capabilities: { is_manager: isManager } };
 	}
 }

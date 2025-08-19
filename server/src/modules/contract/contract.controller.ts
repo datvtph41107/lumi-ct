@@ -17,7 +17,7 @@ import {
 import { ContractService } from './contract.service';
 import { ContractPolicyService } from './contract-policy.service';
 
-import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
+import { CurrentUser, Roles } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorGuard } from '../auth/guards/collaborator.guard';
 import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
@@ -25,9 +25,11 @@ import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enu
 import { CreateContractDto } from '@/core/dto/contract/create-contract.dto';
 import { AuthGuardAccess } from '../auth/guards/jwt-auth.guard';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
-import { Roles } from '@/core/shared/decorators/setmeta.decorator';
 import { Role } from '@/core/shared/enums/base.enums';
 import { RolesGuard } from '@/modules/auth/guards/role.guard';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess, RolesGuard)
@@ -36,6 +38,7 @@ export class ContractController {
 		private readonly contractService: ContractService,
 		private readonly policy: ContractPolicyService,
 		@Inject('LOGGER') private readonly logger: LoggerTypes,
+		@InjectRepository(ContractTemplate) private readonly templateRepo: Repository<ContractTemplate>,
 	) {}
 
 	@Post()
@@ -64,6 +67,43 @@ export class ContractController {
 			asc,
 			departmentId,
 		);
+	}
+
+	// === Draft routes (migrated) ===
+	@Get('drafts')
+	async listDrafts(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
+		return this.contractService.listDrafts(query || {}, Number(user.sub));
+	}
+	@Get('drafts/:id')
+	async getDraft(@Param('id') id: string) {
+		return this.contractService.getDraft(id);
+	}
+	@Post('drafts')
+	async createDraft(@Body() body: any, @CurrentUser() user: HeaderUserPayload) {
+		const name = body?.contractData?.name || 'Untitled Contract';
+		const mode = body?.flow?.selectedMode || body?.contractData?.content?.mode || 'basic';
+		const template_id = body?.contractData?.content?.templateId || body?.selectedTemplate?.id;
+		return this.contractService.createDraft(
+			{
+				name,
+				contract_code: body?.contractData?.contractCode,
+				contract_type: body?.contractData?.contractType || 'custom',
+				category: body?.contractData?.category || 'business',
+				priority: body?.contractData?.priority || 'medium',
+				mode,
+				template_id,
+				initialData: body?.contractData || undefined,
+			},
+			Number(user.sub),
+		);
+	}
+	@Patch('drafts/:id')
+	async updateDraft(@Param('id') id: string, @Body() updates: any, @CurrentUser() user: HeaderUserPayload) {
+		return this.contractService.updateDraft(id, updates, Number(user.sub));
+	}
+	@Delete('drafts/:id')
+	async deleteDraft(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+		return this.contractService.deleteDraft(id, Number(user.sub));
 	}
 
 	@Get(':id')
@@ -254,5 +294,39 @@ export class ContractController {
 	async getPermissions(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
 		const caps = await this.policy.getCapabilities(id, user);
 		return { permissions: caps } as any;
+	}
+
+	// === Templates (migrated) ===
+	@Get('templates')
+	@Roles(Role.MANAGER)
+	async listTemplates() {
+		return this.templateRepo.find({ where: { is_active: true } as any, order: { created_at: 'DESC' as any } });
+	}
+	@Get('templates/:id')
+	@Roles(Role.MANAGER)
+	async getTemplate(@Param('id') id: string) {
+		return this.templateRepo.findOne({ where: { id } });
+	}
+	@Post('templates')
+	@Roles(Role.MANAGER)
+	async createTemplate(@Body() body: Partial<ContractTemplate>, @CurrentUser() user: HeaderUserPayload) {
+		const ent = this.templateRepo.create({ ...body, created_by: String(user.sub), updated_by: String(user.sub) } as any);
+		return this.templateRepo.save(ent);
+	}
+	@Patch('templates/:id')
+	@Roles(Role.MANAGER)
+	async updateTemplate(
+		@Param('id') id: string,
+		@Body() body: Partial<ContractTemplate>,
+		@CurrentUser() user: HeaderUserPayload,
+	) {
+		await this.templateRepo.update({ id } as any, { ...body, updated_by: String(user.sub) } as any);
+		return this.templateRepo.findOne({ where: { id } });
+	}
+	@Delete('templates/:id')
+	@Roles(Role.MANAGER)
+	async removeTemplate(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
+		await this.templateRepo.update({ id } as any, { is_active: false, updated_by: String(user.sub) } as any);
+		return { ok: true } as any;
 	}
 }
