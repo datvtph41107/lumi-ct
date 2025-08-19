@@ -1,5 +1,5 @@
 // src/modules/contracts/contracts.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
@@ -18,6 +18,8 @@ import { Task } from '@/core/domain/contract/contract-taks.entity';
 import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
+import { CollaboratorService } from './collaborator.service';
+import { Role as SystemRole } from '@/core/shared/enums/base.enums';
 import { diffJson, JsonDiffChange } from '@/common/utils/json-diff.utils';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
@@ -39,6 +41,7 @@ export class ContractService {
         private readonly authCoreService: AuthCoreService,
         private readonly notificationService: NotificationService,
         private readonly auditLogService: AuditLogService,
+        private readonly collaboratorService: CollaboratorService,
     ) {}
 
     async create(dto: CreateContractDto, ctx: { userId: number }) {
@@ -135,6 +138,15 @@ export class ContractService {
     async updateContract(id: string, updateDto: any, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
+        // Status-based rule: if pending approval, only owner or manager can update
+        if (String(contract.status).toLowerCase() === 'pending') {
+            const user = await this.userRepository.findOne({ where: { id: userId } as any });
+            const isManager = user?.role === (SystemRole.MANAGER as any);
+            const isOwner = await this.collaboratorService.isOwner(id, userId);
+            if (!isManager && !isOwner) {
+                throw new ForbiddenException('Only Owner or Manager can update a pending contract');
+            }
+        }
         Object.assign(contract, updateDto);
         return this.contractRepository.save(contract);
     }
@@ -147,9 +159,23 @@ export class ContractService {
     }
 
     async exportDocx(id: string, userId: number) {
+        // Owner/Editor with can_export flag or Manager bypass
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const isManager = (user?.role || '').toString().toUpperCase() === 'MANAGER';
+        if (!isManager) {
+            const allowed = await this.collaboratorService.canExport(id, userId);
+            if (!allowed) throw new ForbiddenException('Export not permitted');
+        }
         return { fileUrl: `/exports/${id}.docx` };
     }
     async exportPdf(id: string, userId: number) {
+        // Owner/Editor with can_export flag or Manager bypass
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const isManager = (user?.role || '').toString().toUpperCase() === 'MANAGER';
+        if (!isManager) {
+            const allowed = await this.collaboratorService.canExport(id, userId);
+            if (!allowed) throw new ForbiddenException('Export not permitted');
+        }
         const filename = `contract-${id}.pdf`;
         const content = `%PDF-1.4\n% Stub PDF for contract ${id}\n`;
         const contentBase64 = Buffer.from(content).toString('base64');

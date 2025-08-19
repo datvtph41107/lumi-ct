@@ -7,6 +7,7 @@ import { COLLAB_ROLES_METADATA_KEY } from '@/core/shared/decorators/setmeta.deco
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { DataSource } from 'typeorm';
 import { Contract } from '@/core/domain/contract/contract.entity';
+import { Role } from '@/core/shared/enums/base.enums';
 
 interface RequestWithUser extends Request {
     user?: UserJwtPayload;
@@ -23,15 +24,25 @@ export class CollaboratorGuard implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest<RequestWithUser>();
         const user = request.user;
-        const contractId = request.params?.id;
+        let contractId = request.params?.id as string | undefined;
 
         if (!user) {
             throw new ForbiddenException('Not authenticated');
         }
 
+        // Derive contract id from alternate params if needed
         if (!contractId) {
-            throw new ForbiddenException('Contract ID is required');
+            const collaboratorId = (request.params as any)?.collaboratorId as string | undefined;
+            if (collaboratorId) {
+                const parts = collaboratorId.split('_');
+                if (parts.length >= 2 && parts[0]) contractId = parts[0];
+            }
         }
+        if (!contractId) {
+            const bodyContractId = (request.body as any)?.contract_id as string | undefined;
+            if (bodyContractId) contractId = bodyContractId;
+        }
+        if (!contractId) throw new ForbiddenException('Contract ID is required');
 
         // Determine required collaborator roles from metadata; default to view
         const metaRoles = this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLAB_ROLES_METADATA_KEY, [
@@ -46,7 +57,7 @@ export class CollaboratorGuard implements CanActivate {
         ];
 
         // Managers bypass collaborator checks
-        if ((user.roles || []).includes('MANAGER')) {
+        if ((user.roles || []).includes(Role.MANAGER)) {
             return true;
         }
 

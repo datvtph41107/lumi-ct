@@ -356,4 +356,12 @@ export class CollaboratorService {
             await qr.release();
         }
     }
+
+    async canExport(contract_id: string, user_id: number): Promise<boolean> {
+        const ent = await this.collabRepo.findOne({ where: { contract_id, user_id, active: true } });
+        if (!ent) return false;
+        // Only owner/editor with explicit export flag
+        const isOwnerOrEditor = [CollaboratorRole.OWNER, CollaboratorRole.EDITOR].includes(ent.role);
+        return isOwnerOrEditor && !!ent.can_export;
+    }
 }

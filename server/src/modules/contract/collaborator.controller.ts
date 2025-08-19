@@ -8,13 +8,15 @@ import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enu
 import { Role } from '@/core/shared/enums/base.enums';
 import { Roles } from '@/core/shared/decorators/setmeta.decorator';
 import { RolesGuard } from '@/modules/auth/guards/role.guard';
+import { CollaboratorGuard } from '@/modules/auth/guards/collaborator.guard';
 
 @Controller('contracts')
-@UseGuards(AuthGuardAccess)
+@UseGuards(AuthGuardAccess, RolesGuard)
 export class CollaboratorController {
     constructor(private readonly collab: CollaboratorService) {}
 
     @Post(':id/collaborators')
+    @UseGuards(CollaboratorGuard)
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async add(
         @Param('id') contractId: string,
@@ -28,6 +30,13 @@ export class CollaboratorController {
     }
 
     @Get(':id/collaborators')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async list(@Param('id') contractId: string, @Query() query: any) {
         // TODO: apply filters from query if needed
         const rows = await this.collab.list(contractId);
@@ -40,6 +49,7 @@ export class CollaboratorController {
     }
 
     @Patch('collaborators/:collaboratorId')
+    @UseGuards(CollaboratorGuard)
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async update(
         @Param('collaboratorId') collaboratorId: string,
@@ -57,6 +67,7 @@ export class CollaboratorController {
     }
 
     @Delete('collaborators/:collaboratorId')
+    @UseGuards(CollaboratorGuard)
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async remove(@Param('collaboratorId') collaboratorId: string, @CurrentUser() user: HeaderUserPayload) {
         const { contract_id, user_id } = this.parseCollaboratorId(collaboratorId);
@@ -65,6 +76,7 @@ export class CollaboratorController {
     }
 
     @Post(':id/transfer-ownership')
+    @UseGuards(CollaboratorGuard)
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async transfer(
         @Param('id') contractId: string,
@@ -81,6 +93,13 @@ export class CollaboratorController {
     }
 
     @Get(':id/permissions')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async getPermissions(@Param('id') contractId: string, @CurrentUser() user: HeaderUserPayload) {
         const uid = Number(user.sub);
         const [is_owner, can_edit, can_review, can_view] = await Promise.all([

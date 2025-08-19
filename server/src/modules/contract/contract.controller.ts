@@ -90,11 +90,25 @@ export class ContractController {
 
     // ===== AUDIT LOG =====
     @Get(':id/audit')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async getAuditLogs(@Param('id') id: string, @Query() query: any) {
         return this.contractService.getAuditLogs(id, query);
     }
 
     @Get(':id/audit/summary')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async getAuditSummary(@Param('id') id: string) {
         return this.contractService.getAuditSummary(id);
     }

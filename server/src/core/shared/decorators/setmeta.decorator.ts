@@ -15,6 +15,7 @@ export interface PermissionMetadata {
 
 export const Permissions = (...configs: PermissionMetadata[]) => SetMetadata(PERMISSIONS_METADATA_KEY, configs);
 
+// System Role based guard metadata
 export const Roles = (...roles: (Role | AdminRole)[]) => SetMetadata(ROLES_METADATA_KEY, roles);
 
 export const CollaboratorRoles = (...roles: CollaboratorRole[]) => SetMetadata(COLLAB_ROLES_METADATA_KEY, roles);

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/core/domain/user/user.entity';
@@ -126,6 +126,20 @@ export class AuthService {
                 granted_at: new Date(),
             },
         ];
+    }
+
+    async updateUserRoles(
+        userId: number,
+        roles: Array<{ roleId: string; scope?: string; scopeId?: number }>,
+    ): Promise<void> {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User not found');
+        const wantsManager = Array.isArray(roles)
+            ? roles.some((r) => (r.roleId || '').toLowerCase() === 'manager')
+            : false;
+        user.role = wantsManager ? (SystemRole.MANAGER as any) : (SystemRole.STAFF as any);
+        await this.userRepository.save(user);
+        this.clearUserCache(userId);
     }
 
     async validateSession(sessionId: string): Promise<User> {
