@@ -18,41 +18,9 @@ export class AuthService {
         private readonly sessionRepository: Repository<UserSession>,
     ) {}
 
-    async hasPermission(
-        userId: number,
-        resource: string,
-        action: string,
-        context?: Record<string, unknown>,
-    ): Promise<boolean> {
-        const cacheKey = `${userId}:${resource}:${action}:${JSON.stringify(context)}`;
-        if (this.permissionCache.has(cacheKey)) {
-            return this.permissionCache.get(cacheKey)!;
-        }
-
-        const userPermissions = await this.getUserPermissions(userId);
-        let hasAccess = false;
-
-        // Type-safe permission checking
-        if (Array.isArray(userPermissions.permissions)) {
-            for (const permission of userPermissions.permissions) {
-                if (permission.resource === resource && permission.action === action) {
-                    if (permission.conditions_schema && context) {
-                        hasAccess = this.evaluateConditions(
-                            permission.conditions_schema,
-                            context,
-                            userId,
-                            userPermissions,
-                        );
-                    } else {
-                        hasAccess = true;
-                    }
-                    if (hasAccess) break;
-                }
-            }
-        }
-
-        this.permissionCache.set(cacheKey, hasAccess);
-        return hasAccess;
+    async hasPermission(_userId: number, _resource: string, _action: string, _context?: Record<string, unknown>): Promise<boolean> {
+        // Deprecated in favor of Role + Collaborator guards
+        return true;
     }
 
     async hasAnyPermission(userId: number, permissions: PermissionCheck[]): Promise<boolean> {
@@ -184,45 +152,8 @@ export class AuthService {
         return this.hasPermission(userId, 'dashboard', 'analytics', { analyticsType });
     }
 
-    private evaluateConditions(
-        conditionsSchema: Record<string, unknown>,
-        context: Record<string, unknown>,
-        userId: number,
-        userPermissions: UserPermissions,
-    ): boolean {
-        for (const [key, value] of Object.entries(conditionsSchema)) {
-            switch (key) {
-                case 'owner':
-                    if (value === true) {
-                        return context.ownerId === userId;
-                    }
-                    break;
-                case 'department':
-                    return context.department === value;
-                case 'type':
-                    return context.contractType === value;
-                case 'assigned':
-                    if (value === true) {
-                        const assignedUsers = context.assignedUsers as number[] | undefined;
-                        return assignedUsers?.includes(userId) || context.ownerId === userId;
-                    }
-                    break;
-                case 'status':
-                    return context.status === value;
-                case 'amount':
-                    if (typeof value === 'object' && value !== null) {
-                        const amountCondition = value as Record<string, number>;
-                        const amount = context.amount as number;
-                        if (amountCondition.max && amount > amountCondition.max) return false;
-                        if (amountCondition.min && amount < amountCondition.min) return false;
-                    }
-                    break;
-                case 'scope':
-                    return userPermissions.scopes[value as string] !== undefined;
-                case 'role':
-                    return userPermissions.roles.some((role) => role.name === value);
-            }
-        }
+    private evaluateConditions(): boolean {
+        // Deprecated
         return true;
     }
 
@@ -242,5 +173,17 @@ export class AuthService {
     clearAllCaches(): void {
         this.permissionCache.clear();
         this.userPermissionsCache.clear();
+    }
+
+    async updateUserRoles(
+        userId: number,
+        roles: Array<{ roleId: string; scope?: string; scopeId?: number }>,
+    ): Promise<void> {
+        // Single role per user: take the first roleId and map to MANAGER/STAFF
+        const primary = roles?.[0]?.roleId || '';
+        const normalized = (primary || '').toString().trim().toLowerCase();
+        const newRole = normalized === 'manager' ? SystemRole.MANAGER : SystemRole.STAFF;
+        await this.userRepository.update({ id: userId } as any, { role: newRole } as any);
+        this.clearUserCache(userId);
     }
 }

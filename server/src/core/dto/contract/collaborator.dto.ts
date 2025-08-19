@@ -3,7 +3,6 @@ import { IsNumber, IsEnum } from 'class-validator';
 
 export enum CollaboratorRoleDtoEnum {
     OWNER = 'owner',
-    EDITOR = 'editor',
     REVIEWER = 'reviewer',
     VIEWER = 'viewer',
 }

@@ -48,19 +48,14 @@ export class ContractController {
 
     @Get(':id')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(
-        CollaboratorRole.OWNER,
-        CollaboratorRole.EDITOR,
-        CollaboratorRole.REVIEWER,
-        CollaboratorRole.VIEWER,
-    )
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async get(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.getContract(id, Number(user.sub));
     }
 
     @Patch(':id')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async update(
         @Param('id') id: string,
         @Body() body: Partial<CreateContractDto>,
@@ -78,23 +73,22 @@ export class ContractController {
 
     @Get(':id/preview')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(
-        CollaboratorRole.OWNER,
-        CollaboratorRole.EDITOR,
-        CollaboratorRole.REVIEWER,
-        CollaboratorRole.VIEWER,
-    )
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async preview(@Param('id') id: string) {
         return this.contractService.generatePrintView(id);
     }
 
     // ===== AUDIT LOG =====
     @Get(':id/audit')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async getAuditLogs(@Param('id') id: string, @Query() query: any) {
         return this.contractService.getAuditLogs(id, query);
     }
 
     @Get(':id/audit/summary')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async getAuditSummary(@Param('id') id: string) {
         return this.contractService.getAuditSummary(id);
     }
@@ -124,19 +118,14 @@ export class ContractController {
     // ===== VERSION DIFF & ROLLBACK =====
     @Get(':id/versions/:versionId/diff')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(
-        CollaboratorRole.OWNER,
-        CollaboratorRole.EDITOR,
-        CollaboratorRole.REVIEWER,
-        CollaboratorRole.VIEWER,
-    )
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async diffVersion(@Param('id') id: string, @Param('versionId') versionId: string, @Query('target') target: string) {
         return this.contractService.diffVersions(id, versionId, target);
     }
 
     @Post(':id/versions/:versionId/rollback')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async rollbackVersion(
         @Param('id') id: string,
         @Param('versionId') versionId: string,
@@ -148,7 +137,7 @@ export class ContractController {
     // Reviewer routes
     @Post(':id/reviews')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.REVIEWER, CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.REVIEWER, CollaboratorRole.OWNER)
     async submitReview(
         @Param('id') id: string,
         @Body() body: { summary: string; status: 'approved' | 'changes_requested' },
@@ -160,25 +149,20 @@ export class ContractController {
     // ===== EXPORT & PRINT =====
     @Get(':id/export/pdf')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async exportPdf(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportPdf(id, Number(user.sub));
     }
     @Get(':id/export/docx')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async exportDocx(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.exportDocx(id, Number(user.sub));
     }
 
     @Get(':id/print')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(
-        CollaboratorRole.OWNER,
-        CollaboratorRole.EDITOR,
-        CollaboratorRole.REVIEWER,
-        CollaboratorRole.VIEWER,
-    )
+    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.REVIEWER, CollaboratorRole.VIEWER)
     async printContract(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.generatePrintView(id, Number(user.sub));
     }
@@ -186,7 +170,7 @@ export class ContractController {
     // ===== NOTIFICATION & REMINDERS =====
     @Post(':id/notifications')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async createNotification(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createNotification(id, dto, Number(user.sub));
     }
@@ -198,7 +182,7 @@ export class ContractController {
 
     @Post(':id/reminders')
     @UseGuards(CollaboratorGuard)
-    @CollaboratorRoles(CollaboratorRole.OWNER, CollaboratorRole.EDITOR)
+    @CollaboratorRoles(CollaboratorRole.OWNER)
     async updateReminder(@Param('id') id: string, @Body() dto: any, @CurrentUser() user: HeaderUserPayload) {
         return this.contractService.createReminder(id, dto, Number(user.sub));
     }

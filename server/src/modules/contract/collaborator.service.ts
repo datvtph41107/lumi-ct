@@ -250,22 +250,17 @@ export class CollaboratorService {
     }
 
     async canEdit(contract_id: string, user_id: number): Promise<boolean> {
-        // Owner and Editor can edit
-        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER, CollaboratorRole.EDITOR]);
+        // Only Owner can edit (Manager bypass handled by guards)
+        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER]);
     }
 
     async canReview(contract_id: string, user_id: number): Promise<boolean> {
-        return this.hasRole(contract_id, user_id, [
-            CollaboratorRole.OWNER,
-            CollaboratorRole.EDITOR,
-            CollaboratorRole.REVIEWER,
-        ]);
+        return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER, CollaboratorRole.REVIEWER]);
     }
 
     async canView(contract_id: string, user_id: number): Promise<boolean> {
         return this.hasRole(contract_id, user_id, [
             CollaboratorRole.OWNER,
-            CollaboratorRole.EDITOR,
             CollaboratorRole.REVIEWER,
             CollaboratorRole.VIEWER,
         ]);

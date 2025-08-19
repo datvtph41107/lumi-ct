@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthService as AuthService } from '../auth/auth.service';
@@ -25,6 +25,7 @@ export const RequirePermissions =
     };
 
 @Injectable()
+// Deprecated: granular permissions replaced by Role + Collaborator model
 export class PermissionGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
@@ -37,36 +38,7 @@ export class PermissionGuard implements CanActivate {
             context.getClass(),
         ]);
 
-        if (!requiredPermissions) {
-            return true;
-        }
-
-        const request = context.switchToHttp().getRequest<RequestWithUser>();
-        const user = request.user;
-
-        if (!user) {
-            throw new ForbiddenException('User not authenticated');
-        }
-
-        // Check if user has all required permissions
-        for (const permission of requiredPermissions) {
-            const hasPermission = await this.authService.hasPermission(
-                user.sub,
-                permission.resource,
-                permission.action,
-                {
-                    ...permission.conditions,
-                    ...(request.body as Record<string, unknown>),
-                    ...(request.params as Record<string, unknown>),
-                    ...(request.query as Record<string, unknown>),
-                },
-            );
-
-            if (!hasPermission) {
-                throw new ForbiddenException(`Insufficient permissions: ${permission.resource}:${permission.action}`);
-            }
-        }
-
+        // Always allow; fine-grained control handled by RolesGuard and CollaboratorGuard
         return true;
     }
 }
