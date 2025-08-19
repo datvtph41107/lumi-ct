@@ -13,6 +13,7 @@ import { ContractService } from './contract.service';
 import { ContractDraftService } from './contract-draft.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
+import { ContractPolicyService } from './contract-policy.service';
 
 // Interceptors
 import { AuditInterceptor } from '@/core/shared/filters/audit.interceptor';
@@ -54,11 +55,12 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
         ContractDraftService,
         AuditLogService,
         CollaboratorService,
+        ContractPolicyService,
         {
             provide: APP_INTERCEPTOR,
             useClass: AuditInterceptor,
         },
     ],
-    exports: [ContractService, ContractDraftService, CollaboratorService, AuditLogService],
+    exports: [ContractService, ContractDraftService, CollaboratorService, AuditLogService, ContractPolicyService],
 })
 export class ContractsModule {}
