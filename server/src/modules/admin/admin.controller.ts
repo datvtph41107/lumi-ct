@@ -95,15 +95,8 @@ export class AdminController {
     @Get('users/:id/permissions')
     @Roles(Role.MANAGER)
     async getEffectivePermissions(@Param('id') id: string) {
-        const perms = await this.authCore.getUserPermissions(Number(id));
-        const list = Array.isArray(perms.permissions)
-            ? perms.permissions.map((p: any) => ({
-                  resource: p.resource,
-                  action: p.action,
-                  conditions: p.conditions_schema,
-              }))
-            : [];
-        return { permissions: list } as any;
+        // Minimal capabilities endpoint for compatibility
+        return { capabilities: { is_manager: true } } as any;
     }
 
     // ==== Roles & permissions ====

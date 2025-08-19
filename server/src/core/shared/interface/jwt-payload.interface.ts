@@ -3,6 +3,6 @@ export {
     UserJwtPayload,
     AdminJwtPayload,
     UserContext,
-    PermissionSet as PermissionPayload,
+    UiCapabilities as PermissionPayload,
     BaseJwtPayload as HeaderOption,
 } from '@/core/shared/types/auth.types';
