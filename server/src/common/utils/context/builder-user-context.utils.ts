@@ -9,25 +9,7 @@ export async function buildUserContext(user: User, db: DataSource): Promise<User
     const department = user.department_id ? await departmentRepo.findOne({ where: { id: user.department_id } }) : null;
 
     const isManager = user.role === Role.MANAGER;
-    const permissions = isManager
-        ? {
-              create_contract: true,
-              create_report: true,
-              read: true,
-              update: true,
-              delete: true,
-              approve: true,
-              assign: true,
-          }
-        : {
-              create_contract: true,
-              create_report: true,
-              read: true,
-              update: true,
-              delete: false,
-              approve: false,
-              assign: false,
-          };
+    const capabilities = { is_manager: isManager };
 
-    return { permissions, department };
+    return { capabilities, department };
 }

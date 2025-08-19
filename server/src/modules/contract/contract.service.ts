@@ -1,5 +1,5 @@
 // src/modules/contracts/contracts.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
@@ -19,6 +19,11 @@ import { Between, LessThan, MoreThanOrEqual } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
 import { diffJson, JsonDiffChange } from '@/common/utils/json-diff.utils';
+import { CollaboratorService } from './collaborator.service';
+import { Role as SystemRole, ContractStatus } from '@/core/shared/enums/base.enums';
+import { ContractQueryBuilder } from '@/core/query/contract.query';
+import { FilterQuery, paginate } from '@/common/utils/filter-query.utils';
+import { PaginatedResult } from '@/core/shared/interface/paginate.interface';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -39,8 +44,141 @@ export class ContractService {
         private readonly authCoreService: AuthCoreService,
         private readonly notificationService: NotificationService,
         private readonly auditLogService: AuditLogService,
+        private readonly collaboratorService: CollaboratorService,
     ) {}
 
+    // ===== Drafts (merged) =====
+    async listDrafts(query: any, userId: number) {
+        const page = Number(query.page || 1);
+        const limit = Math.min(Number(query.limit || 20), 100);
+        const qb = this.contractRepository
+            .createQueryBuilder('c')
+            .where('c.deleted_at IS NULL')
+            .andWhere('c.status = :status', { status: ContractStatus.DRAFT as any })
+            .andWhere('c.is_draft = :isDraft', { isDraft: true })
+            .orderBy('c.updated_by', 'DESC')
+            .skip((page - 1) * limit)
+            .take(limit);
+        if (query.search)
+            qb.andWhere('(LOWER(c.name) LIKE :kw OR LOWER(c.contract_code) LIKE :kw)', {
+                kw: `%${String(query.search).toLowerCase()}%`,
+            });
+        if (query.mode) qb.andWhere('c.mode = :mode', { mode: query.mode });
+        qb.andWhere('(c.created_by = :uid OR c.updated_by = :uid)', { uid: String(userId) });
+        const [rows, total] = await qb.getManyAndCount();
+        const data = await Promise.all(rows.map(async (c) => this.toClientDraftShape(c)));
+        return { data, pagination: { page, limit, total, total_pages: Math.ceil(total / limit) } };
+    }
+    async getDraft(id: string) {
+        const c = await this.contractRepository.findOne({ where: { id } });
+        if (!c) return null;
+        return this.toClientDraftShape(c);
+    }
+    async createDraft(
+        payload: {
+            name: string;
+            contract_code?: string;
+            contract_type?: string;
+            category?: string;
+            priority?: any;
+            mode: any;
+            template_id?: string;
+            initialData?: any;
+        },
+        userId: number,
+    ) {
+        const contract = this.contractRepository.create({
+            name: payload.name || 'Untitled Contract',
+            contract_code: payload.contract_code,
+            contract_type: payload.contract_type || 'custom',
+            category: payload.category || 'business',
+            priority: payload.priority || 'medium',
+            mode: payload.mode,
+            template_id: payload.template_id,
+            status: ContractStatus.DRAFT as any,
+            is_draft: true,
+            auto_save_enabled: true,
+            created_by: String(userId),
+            updated_by: String(userId),
+        });
+        const saved = await this.contractRepository.save(contract);
+        if (payload.initialData) {
+            const draft = this.draftRepository.create({
+                contract_id: saved.id,
+                stage: 'content_draft',
+                data: payload.initialData,
+                version: 1,
+                created_by: userId,
+            } as any);
+            await this.draftRepository.save(draft);
+        }
+        return this.getDraft(saved.id);
+    }
+    async updateDraft(id: string, updates: any, userId: number) {
+        const contract = await this.contractRepository.findOne({ where: { id } });
+        if (!contract) return null;
+        if (updates?.contractData?.name) contract.name = updates.contractData.name;
+        contract.updated_by = String(userId);
+        contract.last_auto_save = new Date();
+        await this.contractRepository.save(contract);
+        const stage = updates?.flow?.currentStage || 'content_draft';
+        const data = updates?.contractData || updates;
+        if (data) await this.saveStage(id, stage, { data }, userId);
+        return this.getDraft(id);
+    }
+    async deleteDraft(id: string, userId: number) {
+        await this.contractRepository.update(
+            { id } as any,
+            { deleted_at: new Date(), deleted_by: String(userId) } as any,
+        );
+        return { ok: true } as any;
+    }
+    async saveStage(contractId: string, stage: string, payload: { data: any }, userId: number) {
+        const draft = this.draftRepository.create({
+            contract_id: contractId,
+            stage,
+            data: payload.data,
+            version: 1,
+            created_by: userId,
+        } as any);
+        await this.draftRepository.save(draft);
+        await this.contractRepository.update(
+            { id: contractId } as any,
+            { last_auto_save: new Date(), updated_by: String(userId) } as any,
+        );
+        return { ok: true } as any;
+    }
+    private toClientDraftShape(contract: Contract) {
+        return {
+            id: contract.id,
+            isDraft: contract.is_draft,
+            contractData: {
+                name: contract.name,
+                contractCode: contract.contract_code,
+                contractType: (contract.contract_type as any) || 'custom',
+                category: (contract.category as any) || 'business',
+                priority: (contract.priority as any) || 'medium',
+                notes: contract.notes,
+                tags: contract.tags || [],
+                content: { mode: (contract.mode as any) || 'basic', templateId: contract.template_id },
+                createdAt: (contract as any).created_at || new Date().toISOString(),
+                updatedAt: (contract as any).updated_at || new Date().toISOString(),
+            },
+            flow: {
+                id: contract.id,
+                currentStage: contract.current_stage || 'template_selection',
+                selectedMode: (contract.mode as any) || 'basic',
+                selectedTemplate: contract.template_id ? { id: contract.template_id } : null,
+                stageValidations: {},
+                canProceedToNext: true,
+                autoSaveEnabled: contract.auto_save_enabled,
+                lastAutoSave: contract.last_auto_save,
+            },
+            createdBy: contract.created_by,
+        };
+    }
+
+    // ===== Existing methods (unchanged) =====
     async create(dto: CreateContractDto, ctx: { userId: number }) {
         return this.createContract(dto, ctx.userId);
     }
@@ -77,6 +215,48 @@ export class ContractService {
 
         const [data, total] = await qb.getManyAndCount();
         return { data, total, page, limit };
+    }
+
+    async getAllContracts(
+        user: any,
+        filter: FilterQuery,
+        type?: string,
+        status?: string,
+        asc?: boolean,
+        departmentId?: number,
+    ): Promise<PaginatedResult<Contract>> {
+        const qb = this.contractRepository
+            .createQueryBuilder('contract')
+            .leftJoinAndMapMany('contract.contract_files', 'contract_files', 'cf', 'cf.contract_id = contract.id')
+            .leftJoinAndMapMany('contract.contract_tasks', 'contract_tasks', 'ct', 'ct.contract_id = contract.id')
+            .leftJoinAndMapOne('contract.department', 'departments', 'd', 'd.id = contract.department_id');
+
+        const isManager =
+            (user?.roles || []).includes(SystemRole.MANAGER) || user?.role === (SystemRole.MANAGER as any);
+        if (!isManager) {
+            qb.innerJoin(
+                'contract_tasks',
+                'staff_tasks',
+                'staff_tasks.contract_id = contract.id AND staff_tasks.assigned_to_id = :userId',
+                {
+                    userId: user.sub,
+                },
+            );
+        }
+
+        const queryBuilder = new ContractQueryBuilder(qb)
+            .search((filter as any).query)
+            .createdBetween((filter as any).getStartDate?.(), (filter as any).getEndDate?.())
+            .withType(type)
+            .withStatus(status)
+            .withDepartment(departmentId)
+            .values();
+
+        return paginate(queryBuilder, filter as any, {
+            qbNameEntity: 'contract',
+            defaultOrderBy: 'created_at',
+            sortDirection: asc,
+        });
     }
 
     async createContract(createDto: CreateContractDto, userId: number): Promise<Contract> {
@@ -135,6 +315,15 @@ export class ContractService {
     async updateContract(id: string, updateDto: any, userId: number): Promise<Contract> {
         const contract = await this.contractRepository.findOne({ where: { id } });
         if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
+        // Status-based rule: if pending approval, only owner or manager can update
+        if (String(contract.status).toLowerCase() === 'pending') {
+            const user = await this.userRepository.findOne({ where: { id: userId } as any });
+            const isManager = user?.role === (SystemRole.MANAGER as any);
+            const isOwner = await this.collaboratorService.isOwner(id, userId);
+            if (!isManager && !isOwner) {
+                throw new ForbiddenException('Only Owner or Manager can update a pending contract');
+            }
+        }
         Object.assign(contract, updateDto);
         return this.contractRepository.save(contract);
     }
@@ -147,9 +336,23 @@ export class ContractService {
     }
 
     async exportDocx(id: string, userId: number) {
+        // Owner/Editor with can_export flag or Manager bypass
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const isManager = (user?.role || '').toString().toUpperCase() === 'MANAGER';
+        if (!isManager) {
+            const allowed = await this.collaboratorService.canExport(id, userId);
+            if (!allowed) throw new ForbiddenException('Export not permitted');
+        }
         return { fileUrl: `/exports/${id}.docx` };
     }
     async exportPdf(id: string, userId: number) {
+        // Owner/Editor with can_export flag or Manager bypass
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const isManager = (user?.role || '').toString().toUpperCase() === 'MANAGER';
+        if (!isManager) {
+            const allowed = await this.collaboratorService.canExport(id, userId);
+            if (!allowed) throw new ForbiddenException('Export not permitted');
+        }
         const filename = `contract-${id}.pdf`;
         const content = `%PDF-1.4\n% Stub PDF for contract ${id}\n`;
         const contentBase64 = Buffer.from(content).toString('base64');
@@ -196,11 +399,8 @@ export class ContractService {
         return unique;
     }
 
-    async findUpcomingPhases(daysBefore: number): Promise<Milestone[]> {
-        const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
-        const end = dayjs().add(daysBefore, 'day').endOf('day').toDate();
-        // milestones store date_range JSON with strings; we approximate by checking updated_at or ignore if not available
-        // If your DB supports JSON queries, adjust accordingly. For now, return empty to avoid incorrect results.
+    async findUpcomingPhases(_daysBefore: number): Promise<Milestone[]> {
+        // Not implemented; return empty to avoid incorrect results
         return [];
     }
 
@@ -251,8 +451,6 @@ export class ContractService {
     async rollbackToVersion(contractId: string, versionId: string, userId: number): Promise<{ version_id: string }> {
         const version = await this.versionRepository.findOne({ where: { id: versionId, contract_id: contractId } });
         if (!version) throw new NotFoundException('Version not found');
-
-        // Update current content with snapshot
         const content = await this.contentRepository.findOne({ where: { contract_id: contractId } });
         const snapshot = (version as any).content_snapshot || {};
         await this.contentRepository.update(
@@ -261,16 +459,14 @@ export class ContractService {
                 basic_content: snapshot.basic_content || null,
                 editor_content: snapshot.editor_content || null,
                 uploaded_file: snapshot.uploaded_file || null,
-                mode: snapshot.mode || content?.mode || 'basic',
+                mode: snapshot.mode || (content?.mode as any) || 'basic',
             } as any,
         );
-
-        // Create a new version from the snapshot to preserve history
         const latest = await this.versionRepository.findOne({
             where: { contract_id: contractId },
             order: { version_number: 'DESC' as any },
         });
-        const nextVersionNumber = (latest?.version_number || 0) + 1;
+        const nextVersionNumber = ((latest?.version_number as any) || 0) + 1;
         const newVersion = this.versionRepository.create({
             contract_id: contractId,
             version_number: nextVersionNumber,
@@ -279,7 +475,6 @@ export class ContractService {
             edited_at: new Date(),
         } as any);
         const savedVersion = await this.versionRepository.save(newVersion);
-
         await this.auditLogService.create({
             contract_id: contractId,
             user_id: userId,

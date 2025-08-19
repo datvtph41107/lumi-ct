@@ -11,7 +11,6 @@ import { TokenService } from './jwt/jwt.service';
 
 // Guards & Validators
 import { AuthGuardAccess } from './guards/jwt-auth.guard';
-import { PermissionGuard } from './guards/permission.guard';
 import { RolesGuard } from './guards/role.guard';
 
 // Strategy
@@ -70,9 +69,8 @@ import { AuthService as AuthCoreService } from './auth/auth.service';
         // Strategy & Guards
         JwtStrategy,
         AuthGuardAccess,
-        PermissionGuard,
         RolesGuard,
     ],
-    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, PermissionGuard, RolesGuard],
+    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, RolesGuard],
 })
 export class AuthModule {}

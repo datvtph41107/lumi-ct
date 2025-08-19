@@ -4,15 +4,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { ContractController } from './contract.controller';
-import { ContractDraftController } from './contract-draft.controller';
-import { ContractTemplateController } from './template.controller';
-import { CollaboratorController } from './collaborator.controller';
 
 // Services
 import { ContractService } from './contract.service';
-import { ContractDraftService } from './contract-draft.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
+import { ContractPolicyService } from './contract-policy.service';
 
 // Interceptors
 import { AuditInterceptor } from '@/core/shared/filters/audit.interceptor';
@@ -48,17 +45,17 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
         forwardRef(() => import('@/modules/notification/notification.module').then((m) => m.NotificationModule)),
         forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
     ],
-    controllers: [ContractController, ContractDraftController, ContractTemplateController, CollaboratorController],
+    controllers: [ContractController],
     providers: [
         ContractService,
-        ContractDraftService,
         AuditLogService,
         CollaboratorService,
+        ContractPolicyService,
         {
             provide: APP_INTERCEPTOR,
             useClass: AuditInterceptor,
         },
     ],
-    exports: [ContractService, ContractDraftService, CollaboratorService, AuditLogService],
+    exports: [ContractService, CollaboratorService, AuditLogService, ContractPolicyService],
 })
 export class ContractsModule {}

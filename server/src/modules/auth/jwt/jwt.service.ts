@@ -33,7 +33,7 @@ export class TokenService {
             username: user.username,
             email: user.email || '',
             roles: [user.role as any],
-            permissions: context.permissions as any,
+            permissions: context.capabilities as any,
             department: context.department as any,
             client_id: this.clientId,
             scope: ['read'],
