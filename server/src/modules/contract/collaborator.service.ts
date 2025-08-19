@@ -5,6 +5,9 @@ import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { AuditLogService } from './audit-log.service';
+import { NotificationService } from '@/modules/notification/notification.service';
+import { NotificationChannel } from '@/core/domain/notification/notification.entity';
+import { NotificationType } from '@/core/shared/enums/base.enums';
 
 export interface CollaboratorWithUser {
     id: string;
@@ -27,11 +30,18 @@ export class CollaboratorService {
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         private readonly auditService: AuditLogService,
+        private readonly notificationService: NotificationService,
     ) {
         this.collabRepo = this.db.getRepository(Collaborator);
     }
 
-    async add(contract_id: string, user_id: number, role: CollaboratorRole, added_by: number): Promise<Collaborator> {
+    async add(
+        contract_id: string,
+        user_id: number,
+        role: CollaboratorRole,
+        added_by: number,
+        options?: { assignment_note?: string },
+    ): Promise<Collaborator> {
         try {
             // Check if user is already a collaborator
             const existing = await this.collabRepo.findOne({ where: { contract_id, user_id } });
@@ -56,6 +66,18 @@ export class CollaboratorService {
                     description: `Reactivated collaborator with role: ${role}`,
                 });
 
+                // Notify user re-activated
+                await this.notificationService.createNotification({
+                    contract_id,
+                    user_id,
+                    type: NotificationType.COLLABORATOR_ADDED,
+                    channel: NotificationChannel.IN_APP,
+                    title: 'Bạn được kích hoạt lại trong hợp đồng',
+                    message: `Vai trò: ${role}`,
+                    scheduled_at: new Date(),
+                    metadata: { assignment_note: options?.assignment_note },
+                });
+
                 return updated;
             }
 
@@ -77,6 +99,18 @@ export class CollaboratorService {
                     role,
                 },
                 description: `Added collaborator with role: ${role}`,
+            });
+
+            // Notify assigned user
+            await this.notificationService.createNotification({
+                contract_id,
+                user_id,
+                type: NotificationType.COLLABORATOR_ADDED,
+                channel: NotificationChannel.IN_APP,
+                title: 'Bạn được phân công vào hợp đồng',
+                message: `Vai trò: ${role}`,
+                scheduled_at: new Date(),
+                metadata: { assignment_note: options?.assignment_note },
             });
 
             return saved;
@@ -116,6 +150,17 @@ export class CollaboratorService {
             description: `Updated collaborator role from ${old_role} to ${new_role}`,
         });
 
+        // Notify user role updated
+        await this.notificationService.createNotification({
+            contract_id,
+            user_id,
+            type: NotificationType.SYSTEM_ANNOUNCEMENT,
+            channel: NotificationChannel.IN_APP,
+            title: 'Cập nhật vai trò trên hợp đồng',
+            message: `Vai trò mới: ${new_role}`,
+            scheduled_at: new Date(),
+        });
+
         return updated;
     }
 
@@ -147,6 +192,17 @@ export class CollaboratorService {
                 role: ent.role,
             },
             description: `Removed collaborator with role: ${ent.role}`,
+        });
+
+        // Notify user removed
+        await this.notificationService.createNotification({
+            contract_id,
+            user_id,
+            type: NotificationType.COLLABORATOR_REMOVED,
+            channel: NotificationChannel.IN_APP,
+            title: 'Bạn đã bị gỡ khỏi hợp đồng',
+            message: `Vai trò trước đó: ${ent.role}`,
+            scheduled_at: new Date(),
         });
 
         return removed;
@@ -194,6 +250,7 @@ export class CollaboratorService {
     }
 
     async canEdit(contract_id: string, user_id: number): Promise<boolean> {
+        // Owner and Editor can edit
         return this.hasRole(contract_id, user_id, [CollaboratorRole.OWNER, CollaboratorRole.EDITOR]);
     }
 
@@ -252,8 +309,8 @@ export class CollaboratorService {
                 throw new BadRequestException('Target user is not a collaborator on this contract');
             }
 
-            // Update roles
-            currentOwner.role = CollaboratorRole.EDITOR;
+            // Update roles: demote previous owner to viewer by default
+            currentOwner.role = CollaboratorRole.VIEWER;
             newOwner.role = CollaboratorRole.OWNER;
 
             await qr.manager.save([currentOwner, newOwner]);
@@ -268,6 +325,28 @@ export class CollaboratorService {
                 },
                 description: `Transferred ownership from user ${from_user_id} to user ${to_user_id}`,
             });
+
+            // Notify both users about ownership transfer
+            await Promise.all([
+                this.notificationService.createNotification({
+                    contract_id,
+                    user_id: from_user_id,
+                    type: NotificationType.OWNERSHIP_TRANSFERRED,
+                    channel: NotificationChannel.IN_APP,
+                    title: 'Bạn không còn là Owner của hợp đồng',
+                    message: `Quyền sở hữu đã chuyển cho người dùng ${to_user_id}`,
+                    scheduled_at: new Date(),
+                }),
+                this.notificationService.createNotification({
+                    contract_id,
+                    user_id: to_user_id,
+                    type: NotificationType.OWNERSHIP_TRANSFERRED,
+                    channel: NotificationChannel.IN_APP,
+                    title: 'Bạn đã được chuyển quyền Owner',
+                    message: `Từ người dùng ${from_user_id}`,
+                    scheduled_at: new Date(),
+                }),
+            ]);
 
             await qr.commitTransaction();
         } catch (err) {

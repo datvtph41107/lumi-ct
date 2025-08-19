@@ -4,6 +4,7 @@
 
 import { Department } from '@/core/domain/department';
 import { Role, AdminRole, Permission } from '@/core/shared/enums/base.enums';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 
 // JWT Payload types
 export interface BaseJwtPayload {
@@ -69,6 +70,15 @@ export interface UserPermissions {
     permissions: PermissionSet | RolePermission[];
     roles: { id: string; name: string }[] | Role[];
     scopes: Record<string, unknown>;
+}
+
+// Collaborator capability view for frontend and guards
+export interface CollaboratorCapabilities {
+    is_owner: boolean;
+    can_edit: boolean; // true if owner or manager
+    can_review: boolean; // true if reviewer or owner or manager
+    can_view: boolean; // true if viewer/reviewer/owner or manager
+    role?: CollaboratorRole | null;
 }
 
 export interface RolePermission {

@@ -4,7 +4,10 @@ import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRoles } from '@/core/shared/decorators/setmeta.decorator';
-import { CollaboratorRole } from '@/core/domain/permission';
+import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
+import { Role } from '@/core/shared/enums/base.enums';
+import { Roles } from '@/core/shared/decorators/setmeta.decorator';
+import { RolesGuard } from '@/modules/auth/guards/role.guard';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess)
@@ -15,10 +18,16 @@ export class CollaboratorController {
     @CollaboratorRoles(CollaboratorRole.OWNER)
     async add(
         @Param('id') contractId: string,
-        @Body() body: { user_id: number; role: CollaboratorRole },
+        @Body() body: { user_id: number; role: CollaboratorRole; assignment_note?: string },
         @CurrentUser() user: HeaderUserPayload,
     ) {
-        const saved = await this.collab.add(contractId, Number(body.user_id), body.role, Number(user.sub));
+        const saved = await this.collab.add(
+            contractId,
+            Number(body.user_id),
+            body.role,
+            Number(user.sub),
+            { assignment_note: body.assignment_note },
+        );
         return saved;
     }
 
