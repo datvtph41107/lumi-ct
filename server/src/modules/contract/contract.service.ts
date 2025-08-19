@@ -20,6 +20,9 @@ import * as dayjs from 'dayjs';
 import { AuditLogPagination, AuditLogWithUser } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
 import { Role as SystemRole } from '@/core/shared/enums/base.enums';
+import { ContractQueryBuilder } from '@/core/query/contract.query';
+import { FilterQuery, paginate } from '@/common/utils/filter-query.utils';
+import { PaginatedResult } from '@/core/shared/interface/paginate.interface';
 import { diffJson, JsonDiffChange } from '@/common/utils/json-diff.utils';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
@@ -80,6 +83,42 @@ export class ContractService {
 
         const [data, total] = await qb.getManyAndCount();
         return { data, total, page, limit };
+    }
+
+    async getAllContracts(
+        user: any,
+        filter: FilterQuery,
+        type?: string,
+        status?: string,
+        asc?: boolean,
+        departmentId?: number,
+    ): Promise<PaginatedResult<Contract>> {
+        const qb = this.contractRepository
+            .createQueryBuilder('contract')
+            .leftJoinAndMapMany('contract.contract_files', 'contract_files', 'cf', 'cf.contract_id = contract.id')
+            .leftJoinAndMapMany('contract.contract_tasks', 'contract_tasks', 'ct', 'ct.contract_id = contract.id')
+            .leftJoinAndMapOne('contract.department', 'departments', 'd', 'd.id = contract.department_id');
+
+        const isManager = (user?.roles || []).includes(SystemRole.MANAGER) || (user?.role === (SystemRole.MANAGER as any));
+        if (!isManager) {
+            qb.innerJoin('contract_tasks', 'staff_tasks', 'staff_tasks.contract_id = contract.id AND staff_tasks.assigned_to_id = :userId', {
+                userId: user.sub,
+            });
+        }
+
+        const queryBuilder = new ContractQueryBuilder(qb)
+            .search((filter as any).query)
+            .createdBetween((filter as any).getStartDate?.(), (filter as any).getEndDate?.())
+            .withType(type)
+            .withStatus(status)
+            .withDepartment(departmentId)
+            .values();
+
+        return paginate(queryBuilder, filter as any, {
+            qbNameEntity: 'contract',
+            defaultOrderBy: 'created_at',
+            sortDirection: asc,
+        });
     }
 
     async createContract(createDto: CreateContractDto, userId: number): Promise<Contract> {

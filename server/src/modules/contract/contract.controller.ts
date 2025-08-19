@@ -42,8 +42,19 @@ export class ContractController {
     }
 
     @Get()
-    async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
-        return this.contractService.listContracts(query, Number(user.sub));
+    async getAllContracts(
+        @CurrentUser() user: HeaderUserPayload,
+        @Query('query') query?: string,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string,
+        @Query('page') page: number = 1,
+        @Query('size') size: number = 20,
+        @Query('asc') asc?: boolean,
+        @Query('type') type?: string,
+        @Query('status') status?: string,
+        @Query('department_id') departmentId?: number,
+    ) {
+        return this.contractService.getAllContracts(user, { query, startDate, endDate, page: Number(page), size: Number(size) } as any, type, status, asc, departmentId);
     }
 
     @Get(':id')
