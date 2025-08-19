@@ -3,7 +3,7 @@
  */
 
 import { Department } from '@/core/domain/department';
-import { Role, AdminRole, Permission } from '@/core/shared/enums/base.enums';
+import { Role, AdminRole } from '@/core/shared/enums/base.enums';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 
 // JWT Payload types
@@ -16,16 +16,18 @@ export interface BaseJwtPayload {
     sessionId?: string;
 }
 
+export interface PermissionSet {
+    create_contract: boolean;
+    create_report: boolean;
+    read: boolean;
+    update: boolean;
+    delete: boolean;
+    approve: boolean;
+    assign: boolean;
+}
+
 export interface UserContext {
-    permissions: {
-        create_contract: boolean;
-        create_report: boolean;
-        read: boolean;
-        update: boolean;
-        delete: boolean;
-        approve: boolean;
-        assign: boolean;
-    };
+    permissions: PermissionSet;
     department: Department | null;
 }
 
@@ -34,7 +36,7 @@ export interface UserJwtPayload extends BaseJwtPayload {
     username: string;
     email: string;
     roles: Role[];
-    permissions: ;
+    permissions: PermissionSet;
     department?: {
         id: number;
         name: string;
@@ -79,6 +81,27 @@ export interface SessionData {
     ipAddress?: string;
     createdAt: Date;
     expiresAt: Date;
+}
+
+// Legacy permission aggregation types used by Admin and Auth services
+export interface RolePermission {
+    resource: string;
+    action: string;
+    is_active: boolean;
+    conditions_schema?: Record<string, unknown>;
+}
+
+export interface UserPermissions {
+    userId: number;
+    roles: Array<{ id: string; name: string; is_active: boolean }>;
+    permissions: RolePermission[];
+    scopes: Record<string, unknown>;
+}
+
+export interface PermissionCheck {
+    resource: string;
+    action: string;
+    conditions?: Record<string, unknown>;
 }
 
 // Request context types

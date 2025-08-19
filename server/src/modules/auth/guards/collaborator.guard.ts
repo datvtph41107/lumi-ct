@@ -7,6 +7,7 @@ import { COLLAB_ROLES_METADATA_KEY } from '@/core/shared/decorators/setmeta.deco
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
 import { DataSource } from 'typeorm';
 import { Contract } from '@/core/domain/contract/contract.entity';
+import { Role } from '@/core/shared/enums/base.enums';
 
 interface RequestWithUser extends Request {
     user?: UserJwtPayload;
@@ -40,13 +41,12 @@ export class CollaboratorGuard implements CanActivate {
         ]);
         const requiredRoles = metaRoles || [
             CollaboratorRole.OWNER,
-            CollaboratorRole.EDITOR,
             CollaboratorRole.REVIEWER,
             CollaboratorRole.VIEWER,
         ];
 
         // Managers bypass collaborator checks
-        if ((user.roles || []).includes('MANAGER')) {
+        if ((user.roles || []).includes(Role.MANAGER)) {
             return true;
         }
 

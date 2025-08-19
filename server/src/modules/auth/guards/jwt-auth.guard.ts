@@ -34,7 +34,8 @@ export class AuthGuardAccess extends AuthGuard('jwt') {
 
         const url: string = request.url;
         if (url.includes('/admin')) {
-            const isAdmin = user.roles.includes(AdminRole.ADMIN) || user.roles.includes(AdminRole.SUPER_ADMIN);
+            const isAdmin = (user.roles as unknown[]).includes(AdminRole.ADMIN) ||
+                (user.roles as unknown[]).includes(AdminRole.SUPER_ADMIN);
             if (!isAdmin) {
                 throw new ForbiddenException(ERROR_MESSAGES.AUTH.FORBIDDEN);
             }

@@ -8,15 +8,7 @@ export enum Role {
     STAFF = 'STAFF',
 }
 
-export enum Permission {
-    CREATE_CONTRACT = 'create_contract',
-    CREATE_REPORT = 'create_report',
-    READ = 'read',
-    UPDATE = 'update',
-    DELETE = 'delete',
-    APPROVE = 'approve',
-    ASSIGN = 'assign',
-}
+// Deprecated granular permissions; use Role + Collaborator model
 
 export enum TaskStatus {
     WAITING_CONFIRM = 'WAITING_CONFIRM',

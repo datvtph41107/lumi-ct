@@ -76,8 +76,8 @@ export interface WorkflowStep {
     name: string;
     description?: string;
     order: number;
-    assignee_role?: string;
-    required_permissions?: string[];
+    assignee_role?: 'manager' | 'staff' | 'owner' | 'reviewer' | 'viewer';
+    required_permissions?: never;
     auto_approve?: boolean;
 }
 
@@ -145,6 +145,7 @@ export interface ContractTask {
     status: ContractTaskStatus;
     assigned_to: number;
     priority: 'low' | 'medium' | 'high' | 'urgent';
+    // reviewer-focused operations: reviewers handle tasks and reports
 }
 
 // Audit and collaboration types
@@ -171,7 +172,7 @@ export interface AuditLogEntry {
 export interface CollaboratorData {
     user_id: number;
     contract_id: ID;
-    role: 'owner' | 'editor' | 'viewer';
+    role: 'owner' | 'reviewer' | 'viewer';
     permissions: string[];
     added_by: number;
     added_at: Timestamp;
