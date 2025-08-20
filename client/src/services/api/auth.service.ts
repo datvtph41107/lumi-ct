@@ -1,7 +1,6 @@
 import { BaseService } from './base.service';
-import type { LoginRequest, LoginResponse, User, RefreshTokenResponse } from '~/types/auth/auth.types';
-import type { ApiResponse } from '~/core/types/api.types';
-import type { UserPermissions } from '~/types/auth/permissions.types';
+import type { LoginRequest, User } from '~/types/auth/auth.types';
+import type { ApiResponse, LoginResponse, RefreshTokenResponse, SessionData } from '~/core/types/api.types';
 
 export class AuthService extends BaseService {
     constructor() {
@@ -20,20 +19,21 @@ export class AuthService extends BaseService {
         return this.request.private.post<void>('auth/logout');
     }
 
-    async verifySession(): Promise<ApiResponse<User>> {
-        return this.request.private.get<User>('auth/verify-session');
+    async verifySession(): Promise<ApiResponse<SessionData>> {
+        return this.request.private.get<SessionData>('auth/verify-session');
     }
 
     async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
-        return this.request.private.post<RefreshTokenResponse>('auth/refresh-token');
+        // Use public client to avoid private interceptor token dependency
+        return this.request.public.post<RefreshTokenResponse>('auth/refresh-token');
     }
 
     async updateActivity(): Promise<ApiResponse<void>> {
         return this.request.private.post<void>('auth/update-activity');
     }
 
-    async getUserPermissions(): Promise<ApiResponse<UserPermissions>> {
-        return this.request.private.get<UserPermissions>('auth/permissions');
+    async getUserPermissions(): Promise<ApiResponse<any>> {
+        return this.request.private.get<any>('auth/permissions');
     }
 }
 

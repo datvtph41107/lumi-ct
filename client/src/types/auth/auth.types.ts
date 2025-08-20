@@ -95,15 +95,6 @@ export interface LoginApiResponse {
     message: string;
 }
 
-export interface RefreshTokenResponse {
-    success: boolean;
-    data: {
-        accessToken: string;
-        tokenExpiry: number;
-    };
-    message: string;
-}
-
 // Helper type để check user status
 export const USER_STATUS = {
     ACTIVE: 'active',

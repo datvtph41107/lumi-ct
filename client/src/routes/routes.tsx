@@ -25,8 +25,9 @@ import ContractCollection from '~/page/Contract/ContractCollection';
 import SystemNotifications from '~/page/admin/SystemNotifications';
 import SystemNotificationsQueue from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
-import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
 import { routePrivate } from '~/config/routes.config';
+import TemplateListPage from '~/page/Templates/TemplateListPage';
+import TemplateDetailPage from '~/page/Templates/TemplateDetailPage';
 import UserLogDetail from '~/page/admin/UserManagement/UserLogDetail';
 import ContractManagement from '~/page/admin/ContractManagement/ContractManagement';
 
@@ -147,18 +148,6 @@ export const privateRoutes: PrivateRoute[] = [
         },
     },
 
-    // Roles/Permissions Management - Admin only
-    {
-        path: '/admin/roles-permissions',
-        component: RolePermissionManagement,
-        layout: AdminLayout,
-        access: {
-            roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.SYSTEM_SETTINGS],
-            requireAll: false,
-        },
-    },
-
     {
         path: config.routePrivate.contract,
         component: ContractDaft,
@@ -210,6 +199,24 @@ export const privateRoutes: PrivateRoute[] = [
         layout: CreateContractLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
+    },
+
+    // Templates
+    {
+        path: routePrivate.templates,
+        component: TemplateListPage,
+        layout: DefaultLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_MANAGE],
+        },
+    },
+    {
+        path: routePrivate.templateDetail.path,
+        component: TemplateDetailPage,
+        layout: DefaultLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_MANAGE],
         },
     },
 

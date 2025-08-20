@@ -7,6 +7,12 @@ export interface ApiConfig {
     enableLogging: boolean;
 }
 
+export interface RefreshTokenResponse {
+    accessToken: string;
+    tokenExpiry: number;
+    sessionId: string;
+}
+
 export interface RequestParams {
     [key: string]: string | number | boolean | undefined;
 }

@@ -456,12 +456,8 @@ const ContractCollection: React.FC = () => {
         }
 
         try {
-            // Create new draft with selected mode
-            const draft = await createFromTemplate(''); // Empty template means new blank draft
-
-            // Navigate to appropriate stage based on mode
-            const targetStage = selectedMode === 'basic' ? 'basic_info' : 'content_draft';
-            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}`);
+            const draft = await createFromTemplate('');
+            navigate(`${routePrivate.contract}?draftId=${draft.id}`);
 
             logger.info('Created new draft', { mode: selectedMode, draftId: draft.id });
         } catch (error) {
@@ -478,10 +474,8 @@ const ContractCollection: React.FC = () => {
 
         try {
             const draft = await createFromTemplate(template.id);
-
             // Navigate to appropriate stage based on mode and template
-            const targetStage = selectedMode === 'basic' ? 'basic_info' : 'content_draft';
-            navigate(`${routePrivate.contract}?draftId=${draft.id}&stage=${targetStage}`);
+            navigate(`${routePrivate.contract}?draftId=${draft.id}`);
 
             logger.info('Created draft from template', {
                 templateId: template.id,

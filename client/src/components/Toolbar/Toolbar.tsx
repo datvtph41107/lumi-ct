@@ -224,9 +224,9 @@ const Toolbar = () => {
                 <TextDecorationButton />
                 <div className={cx('vertical-block')} />
 
-                <LinkButton />
+                {/* <LinkButton />
                 <ImageButton />
-                <div className={cx('vertical-block')} />
+                <div className={cx('vertical-block')} /> */}
 
                 <AlignButton />
                 <ListButton />

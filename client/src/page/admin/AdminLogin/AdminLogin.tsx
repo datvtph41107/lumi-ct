@@ -1,6 +1,5 @@
 import Form from '~/components/Form';
 import Input from '~/components/Input';
-import type { LoginFormValues } from '~/types/auth/auth.types';
 import classNames from 'classnames/bind';
 import styles from './AdminLogin.module.scss';
 // import { loginUser } from "~/redux/slices/auth.slice";
@@ -9,6 +8,7 @@ import { useAppDispatch } from '~/redux/hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { routePrivate } from '~/config/routes.config';
 import { login } from '~/redux/slices/auth.slice';
+import type { LoginRequest } from '~/types/auth/auth.types';
 
 const cx = classNames.bind(styles);
 
@@ -17,13 +17,13 @@ const AdminLogin = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleSubmit = (data: LoginFormValues) => {
-        const dataMaster: LoginFormValues & { is_manager_login: boolean } = {
+    const handleSubmit = (data: LoginRequest) => {
+        const dataMaster: LoginRequest & { is_manager_login: boolean } = {
             ...data,
             is_manager_login: true,
         };
 
-        dispatch(login({ body: dataMaster }))
+        dispatch(login(dataMaster))
             .then(unwrapResult)
             .then((result) => {
                 console.log('Admin/Manager login thành công', result);
@@ -42,7 +42,7 @@ const AdminLogin = () => {
                 <h1 className={cx('title')}>Quản trị hệ thống</h1>
                 <p className={cx('subtitle')}>Dành cho Admin & Manager</p>
 
-                <Form<LoginFormValues>
+                <Form<LoginRequest>
                     onSubmit={handleSubmit}
                     defaultValues={{ username: '', password: '' }}
                     className={cx('form')}

@@ -164,6 +164,60 @@
 //     }
 // }
 
+.editor-control-group {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.page-tag {
+    // position: absolute;
+    background: var(--dark-main);
+    color: white;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 6px;
+
+    @media (max-width: 768px) {
+        font-size: 11px;
+        left: 1rem;
+    }
+}
+
+.page-control {
+    display: flex;
+    align-items: center;
+
+    .page-control_box {
+        background: var(--dark-main);
+        padding: 2px 6px;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+            // background-color: lighten(#364152, 10%);
+        }
+
+        &.box_left {
+            border-bottom-left-radius: 6px;
+            border-top-left-radius: 6px;
+            padding-left: 8px;
+        }
+
+        &.box_right {
+            border-bottom-right-radius: 6px;
+            border-top-right-radius: 6px;
+            padding-right: 8px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+}
+
 .editor-page {
     height: 100vh;
     display: flex;

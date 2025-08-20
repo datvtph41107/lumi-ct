@@ -1,0 +1,152 @@
+import { store } from '~/redux/store';
+import {
+    selectUser,
+    selectUserPermissions,
+    selectIsPermissionsLoaded,
+    selectPermissionCache,
+    setPermissionCache,
+    clearPermissionCache as clearPermissionCacheAction,
+    getUserPermissions,
+} from '~/redux/slices/auth.slice';
+
+export interface PermissionCheck {
+    resource: string;
+    action: string;
+    conditions?: Record<string, unknown>;
+}
+
+class AuthCoreService {
+    private static instance: AuthCoreService;
+
+    private constructor() {}
+
+    public static getInstance(): AuthCoreService {
+        if (!AuthCoreService.instance) {
+            AuthCoreService.instance = new AuthCoreService();
+        }
+        return AuthCoreService.instance;
+    }
+
+    // ==================== PERMISSION CHECKING (client-side, minimal) ====================
+    // Client defers enforcement to server guards. We only gate obvious manager-only actions.
+
+    hasPermission(resource: string, action: string, conditions?: Record<string, unknown>): boolean {
+        const state = store.getState();
+        const user = selectUser(state);
+        const userPerms = selectUserPermissions(state);
+        const permissionCache = selectPermissionCache(state);
+
+        if (!user) return false;
+
+        const cacheKey = `${user.id}:${resource}:${action}:${JSON.stringify(conditions || {})}`;
+        if (permissionCache.has(cacheKey)) return permissionCache.get(cacheKey)!;
+
+        let allowed = true;
+
+        // Manager-only patterns (example): approving contracts
+        if (resource === 'contract' && (action === 'approve' || action === 'reject')) {
+            const isManager = user.role?.toUpperCase() === 'MANAGER' || !!userPerms?.capabilities?.is_manager;
+            allowed = isManager;
+        }
+
+        // Cache & return
+        store.dispatch(setPermissionCache({ key: cacheKey, value: allowed }));
+        return allowed;
+    }
+
+    hasAnyPermission(permissions: PermissionCheck[]): boolean {
+        return permissions.some((p) => this.hasPermission(p.resource, p.action, p.conditions));
+    }
+
+    hasAllPermissions(permissions: PermissionCheck[]): boolean {
+        return permissions.every((p) => this.hasPermission(p.resource, p.action, p.conditions));
+    }
+
+    // ==================== ROLE CHECKING (mapped to SystemRole) ====================
+
+    hasRole(roleName: string): boolean {
+        const user = selectUser(store.getState());
+        const current = (user?.role || '').toString().toUpperCase();
+        const target = roleName.toString().toUpperCase();
+
+        // Map legacy names to system roles
+        if (target.includes('MANAGER')) return current === 'MANAGER';
+        if (target.includes('STAFF')) return current === 'STAFF';
+        // default: exact match
+        return current === target;
+    }
+
+    hasAnyRole(roleNames: string[]): boolean {
+        return roleNames.some((r) => this.hasRole(r));
+    }
+
+    hasAllRoles(roleNames: string[]): boolean {
+        return roleNames.every((r) => this.hasRole(r));
+    }
+
+    // ==================== USER PERMISSIONS MANAGEMENT ====================
+
+    async loadUserPermissions(): Promise<void> {
+        const state = store.getState();
+        const isLoaded = selectIsPermissionsLoaded(state);
+        if (!isLoaded) {
+            await store.dispatch(getUserPermissions()).unwrap();
+        }
+    }
+
+    getUserPermissions() {
+        return selectUserPermissions(store.getState());
+    }
+
+    getCurrentUser() {
+        return selectUser(store.getState());
+    }
+
+    clearPermissionCache(): void {
+        store.dispatch(clearPermissionCacheAction());
+    }
+
+    // ==================== CONTRACT-SPECIFIC HELPERS (thin wrappers) ====================
+
+    canCreateContract(contractType?: string): boolean {
+        return this.hasPermission('contract', 'create', { contractType });
+    }
+
+    canReadContract(contractId?: number, context?: Record<string, unknown>): boolean {
+        return this.hasPermission('contract', 'read', { contractId, ...(context || {}) });
+    }
+
+    canUpdateContract(contractId?: number, context?: Record<string, unknown>): boolean {
+        return this.hasPermission('contract', 'update', { contractId, ...(context || {}) });
+    }
+
+    canDeleteContract(contractId?: number, context?: Record<string, unknown>): boolean {
+        return this.hasPermission('contract', 'delete', { contractId, ...(context || {}) });
+    }
+
+    canApproveContract(contractId?: number, context?: Record<string, unknown>): boolean {
+        return this.hasPermission('contract', 'approve', { contractId, ...(context || {}) });
+    }
+
+    canRejectContract(contractId?: number, context?: Record<string, unknown>): boolean {
+        return this.hasPermission('contract', 'reject', { contractId, ...(context || {}) });
+    }
+
+    canExportContract(contractId?: number): boolean {
+        return this.hasPermission('contract', 'export', { contractId });
+    }
+
+    // ==================== STATUS HELPERS ====================
+
+    isAuthenticated(): boolean {
+        const state = store.getState();
+        return !!selectUser(state);
+    }
+
+    isPermissionsLoaded(): boolean {
+        return selectIsPermissionsLoaded(store.getState());
+    }
+}
+
+export const authCoreService = AuthCoreService.getInstance();
+export default AuthCoreService;

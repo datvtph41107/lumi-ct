@@ -33,4 +33,8 @@ export const routePrivate = {
     contractTypes: '/contracts/type',
 
     contractDetail: dynamicRoute('/contracts/:id', (id) => `/contracts/${id}`),
+
+    // Template management
+    templates: '/templates',
+    templateDetail: dynamicRoute('/templates/:id', (id) => `/templates/${id}`),
 };

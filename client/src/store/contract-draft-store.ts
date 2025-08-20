@@ -10,7 +10,7 @@ import type {
     ContractStructure as ContractContent,
 } from '~/types/contract/contract.types';
 import { contractDraftService } from '~/services/api/contract-draft.service';
-import { contractTemplateService } from '~/services/api/contract-template.service';
+import { templateService as contractTemplateService } from '~/services/api/template.service';
 import { contractService } from '~/services/api/contract.service';
 import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '~/core/Logger';

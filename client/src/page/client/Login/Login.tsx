@@ -2,13 +2,31 @@ import classNames from 'classnames/bind';
 import styles from './Login.module.scss';
 import Form from '~/components/Form';
 import Input from '~/components/Input';
-import type { LoginFormValues } from '~/types/auth/auth.types';
+import { useAppDispatch } from '~/redux/hooks';
+import { login } from '~/redux/slices/auth.slice';
+import { unwrapResult } from '@reduxjs/toolkit';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { routePrivate } from '~/config/routes.config';
+import type { LoginRequest } from '~/types/auth/auth.types';
 
 const cx = classNames.bind(styles);
 
 const Login = () => {
-    const handleSubmit = (data: LoginFormValues) => {
-        console.log('Login submitted:', data);
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const handleSubmit = (data: LoginRequest) => {
+        const payload = { ...data, is_manager_login: false } as LoginRequest & { is_manager_login: boolean };
+        dispatch(login(payload))
+            .then(unwrapResult)
+            .then(() => {
+                const from = location.state?.from?.pathname || routePrivate.dashboard;
+                navigate(from, { replace: true });
+            })
+            .catch((err) => {
+                console.error('Đăng nhập thất bại:', err);
+            });
     };
 
     return (
@@ -19,7 +37,7 @@ const Login = () => {
 
             <div className={cx('login-container')}>
                 {/* <h1 className={cx("title")}>Chào mừng bạn trở lại!</h1> */}
-                <Form<LoginFormValues>
+                <Form<LoginRequest>
                     onSubmit={handleSubmit}
                     defaultValues={{ username: '', password: '' }}
                     className={cx('form')}
