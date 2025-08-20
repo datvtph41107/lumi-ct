@@ -17,11 +17,10 @@ const buildElement = (route: PublicRouteType | PrivateRouteType, isPrivate: bool
 
     if (isPrivate) {
         const privateRoute = route as PrivateRouteType;
-        const fallbackPath = route.path.includes('/admin') ? '/admin/login' : '/login';
         const requiredRole = privateRoute.access?.roles || [];
 
         return (
-            <ProtectedRoute fallbackPath={fallbackPath} requiredRole={requiredRole}>
+            <ProtectedRoute requiredRole={requiredRole}>
                 <LayoutComp>
                     <Page />
                 </LayoutComp>

@@ -12,7 +12,7 @@ import type { ContractFormData } from '~/types/contract/contract.types';
 import styles from './BasicContractForm.module.scss';
 import classNames from 'classnames/bind';
 import type { FieldErrors } from 'react-hook-form';
-import { convertDateRange } from '~/utils/contract';
+import { convertDateRange } from '~/utils/contract.utils';
 import { useAutoSave } from '~/hooks/useAutoSave';
 import { useContractDraftStore } from '~/store/contract-draft-store';
 

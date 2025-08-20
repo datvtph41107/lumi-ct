@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { useState } from "react";
-import classNames from "classnames/bind";
-import styles from "../SidebarRight.module.scss";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faChevronUp, faChevronDown, faPlus, faCheck, faTrash } from "@fortawesome/free-solid-svg-icons";
-import type { Deliverable } from "~/hooks/useContractForm";
-import { formatDate } from "~/utils/contract";
+import type React from 'react';
+import { useState } from 'react';
+import classNames from 'classnames/bind';
+import styles from '../SidebarRight.module.scss';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEdit, faChevronUp, faChevronDown, faPlus, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import type { Deliverable } from '~/hooks/useContractForm';
+import { formatDate } from '~/utils/contract.utils';
 
 const cx = classNames.bind(styles);
 
@@ -50,7 +50,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
     deliverables,
     setDeliverables,
 }) => {
-    const [newDeliverable, setNewDeliverable] = useState("");
+    const [newDeliverable, setNewDeliverable] = useState('');
 
     const addDeliverable = () => {
         if (newDeliverable.trim()) {
@@ -60,7 +60,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                 completed: false,
             };
             setDeliverables([...deliverables, newItem]);
-            setNewDeliverable("");
+            setNewDeliverable('');
         }
     };
 
@@ -73,26 +73,26 @@ const ContentSection: React.FC<ContentSectionProps> = ({
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+        if (e.key === 'Enter') {
             addDeliverable();
         }
     };
 
     return (
-        <div className={cx("section")}>
-            <div className={cx("header_right")} onClick={onToggle}>
-                <div className={cx("header_right-layer")}>
+        <div className={cx('section')}>
+            <div className={cx('header_right')} onClick={onToggle}>
+                <div className={cx('header_right-layer')}>
                     <h4>
                         <FontAwesomeIcon icon={faEdit} /> Nội dung hợp đồng
                     </h4>
                     <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} />
                 </div>
-                <p className={cx("subtext")}>Chi tiết phạm vi công việc và điều khoản hợp đồng</p>
+                <p className={cx('subtext')}>Chi tiết phạm vi công việc và điều khoản hợp đồng</p>
             </div>
 
             {isExpanded && (
-                <div className={cx("section-content")}>
-                    <div className={cx("field")}>
+                <div className={cx('section-content')}>
+                    <div className={cx('field')}>
                         <label>Mục đích hợp đồng</label>
                         <textarea
                             value={projectDescription}
@@ -102,34 +102,34 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                         />
                     </div>
 
-                    <div className={cx("field")}>
+                    <div className={cx('field')}>
                         <label>Giá trị hợp đồng (VNĐ)</label>
                         <input
                             type="text"
                             value={contractValue}
                             onChange={handleContractValueChange}
                             placeholder="0"
-                            className={cx("contract-value")}
+                            className={cx('contract-value')}
                         />
                     </div>
 
-                    <div className={cx("field", "date-range")}>
+                    <div className={cx('field', 'date-range')}>
                         <div>
                             <label>Ngày bắt đầu</label>
-                            <div className={cx("date-display")} onClick={() => setShowDatePicker(true)}>
-                                📅 {formatDate(startDate) || "Chọn ngày"}
+                            <div className={cx('date-display')} onClick={() => setShowDatePicker(true)}>
+                                📅 {formatDate(startDate) || 'Chọn ngày'}
                             </div>
                         </div>
                         <div>
                             <label>Ngày kết thúc</label>
-                            <div className={cx("date-display")} onClick={() => setShowDatePicker(true)}>
-                                📅 {formatDate(endDate) || "Chọn ngày"}
+                            <div className={cx('date-display')} onClick={() => setShowDatePicker(true)}>
+                                📅 {formatDate(endDate) || 'Chọn ngày'}
                             </div>
                         </div>
                     </div>
 
-                    <div className={cx("field-row")}>
-                        <div className={cx("field")}>
+                    <div className={cx('field-row')}>
+                        <div className={cx('field')}>
                             <label>Phương thức</label>
                             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
                                 <option value="Chuyển khoản">Chuyển khoản</option>
@@ -138,7 +138,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                                 <option value="Khác">Khác</option>
                             </select>
                         </div>
-                        <div className={cx("field")}>
+                        <div className={cx('field')}>
                             <label>Lịch thanh toán</label>
                             <select value={paymentSchedule} onChange={(e) => setPaymentSchedule(e.target.value)}>
                                 <option value="Thanh toán theo tiến độ">Theo tiến độ</option>
@@ -149,7 +149,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                         </div>
                     </div>
 
-                    <div className={cx("field")}>
+                    <div className={cx('field')}>
                         <label>Điều kiện nghiệm thu</label>
                         <textarea
                             value={acceptanceConditions}
@@ -159,34 +159,37 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                         />
                     </div>
 
-                    <div className={cx("field")}>
+                    <div className={cx('field')}>
                         <label>Sản phẩm bàn giao</label>
-                        <div className={cx("deliverable-input")}>
+                        <div className={cx('deliverable-input')}>
                             <input
                                 placeholder="Thêm sản phẩm bàn giao mới..."
                                 value={newDeliverable}
                                 onChange={(e) => setNewDeliverable(e.target.value)}
                                 onKeyPress={handleKeyPress}
                             />
-                            <button className={cx("add-btn")} onClick={addDeliverable}>
+                            <button className={cx('add-btn')} onClick={addDeliverable}>
                                 <FontAwesomeIcon icon={faPlus} />
                             </button>
                         </div>
                     </div>
 
                     {deliverables.length > 0 && (
-                        <div className={cx("added-list")}>
-                            <p className={cx("label")}>Sản phẩm bàn giao ({deliverables.length})</p>
+                        <div className={cx('added-list')}>
+                            <p className={cx('label')}>Sản phẩm bàn giao ({deliverables.length})</p>
                             <ul>
                                 {deliverables.map((deliverable) => (
                                     <li key={deliverable.id} className={cx({ completed: deliverable.completed })}>
-                                        <span className={cx("checkbox")} onClick={() => toggleDeliverable(deliverable.id)}>
+                                        <span
+                                            className={cx('checkbox')}
+                                            onClick={() => toggleDeliverable(deliverable.id)}
+                                        >
                                             {deliverable.completed && <FontAwesomeIcon icon={faCheck} />}
                                         </span>
-                                        <span className={cx("text")}>{deliverable.text}</span>
+                                        <span className={cx('text')}>{deliverable.text}</span>
                                         <FontAwesomeIcon
                                             icon={faTrash}
-                                            className={cx("trash")}
+                                            className={cx('trash')}
                                             onClick={() => removeDeliverable(deliverable.id)}
                                         />
                                     </li>

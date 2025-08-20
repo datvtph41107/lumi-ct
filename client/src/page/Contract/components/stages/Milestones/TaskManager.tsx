@@ -1,15 +1,15 @@
-import type React from "react";
-import { useState } from "react";
-import classNames from "classnames/bind";
-import styles from "./TaskManager.module.scss";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash, faEdit, faClock, faUser, faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
-import Button from "~/components/Button";
-import Input from "~/components/Input";
-import TextArea from "~/components/TextArea";
-import ControllerDropdown from "~/components/Form/ControllerValid/ControllerDropdown";
-import type { Task } from "~/types/contract/contract.types";
-import { calculateEstimatedHours, dateToISOString, isoStringToDate } from "~/utils/contract";
+import type React from 'react';
+import { useState } from 'react';
+import classNames from 'classnames/bind';
+import styles from './TaskManager.module.scss';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faTrash, faEdit, faClock, faUser, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import Button from '~/components/Button';
+import Input from '~/components/Input';
+import TextArea from '~/components/TextArea';
+import ControllerDropdown from '~/components/Form/ControllerValid/ControllerDropdown';
+import type { Task } from '~/types/contract/contract.types';
+import { calculateEstimatedHours, dateToISOString, isoStringToDate } from '~/utils/contract.utils';
 
 const cx = classNames.bind(styles);
 
@@ -40,9 +40,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [showTaskForm, setShowTaskForm] = useState(false);
     const [formData, setFormData] = useState<TaskFormData>({
-        name: "",
-        description: "",
-        assignee: "",
+        name: '',
+        description: '',
+        assignee: '',
         startDate: null,
         endDate: null,
         estimatedHours: 0,
@@ -51,9 +51,9 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
 
     const resetForm = () => {
         setFormData({
-            name: "",
-            description: "",
-            assignee: "",
+            name: '',
+            description: '',
+            assignee: '',
             startDate: null,
             endDate: null,
             estimatedHours: 0,
@@ -65,11 +65,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
         const newErrors: FormErrors = {};
 
         if (!formData.name.trim()) {
-            newErrors.name = "Vui lòng nhập tên công việc";
+            newErrors.name = 'Vui lòng nhập tên công việc';
         }
 
         if (!formData.assignee) {
-            newErrors.assignee = "Vui lòng chọn người thực hiện";
+            newErrors.assignee = 'Vui lòng chọn người thực hiện';
         }
 
         // if (!formData.startDate || !formData.endDate) {
@@ -79,7 +79,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
         // }
 
         if (formData.estimatedHours <= 0) {
-            newErrors.estimatedHours = "Thời gian ước tính phải lớn hơn 0";
+            newErrors.estimatedHours = 'Thời gian ước tính phải lớn hơn 0';
         }
 
         setErrors(newErrors);
@@ -93,7 +93,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
             const newData = { ...prev, [field]: value };
 
             // Auto-calculate estimated hours when dates change
-            if (field === "startDate" || field === "endDate") {
+            if (field === 'startDate' || field === 'endDate') {
                 if (newData.startDate && newData.endDate) {
                     newData.estimatedHours = calculateEstimatedHours(newData.startDate, newData.endDate);
                 }
@@ -118,7 +118,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
             id: Date.now().toString(),
             name: formData.name,
             description: formData.description,
-            assignee: employees.find((emp) => emp.value === formData.assignee)?.label || "",
+            assignee: employees.find((emp) => emp.value === formData.assignee)?.label || '',
             timeRange: {
                 // startDate: dateToISOString(startDate),
                 // endDate: dateToISOString(endDate),
@@ -139,7 +139,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
         setFormData({
             name: task.name,
             description: task.description,
-            assignee: employees.find((emp) => emp.label === task.assignee)?.value || "",
+            assignee: employees.find((emp) => emp.label === task.assignee)?.value || '',
             startDate: isoStringToDate(task.timeRange.startDate),
             endDate: isoStringToDate(task.timeRange.endDate),
             estimatedHours: task.timeRange.estimatedHours,
@@ -156,7 +156,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
             ...editingTask,
             name: formData.name,
             description: formData.description,
-            assignee: employees.find((emp) => emp.value === formData.assignee)?.label || "",
+            assignee: employees.find((emp) => emp.value === formData.assignee)?.label || '',
             timeRange: {
                 startDate: dateToISOString(startDate),
                 endDate: dateToISOString(endDate),
@@ -192,22 +192,28 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
     };
 
     return (
-        <div className={cx("task-manager")}>
-            <div className={cx("section-header")}>
-                <h3 className={cx("section-title")}>Công việc trong mốc thời gian</h3>
+        <div className={cx('task-manager')}>
+            <div className={cx('section-header')}>
+                <h3 className={cx('section-title')}>Công việc trong mốc thời gian</h3>
                 {!showTaskForm && (
-                    <Button type="button" medium outline onClick={openAddTaskForm} leftIcon={<FontAwesomeIcon icon={faPlus} />}>
+                    <Button
+                        type="button"
+                        medium
+                        outline
+                        onClick={openAddTaskForm}
+                        leftIcon={<FontAwesomeIcon icon={faPlus} />}
+                    >
                         Thêm công việc
                     </Button>
                 )}
             </div>
 
             {showTaskForm && (
-                <div className={cx("task-form-wrapper")}>
-                    <div className={cx("task-form")}>
-                        <div className={cx("form-header")}>
-                            <h4>{editingTask ? "Chỉnh sửa công việc" : "Thêm công việc mới"}</h4>
-                            <div onClick={handleCancelEdit} className={cx("cancelled")}>
+                <div className={cx('task-form-wrapper')}>
+                    <div className={cx('task-form')}>
+                        <div className={cx('form-header')}>
+                            <h4>{editingTask ? 'Chỉnh sửa công việc' : 'Thêm công việc mới'}</h4>
+                            <div onClick={handleCancelEdit} className={cx('cancelled')}>
                                 <FontAwesomeIcon icon={faTimes} /> Hủy
                             </div>
                         </div>
@@ -217,7 +223,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
                             label="Tên công việc"
                             placeholder="Nhập tên công việc"
                             value={formData.name}
-                            onChange={(value) => handleInputChange("name", value)}
+                            onChange={(value) => handleInputChange('name', value)}
                             error={errors.name}
                         />
 
@@ -227,17 +233,17 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
                             placeholder="Mô tả chi tiết công việc"
                             rows={2}
                             value={formData.description}
-                            onChange={(value) => handleInputChange("description", value)}
+                            onChange={(value) => handleInputChange('description', value)}
                         />
 
-                        <div className={cx("grid-cols-2")}>
+                        <div className={cx('grid-cols-2')}>
                             <ControllerDropdown
                                 name="taskAssignee"
                                 label="Người thực hiện"
                                 options={employees}
                                 placeholder="-- Chọn người thực hiện --"
                                 value={formData.assignee}
-                                onChange={(value) => handleInputChange("assignee", value)}
+                                onChange={(value) => handleInputChange('assignee', value)}
                                 error={errors.assignee}
                             />
 
@@ -249,12 +255,12 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
                                 min="0.1"
                                 step="0.1"
                                 value={formData.estimatedHours}
-                                onChange={(value) => handleInputChange("estimatedHours", Number(value))}
+                                onChange={(value) => handleInputChange('estimatedHours', Number(value))}
                                 error={errors.estimatedHours}
                             />
                         </div>
 
-                        <div className={cx("form-actions")}>
+                        <div className={cx('form-actions')}>
                             {editingTask ? (
                                 <>
                                     <Button
@@ -293,23 +299,25 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
             )}
 
             {tasks.length > 0 && (
-                <div className={cx("task-list")}>
-                    <label className={cx("tasks-label")}>Danh sách công việc ({tasks.length}):</label>
+                <div className={cx('task-list')}>
+                    <label className={cx('tasks-label')}>Danh sách công việc ({tasks.length}):</label>
                     {tasks.map((task) => (
-                        <div key={task.id} className={cx("task-item", { completed: task.completed })}>
-                            <div className={cx("task-info")}>
-                                <div className={cx("task-header")}>
-                                    <div className={cx("task-name")}>
+                        <div key={task.id} className={cx('task-item', { completed: task.completed })}>
+                            <div className={cx('task-info')}>
+                                <div className={cx('task-header')}>
+                                    <div className={cx('task-name')}>
                                         <span className={cx({ completed: task.completed })}>{task.name}</span>
                                     </div>
-                                    <div className={cx("task-actions")}>
+                                    <div className={cx('task-actions')}>
                                         <Button
                                             small
                                             primary
                                             rounded
                                             onClick={() => handleEditTask(task)}
-                                            className={cx("button", "ghost", "small")}
-                                            leftIcon={<FontAwesomeIcon icon={faEdit} className={cx("icon", "icon-small")} />}
+                                            className={cx('button', 'ghost', 'small')}
+                                            leftIcon={
+                                                <FontAwesomeIcon icon={faEdit} className={cx('icon', 'icon-small')} />
+                                            }
                                         >
                                             Chỉnh sửa
                                         </Button>
@@ -318,22 +326,26 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
                                             outline
                                             rounded
                                             onClick={() => setShowDeleteConfirm(task.id)}
-                                            className={cx("button", "ghost", "small", "danger")}
-                                            leftIcon={<FontAwesomeIcon icon={faTrash} className={cx("icon", "icon-small")} />}
+                                            className={cx('button', 'ghost', 'small', 'danger')}
+                                            leftIcon={
+                                                <FontAwesomeIcon icon={faTrash} className={cx('icon', 'icon-small')} />
+                                            }
                                         >
                                             Xóa
                                         </Button>
                                     </div>
                                 </div>
 
-                                <div className={cx("task-meta")}>
-                                    <FontAwesomeIcon icon={faUser} className={cx("icon", "icon-small")} />
+                                <div className={cx('task-meta')}>
+                                    <FontAwesomeIcon icon={faUser} className={cx('icon', 'icon-small')} />
                                     {task.assignee} •
-                                    <FontAwesomeIcon icon={faClock} className={cx("icon", "icon-small")} />
+                                    <FontAwesomeIcon icon={faClock} className={cx('icon', 'icon-small')} />
                                     {task.timeRange.estimatedHours}h
                                 </div>
 
-                                {task.description && <div className={cx("task-description")}>Mô tả: {task.description}</div>}
+                                {task.description && (
+                                    <div className={cx('task-description')}>Mô tả: {task.description}</div>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -341,11 +353,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ tasks, onTasksChange, employe
             )}
 
             {showDeleteConfirm && (
-                <div className={cx("modal-overlay")}>
-                    <div className={cx("modal")}>
+                <div className={cx('modal-overlay')}>
+                    <div className={cx('modal')}>
                         <h3>Xác nhận xóa công việc</h3>
                         <p>Bạn có chắc chắn muốn xóa công việc này? Hành động này không thể hoàn tác.</p>
-                        <div className={cx("modal-actions")}>
+                        <div className={cx('modal-actions')}>
                             <Button primary small onClick={() => handleDeleteTask(showDeleteConfirm)}>
                                 Xóa
                             </Button>

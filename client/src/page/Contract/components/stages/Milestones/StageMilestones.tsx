@@ -27,7 +27,7 @@ import Button from '~/components/Button';
 import type { MilestoneFormData, Milestone, Task } from '~/types/contract/contract.types';
 import { useContractForm } from '~/hooks/useContractForm';
 import Badge from '~/components/Badge';
-import { convertDateRange, convertTimeRange, formatDateForDisplay, validateDateRange } from '~/utils/contract';
+import { convertDateRange, convertTimeRange, formatDateForDisplay, validateDateRange } from '~/utils/contract.utils';
 import { useContractStore } from '~/store/contract-store';
 
 const cx = classNames.bind(styles);

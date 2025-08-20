@@ -1,13 +1,13 @@
-import classNames from "classnames/bind";
-import styles from "./Sidebar.module.scss";
-import { sidebarItems } from "./sidebarItems";
-import { useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
-import SidebarHeader from "./SidebarHeader";
-import SidebarMenuItem from "./SidebarMenuItem";
-import SidebarSection from "./SidebarSection";
-import SidebarFooter from "./SidebarFooter";
-import NotificationModal from "./NotificationModal";
+import classNames from 'classnames/bind';
+import styles from './Sidebar.module.scss';
+import { sidebarItems } from './sidebarItems';
+import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import SidebarHeader from './SidebarHeader';
+import SidebarMenuItem from './SidebarMenuItem';
+import SidebarSection from './SidebarSection';
+import SidebarFooter from './SidebarFooter';
+import NotificationModal from './NotificationModal';
 
 const cx = classNames.bind(styles);
 
@@ -26,15 +26,19 @@ const Sidebar = ({ collapsed, showChildren, onToggle }: SidebarProps) => {
 
     useEffect(() => {
         const matchedItem = sidebarItems
-            .flatMap((item) => ("items" in item ? item.items : [item]))
+            .flatMap((item) => ('items' in item ? item.items : [item]))
             .find((i) => i.path === location.pathname);
 
         if (matchedItem?.label) {
             setActiveLabel(matchedItem.label);
             setDefaultActiveLabel(matchedItem.label);
-            const matchedSection = sidebarItems.find((item) => "items" in item && item.items.some((i) => i.label === matchedItem.label));
-            if (matchedSection && "section" in matchedSection) {
-                setOpenSections((prev) => (prev.includes(matchedSection.section) ? prev : [...prev, matchedSection.section]));
+            const matchedSection = sidebarItems.find(
+                (item) => 'items' in item && item.items.some((i) => i.label === matchedItem.label),
+            );
+            if (matchedSection && 'section' in matchedSection) {
+                setOpenSections((prev) =>
+                    prev.includes(matchedSection.section) ? prev : [...prev, matchedSection.section],
+                );
             }
         }
     }, [location.pathname]);
@@ -51,13 +55,12 @@ const Sidebar = ({ collapsed, showChildren, onToggle }: SidebarProps) => {
     };
 
     return (
-        <div className={cx("sidebar", { collapsed, "show-children": showChildren && !collapsed, animated: true })}>
+        <div className={cx('sidebar', { collapsed, 'show-children': showChildren && !collapsed, animated: true })}>
             <SidebarHeader collapsed={collapsed} onToggle={onToggle} />
-
-            <div className={cx("side-content")}>
-                <div className={cx("group-section")}>
+            <div className={cx('side-content')}>
+                <div className={cx('group-section')}>
                     {sidebarItems.map((item, index) => {
-                        if ("label" in item) {
+                        if ('label' in item) {
                             return (
                                 <SidebarMenuItem
                                     key={index}
@@ -73,7 +76,7 @@ const Sidebar = ({ collapsed, showChildren, onToggle }: SidebarProps) => {
                             );
                         }
 
-                        if ("section" in item && Array.isArray(item.items)) {
+                        if ('section' in item && Array.isArray(item.items)) {
                             return (
                                 <SidebarSection
                                     key={index}
@@ -94,7 +97,6 @@ const Sidebar = ({ collapsed, showChildren, onToggle }: SidebarProps) => {
                 </div>
                 <SidebarFooter collapsed={collapsed} />
             </div>
-
             {showNotifModal && (
                 <NotificationModal
                     onClose={() => {

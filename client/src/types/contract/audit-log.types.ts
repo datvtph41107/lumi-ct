@@ -3,7 +3,7 @@ export interface AuditLog {
     contract_id?: string;
     user_id?: number;
     action: string;
-    meta?: Record<string, any>;
+    meta?: Record<string, unknown>;
     description?: string;
     created_at: string;
     user_name?: string;

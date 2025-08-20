@@ -26,6 +26,9 @@ import SystemNotifications from '~/page/admin/SystemNotifications';
 import SystemNotificationsQueue from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
 import RolePermissionManagement from '~/page/admin/RolePermissionManagement/role-permission-management';
+import { routePrivate } from '~/config/routes.config';
+import UserLogDetail from '~/page/admin/UserManagement/UserLogDetail';
+import ContractManagement from '~/page/admin/ContractManagement/ContractManagement';
 
 // Route interfaces
 interface BaseRoute {
@@ -101,9 +104,30 @@ export const privateRoutes: PrivateRoute[] = [
 
     // User Management - Admin only
     {
-        path: '/admin/users',
+        path: routePrivate.adminStaffs,
         component: UserManagement,
-        layout: AdminLayout,
+        layout: DefaultLayout,
+        access: {
+            roles: [ROLE.MANAGER],
+            permissions: [PERMISSION.USER_MANAGEMENT],
+            requireAll: false,
+        },
+    },
+    {
+        path: routePrivate.adminUserDetail.path,
+        component: UserLogDetail,
+        layout: DefaultLayout,
+        access: {
+            roles: [ROLE.MANAGER],
+            permissions: [PERMISSION.USER_MANAGEMENT],
+            requireAll: false,
+        },
+    },
+
+    {
+        path: routePrivate.adminContracts,
+        component: ContractManagement,
+        layout: DefaultLayout,
         access: {
             roles: [ROLE.MANAGER],
             permissions: [PERMISSION.USER_MANAGEMENT],
@@ -190,7 +214,7 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     {
-        path: config.routePrivate.contractDetail,
+        path: config.routePrivate.contractDetail.path,
         component: ContractDetail, // Replace with actual ContractDetail component
         layout: DefaultLayout,
         access: {

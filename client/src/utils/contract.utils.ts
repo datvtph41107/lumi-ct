@@ -146,3 +146,31 @@ export const generateContractCode = (contractType: string, date = new Date(), se
 
     return `${prefix}-${yyyymmdd}-${serialNumber}`;
 };
+
+export const getContractStatusLabel = (status: string): string => {
+    switch (status) {
+        case 'active':
+            return 'Đang thực hiện';
+        case 'completed':
+            return 'Hoàn thành';
+        case 'pending':
+            return 'Chờ xử lý';
+        default:
+            return status;
+    }
+};
+
+export const getContractRoleLabel = (role: string): string => {
+    switch (role) {
+        case 'owner':
+            return 'Chủ sở hữu';
+        case 'editor':
+            return 'Biên tập';
+        case 'reviewer':
+            return 'Đánh giá';
+        case 'viewer':
+            return 'Xem';
+        default:
+            return role;
+    }
+};

@@ -3,6 +3,7 @@ export interface User {
     id: number;
     name: string;
     username: string;
+    email?: string;
     role: string; // e.g. "ADMIN", "MANAGER"
     status: string; // e.g. "active", "inactive"
     department_id?: number; // optional nếu có
@@ -38,7 +39,7 @@ export const ROLE = {
     STAFF: 'STAFF',
     MANAGER: 'MANAGER',
     ADMIN: 'ADMIN',
-} as const;
+};
 
 export type Role = (typeof ROLE)[keyof typeof ROLE]; // "USER" | "STAFF" | "MANAGER" | "ADMIN"
 

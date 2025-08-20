@@ -287,3 +287,32 @@ export interface Contract {
     contract_code?: string;
     name?: string;
 }
+
+export interface ContractUserDetail {
+    id: string;
+    title: string;
+    status: 'active' | 'completed' | 'pending';
+    role: 'owner' | 'editor' | 'reviewer' | 'viewer';
+    startDate: string;
+    endDate?: string;
+    progress: number;
+    mode: 'basicForm' | 'editor';
+    previewImage?: string;
+    description?: string;
+    userActivities?: UserActivity[];
+    assignedTasks?: string[];
+    participants?: Participant[];
+}
+
+export interface UserActivity {
+    id: string;
+    action: string;
+    description: string;
+    timestamp: string;
+}
+
+export interface Participant {
+    id: string;
+    name: string;
+    role: string;
+}

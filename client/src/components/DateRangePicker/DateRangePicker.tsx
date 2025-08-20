@@ -1,9 +1,15 @@
-import type React from "react";
-import { useState, useRef, useEffect } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCalendarAlt, faChevronDown, faChevronLeft, faChevronRight, faTimes } from "@fortawesome/free-solid-svg-icons";
-import styles from "./DateRangePicker.module.scss";
-import classNames from "classnames/bind";
+import type React from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faCalendarAlt,
+    faChevronDown,
+    faChevronLeft,
+    faChevronRight,
+    faTimes,
+} from '@fortawesome/free-solid-svg-icons';
+import styles from './DateRangePicker.module.scss';
+import classNames from 'classnames/bind';
 
 const cx = classNames.bind(styles);
 
@@ -38,16 +44,16 @@ const isSameDay = (a: Date | string | null, b: Date | string | null): boolean =>
 
 const formatDate = (input: Date | string | null): string => {
     const date = parseDate(input);
-    if (!date) return "";
-    const str = date.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+    if (!date) return '';
+    const str = date.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' });
     const vn = new Date(str);
-    return `${String(vn.getDate()).padStart(2, "0")}/${String(vn.getMonth() + 1).padStart(2, "0")}/${vn.getFullYear()}`;
+    return `${String(vn.getDate()).padStart(2, '0')}/${String(vn.getMonth() + 1).padStart(2, '0')}/${vn.getFullYear()}`;
 };
 
 const DateRangePicker: React.FC<Props> = ({
     value = { startDate: null, endDate: null },
     onChange,
-    placeholder = "Chọn khoảng thời gian",
+    placeholder = 'Chọn khoảng thời gian',
     disabled = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -61,8 +67,8 @@ const DateRangePicker: React.FC<Props> = ({
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsOpen(false);
         };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const getDaysInMonth = (date: Date) => {
@@ -113,8 +119,8 @@ const DateRangePicker: React.FC<Props> = ({
         setSelectingStart(true);
     };
 
-    const navigateMonth = (dir: "next" | "prev") => {
-        const diff = dir === "next" ? 1 : -1;
+    const navigateMonth = (dir: 'next' | 'prev') => {
+        const diff = dir === 'next' ? 1 : -1;
         setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + diff, 1));
     };
 
@@ -128,49 +134,52 @@ const DateRangePicker: React.FC<Props> = ({
     const days = getDaysInMonth(currentMonth);
 
     return (
-        <div className={cx("date-range-picker")} ref={dropdownRef}>
-            <div className={cx("date-input", { disabled })} onClick={() => !disabled && setIsOpen(!isOpen)}>
-                <FontAwesomeIcon icon={faCalendarAlt} className={cx("calendar-icon")} />
-                <span className={cx("date-text", { placeholder: !value.startDate && !value.endDate })}>{displayText}</span>
+        <div className={cx('date-range-picker')} ref={dropdownRef}>
+            <div className={cx('date-input', { disabled })} onClick={() => !disabled && setIsOpen(!isOpen)}>
+                <FontAwesomeIcon icon={faCalendarAlt} className={cx('calendar-icon')} />
+                <span className={cx('date-text', { placeholder: !value.startDate && !value.endDate })}>
+                    {displayText}
+                </span>
                 {(value.startDate || value.endDate) && (
-                    <button type="button" className={cx("clear-button")} onClick={handleClear}>
+                    <button type="button" className={cx('clear-button')} onClick={handleClear}>
                         <FontAwesomeIcon icon={faTimes} />
                     </button>
                 )}
-                <FontAwesomeIcon icon={faChevronDown} className={cx("dropdown-icon", { open: isOpen })} />
+                <FontAwesomeIcon icon={faChevronDown} className={cx('dropdown-icon', { open: isOpen })} />
             </div>
 
             {isOpen && (
-                <div className={cx("calendar-dropdown")}>
-                    <div className={cx("calendar-header")}>
-                        <button className={cx("nav-button")} onClick={() => navigateMonth("prev")}>
+                <div className={cx('calendar-dropdown')}>
+                    <div className={cx('calendar-header')}>
+                        <button className={cx('nav-button')} onClick={() => navigateMonth('prev')}>
                             <FontAwesomeIcon icon={faChevronLeft} />
                         </button>
-                        <h3 className={cx("month-year")}>
+                        <h3 className={cx('month-year')}>
                             Tháng {currentMonth.getMonth() + 1} {currentMonth.getFullYear()}
                         </h3>
-                        <button className={cx("nav-button")} onClick={() => navigateMonth("next")}>
+                        <button className={cx('nav-button')} onClick={() => navigateMonth('next')}>
                             <FontAwesomeIcon icon={faChevronRight} />
                         </button>
                     </div>
 
-                    <div className={cx("calendar-grid")}>
-                        <div className={cx("weekdays")}>
-                            {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((d) => (
-                                <div key={d} className={cx("weekday")}>
+                    <div className={cx('calendar-grid')}>
+                        <div className={cx('weekdays')}>
+                            {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((d) => (
+                                <div key={d} className={cx('weekday')}>
                                     {d}
                                 </div>
                             ))}
                         </div>
-                        <div className={cx("days")}>
+                        <div className={cx('days')}>
                             {days.map((date, i) => (
-                                <div key={i} className={cx("day-cell")}>
+                                <div key={i} className={cx('day-cell')}>
                                     {date && (
                                         <button
                                             type="button"
-                                            className={cx("day", {
-                                                selected: isSameDay(date, value.startDate) || isSameDay(date, value.endDate),
-                                                "in-range": isDateInRange(date),
+                                            className={cx('day', {
+                                                selected:
+                                                    isSameDay(date, value.startDate) || isSameDay(date, value.endDate),
+                                                'in-range': isDateInRange(date),
                                                 today: isSameDay(date, today),
                                                 disabled: isDateDisabled(date),
                                             })}
