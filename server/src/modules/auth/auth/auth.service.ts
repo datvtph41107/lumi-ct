@@ -1,9 +1,8 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-import { UiCapabilities } from '@/core/shared/types/auth.types';
 import { Role as SystemRole } from '@/core/shared/enums/base.enums';
 
 @Injectable()
@@ -45,22 +44,7 @@ export class AuthService {
         this.clearUserCache(userId);
     }
 
-    async validateSession(sessionId: string): Promise<User> {
-        const session = await this.sessionRepository.findOne({ where: { session_id: sessionId, is_active: true } });
-        if (!session) throw new UnauthorizedException('Session không hợp lệ');
-        if (session.expires_at < new Date()) {
-            await this.invalidateSession(session.id, 'expired');
-            throw new UnauthorizedException('Session đã hết hạn');
-        }
-        const user = await this.userRepository.findOne({ where: { id: session.user_id } });
-        if (!user || !user.is_active) {
-            await this.invalidateSession(session.id, 'user_inactive');
-            throw new UnauthorizedException('Tài khoản đã bị vô hiệu hóa');
-        }
-        session.last_activity = new Date();
-        await this.sessionRepository.save(session);
-        return user;
-    }
+    // validateSession currently unused; keep minimal helpers if needed later
 
     async updateActivity(sessionId: string): Promise<void> {
         await this.sessionRepository.update({ session_id: sessionId }, { last_activity: new Date() });

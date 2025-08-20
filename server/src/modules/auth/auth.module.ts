@@ -25,9 +25,6 @@ import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 
-// Core Services
-import { AuthService as AuthCoreService } from './auth/auth.service';
-
 @Module({
     imports: [
         LoggerModule,
@@ -39,8 +36,8 @@ import { AuthService as AuthCoreService } from './auth/auth.service';
             imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
-                privateKey: configService.getOrThrow<string>('ACCESS_TOKEN_PRIVATE_KEY').replace(/\\n/g, '\n'),
-                publicKey: configService.getOrThrow<string>('ACCESS_TOKEN_PUBLIC_KEY').replace(/\\n/g, '\n'),
+                privateKey: configService.getOrThrow<string>('ACCESS_TOKEN_PRIVATE_KEY').replace(/\n/g, '\n'),
+                publicKey: configService.getOrThrow<string>('ACCESS_TOKEN_PUBLIC_KEY').replace(/\n/g, '\n'),
                 signOptions: {
                     algorithm: 'RS256',
                     expiresIn: '15m',
@@ -65,12 +62,11 @@ import { AuthService as AuthCoreService } from './auth/auth.service';
         },
         // Token & Auth core services
         TokenService,
-        AuthCoreService,
         // Strategy & Guards
         JwtStrategy,
         AuthGuardAccess,
         RolesGuard,
     ],
-    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, AuthCoreService, RolesGuard],
+    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, RolesGuard],
 })
 export class AuthModule {}

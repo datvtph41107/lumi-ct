@@ -2,7 +2,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AuthService as AuthCoreService } from '@/modules/auth/auth/auth.service';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractDraft } from '@/core/domain/contract/contract-draft.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
@@ -41,7 +40,6 @@ export class ContractService {
         @InjectRepository(Milestone) private readonly milestoneRepository: Repository<Milestone>,
         @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
         private readonly dataSource: DataSource,
-        private readonly authCoreService: AuthCoreService,
         private readonly notificationService: NotificationService,
         private readonly auditLogService: AuditLogService,
         private readonly collaboratorService: CollaboratorService,

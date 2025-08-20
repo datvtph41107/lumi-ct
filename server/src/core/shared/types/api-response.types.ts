@@ -110,6 +110,7 @@ export interface UpdateDepartmentManagerRequest {
 // Auth Types
 export interface LoginResponse {
     accessToken: string;
+    sessionId: string;
     tokenExpiry: number;
     user: {
         id: number;

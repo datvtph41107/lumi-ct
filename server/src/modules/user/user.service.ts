@@ -15,7 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { Role, Status } from '@/core/shared/enums/base.enums';
 import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import { ERROR_MESSAGES } from '@/core/shared/constants/error-message';
-import { isManager, getPrimaryRole } from '@/core/shared/utils/role.utils';
+import { isManager, getPrimaryRole } from '@/common/utils/role.utils';
 import {
     UserResponse,
     PaginatedResponse,
@@ -124,7 +124,6 @@ export class UserService {
             const userRepo = this.db.getRepository(User);
             const users = await userRepo.find({
                 where: { role: Role.STAFF, department_id: creator.department?.id },
-                relations: ['department'],
             });
 
             return users.map((user) => ({
@@ -132,11 +131,11 @@ export class UserService {
                 username: user.username,
                 role: user.role,
                 isActive: user.is_active,
-                department: user.department
+                department: user.department_id
                     ? {
-                          id: user.department.id,
-                          name: user.department.name,
-                          code: user.department.code,
+                          id: Number(user.department_id),
+                          name: undefined as any,
+                          code: undefined as any,
                       }
                     : undefined,
             }));
@@ -150,7 +149,6 @@ export class UserService {
     async listUsers(query: any): Promise<PaginatedResponse<UserResponse>> {
         const userRepo = this.db.getRepository(User);
         const [users, total] = await userRepo.findAndCount({
-            relations: ['department'],
             take: query.limit || 50,
             skip: query.offset || 0,
         });
@@ -160,11 +158,11 @@ export class UserService {
             username: user.username,
             role: user.role,
             isActive: user.is_active,
-            department: user.department
+            department: user.department_id
                 ? {
-                      id: user.department.id,
-                      name: user.department.name,
-                      code: user.department.code,
+                      id: Number(user.department_id),
+                      name: undefined as any,
+                      code: undefined as any,
                   }
                 : undefined,
         }));
@@ -184,11 +182,12 @@ export class UserService {
 
         // Validate department if provided
         let department: Department | undefined;
-        if (body.departmentId) {
-            department = await departmentRepo.findOne({ where: { id: body.departmentId } });
-            if (!department) {
+        if (body.department_id) {
+            const found = await departmentRepo.findOne({ where: { id: body.department_id } });
+            if (!found) {
                 throw new BadRequestException('Department not found');
             }
+            department = found;
         }
 
         const hashedPassword = await bcrypt.hash(body.password, 10);
@@ -197,7 +196,7 @@ export class UserService {
             username: body.username,
             password: hashedPassword,
             role: body.role === 'MANAGER' ? Role.MANAGER : Role.STAFF,
-            department_id: body.departmentId,
+            department_id: body.department_id,
             is_active: true,
         });
 
@@ -220,7 +219,7 @@ export class UserService {
 
     async updateUser(id: number, body: UpdateUserRequest): Promise<UserResponse> {
         const userRepo = this.db.getRepository(User);
-        const user = await userRepo.findOne({ where: { id }, relations: ['department'] });
+        const user = await userRepo.findOne({ where: { id } });
 
         if (!user) {
             throw new NotFoundException('User not found');
@@ -228,7 +227,7 @@ export class UserService {
 
         if (body.username) user.username = body.username;
         if (body.role) user.role = body.role === 'MANAGER' ? Role.MANAGER : Role.STAFF;
-        if (body.departmentId !== undefined) user.department_id = body.departmentId;
+        if ((body as any).departmentId !== undefined) user.department_id = (body as any).departmentId;
         if (body.isActive !== undefined) user.is_active = body.isActive;
 
         const updatedUser = await userRepo.save(user);
@@ -238,11 +237,11 @@ export class UserService {
             username: updatedUser.username,
             role: updatedUser.role,
             isActive: updatedUser.is_active,
-            department: updatedUser.department
+            department: updatedUser.department_id
                 ? {
-                      id: updatedUser.department.id,
-                      name: updatedUser.department.name,
-                      code: updatedUser.department.code,
+                      id: Number(updatedUser.department_id),
+                      name: undefined as any,
+                      code: undefined as any,
                   }
                 : undefined,
         };
@@ -267,7 +266,7 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
 
-        const roleName = getPrimaryRole({ role: user.role });
+        const roleName = getPrimaryRole({ role: user.role }) || String(user.role);
         return { roles: [roleName] };
     }
 

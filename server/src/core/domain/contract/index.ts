@@ -6,4 +6,5 @@ export * from './contract-milestones.entity';
 export * from './contract-taks.entity';
 export * from './contract-template.entity';
 export * from './contract-versions.entity';
+export * from './contract-template-version.entity';
 export * from './contract-reminder.entity';

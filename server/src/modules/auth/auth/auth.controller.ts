@@ -9,7 +9,6 @@ import { LoginDto } from '@/core/dto/auth/login.dto';
 import * as bcrypt from 'bcrypt';
 import { buildUserContext } from '@/common/utils/context/builder-user-context.utils';
 import { Role } from '@/core/shared/enums/base.enums';
-import { AuthService } from './auth.service';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
 import {
     LoginResponse,
@@ -19,13 +18,12 @@ import {
     ApiSuccessResponse,
 } from '@/core/shared/types/api-response.types';
 import { UserContext } from '@/core/shared/types/auth.types';
-import { isManager } from '@/core/shared/utils/role.utils';
+import { isManager } from '@/common/utils/role.utils';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
-        private readonly authService: AuthService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
     ) {}
 
@@ -64,6 +62,7 @@ export class AuthController {
 
         return {
             accessToken: tokens.accessToken,
+            sessionId,
             tokenExpiry: Math.floor(Date.now() / 1000) + 15 * 60,
             user: responseUser,
         };
@@ -94,7 +93,6 @@ export class AuthController {
     }
 
     @Post('logout')
-    @UseGuards(AuthGuardAccess)
     async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<ApiSuccessResponse> {
         const sessionId = (req as any).cookies?.sessionId as string | undefined;
         if (sessionId) await this.tokenService.revokeSession(sessionId);

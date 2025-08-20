@@ -4,9 +4,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { ContractController } from './contract.controller';
+import { TemplateController } from './template.controller';
 
 // Services
 import { ContractService } from './contract.service';
+import { TemplateService } from './template.service';
 import { AuditLogService } from './audit-log.service';
 import { CollaboratorService } from './collaborator.service';
 import { ContractPolicyService } from './contract-policy.service';
@@ -23,6 +25,7 @@ import { ContractFile } from '@/core/domain/contract/contract-file.entity';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
 import { ContractContent } from '@/core/domain/contract/contract-content.entity';
 import { ContractVersion } from '@/core/domain/contract/contract-versions.entity';
+import { ContractTemplateVersion } from '@/core/domain/contract/contract-template-version.entity';
 import { Collaborator } from '@/core/domain/permission/collaborator.entity';
 import { AuditLog } from '@/core/domain/permission/audit-log.entity';
 
@@ -39,17 +42,19 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
             ContractVersion,
             Collaborator,
             AuditLog,
+            ContractTemplateVersion,
         ]),
         // External module dependencies
         forwardRef(() => import('@/modules/auth/auth.module').then((m) => m.AuthModule)),
         forwardRef(() => import('@/modules/notification/notification.module').then((m) => m.NotificationModule)),
         forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
     ],
-    controllers: [ContractController],
+    controllers: [ContractController, TemplateController],
     providers: [
         ContractService,
         AuditLogService,
         CollaboratorService,
+        TemplateService,
         ContractPolicyService,
         {
             provide: APP_INTERCEPTOR,

@@ -8,14 +8,13 @@ import { DataSource } from 'typeorm';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
 import { LoggerTypes } from '@/core/shared/logger/logger.types';
 import { UserSession } from '@/core/domain/user/user-session.entity';
-import { SessionData as AuthSessionData } from '@/core/shared/types/auth.types';
 
 @Injectable()
 export class TokenService {
     private readonly clientId = process.env.CLIENT_OAUTH_PASSWORD as string;
     private readonly accessTokenExpireSeconds = 15 * 60;
     private readonly refreshTokenExpireSeconds = 7 * 24 * 60 * 60;
-    private readonly sessionTimeoutMinutes = 30;
+    private readonly sessionTimeoutMinutes = 15;
 
     constructor(
         @Inject(JwtService) private readonly jwtService: JwtService,
