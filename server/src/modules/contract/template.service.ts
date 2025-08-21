@@ -55,7 +55,10 @@ export class TemplateService {
     }
 
     async getTemplate(id: string) {
-        return this.templateRepository.findOne({ where: { id } });
+        const ent = await this.templateRepository.findOne({ where: { id } });
+        if (!ent) return null;
+        const etag = this.computeEtag((ent as any).editor_content || '');
+        return { ...(ent as any), __etag: etag } as any;
     }
 
     async createTemplate(payload: Partial<ContractTemplate>, userId: number) {
@@ -124,7 +127,7 @@ export class TemplateService {
         entity.tags = updates.tags ?? entity.tags;
         entity.updated_by = String(userId);
         const saved = await this.templateRepository.save(entity);
-        return saved;
+        return { ...(saved as any), __etag: this.computeEtag((saved as any).editor_content || '') } as any;
     }
 
     async deleteTemplate(id: string, userId: number) {

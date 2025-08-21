@@ -6,6 +6,7 @@ import TemplateEditor from '~/page/Templates/components/TemplateEditor';
 import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
 import styles from './TemplateDetailPage.module.scss';
 import { useCallback, useState as useReactState } from 'react';
+import { FieldsDesigner } from './components/FieldsDesigner';
 
 type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
@@ -144,7 +145,15 @@ const TemplateDetailPage = () => {
             {tab === 'editor' && <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />}
 
             {tab === 'builder' && <TemplateBuilder />}
-            {tab === 'fields' && <div>Fields designer (coming soon)</div>}
+            {tab === 'fields' && (
+                <FieldsDesigner
+                    value={((template as any)?.fields as any[]) || []}
+                    onChange={async (fields) => {
+                        setTemplate((prev: any) => ({ ...prev, fields }));
+                        await templateService.updateTemplate(id as string, { fields } as any);
+                    }}
+                />
+            )}
             {tab === 'versions' && (
                 <div style={{ display: 'grid', gap: 8 }}>
                     <button
