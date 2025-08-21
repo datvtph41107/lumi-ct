@@ -7,7 +7,8 @@ output: github_document
 # 0. Tóm tắt
 
 - Mục tiêu: Xây dựng hệ sinh thái Template Management + Template-driven Editor (giống TopCV) cho hợp đồng nội bộ (Hành chính/Kế toán), có RBAC/ABAC, audit, preview/print, export chất lượng in, notifications.
-- Trạng thái: Đã có luồng quản lý Template end-to-end (tạo → soạn → preview → version → publish → clone), ETag optimistic update, scope phòng ban, IAM can-check API. Cần hoàn thiện VersionTimeline UI, builder nâng cao, export queue + S3, sanitize nâng cao, IAM check publish chi tiết, rate limit/CSRF, test & observability.
+- Trạng thái: Hoàn thiện quản lý Template (tạo → soạn → preview → version → publish → clone), ETag optimistic update, scope phòng ban, IAM can-check API. Đã bổ sung: UI Versions (diff/rollback action) và tăng cường sanitize preview. Cần tiếp tục: builder nâng cao, export queue + S3, sanitize-html chuẩn, IAM check publish chi tiết, rate limit/CSRF, test & observability.
+- Lưu ý: theo yêu cầu local, giai đoạn này **không triển khai** Realtime collab (Yjs) và eSign.
 
 # 1. Mục tiêu & KPI
 
@@ -186,20 +187,19 @@ const onDragEnd = ({ active, over }: DragEndEvent) => {
 
 ## 15.1 ĐÃ LÀM (theo repo)
 
-- BE: Template CRUD; version create/list/diff/rollback; preview (sanitize cơ bản); publish (validateBeforePublish); clone; ETag get/update; scope phòng ban; IAM `/iam/can`; collaborator guard (manager bypass theo department ở hợp đồng).
-- FE: TemplateList (styled, clone); TemplateDetail (tabs Editor/Builder/Fields/Preview/Versions/Settings, Preview/Publish, ETag PATCH); TemplateEditor (Tiptap + VariableToken); TemplateBuilder scaffold; FieldsDesigner cơ bản; API client đủ hành động template.
+- BE: Template CRUD; version create/list/diff/rollback; preview (sanitize cơ bản, đã mở rộng loại bỏ iframe/object/embed); publish (validateBeforePublish); clone; ETag get/update; scope phòng ban; IAM `/iam/can`; collaborator guard (manager bypass theo department ở hợp đồng).
+- FE: TemplateList (styled, clone); TemplateDetail (tabs Editor/Builder/Fields/Preview/Versions/Settings, Preview/Publish, ETag PATCH); TemplateEditor (Tiptap + VariableToken); TemplateBuilder scaffold; FieldsDesigner cơ bản; API client đủ hành động template; **TemplateVersions UI** (hiển thị versions + Diff/Rollback action).
 
-## 15.2 CẦN LÀM (ưu tiên)
+## 15.2 CẦN LÀM (ưu tiên — đã điều chỉnh theo phạm vi local)
 
-- VersionTimeline UI (jsondiffpatch viewer + rollback UX).
-- Builder nâng cao: layout/columns, snap-to-grid, properties panel đầy đủ, ClauseLibrary UI.
-- FieldsDesigner nâng cao: validations, select options, conditional logic, zod schema generator.
-- Sanitization & Security: `sanitize-html`/DOMPurify server; CSP; CSRF double-submit; rate limit preview/export.
-- Export: BullMQ queue + S3 + presigned URL; watermark/fonts VN; metrics export_time_ms; idempotency.
-- Search index: Meilisearch/Elastic (template & clauses);
-- Realtime collab: Yjs + WebSocket + Redis pub/sub; awareness cursors.
-- eSign: DocuSign/AdobeSign; envelope tracking; artifact store.
-- Testing & Observability hoàn chỉnh: unit/integration/E2E; dashboards.
+- VersionTimeline UI (jsondiffpatch viewer + rollback UX thân thiện) — [chưa làm UI, logic diff/rollback đã có].
+- Builder nâng cao: layout/columns, snap-to-grid, properties panel đầy đủ, ClauseLibrary UI — [chưa làm].
+- FieldsDesigner nâng cao: validations, select options, conditional logic, zod schema generator — [chưa làm].
+- Sanitization & Security: **chuyển sang sanitize-html/DOMPurify server**; CSP; CSRF double-submit; **rate limit preview/export** — [chưa làm, đã tăng cường sanitize cơ bản].
+- Export: BullMQ queue + S3 + presigned URL; watermark/fonts VN; metrics export_time_ms; idempotency — [chưa làm, sẽ stub PDF cho local].
+- Search index: Meilisearch/Elastic (template & clauses) — [chưa làm].
+- Testing & Observability: unit/integration/E2E; dashboards — [chưa hoàn chỉnh].
+- Realtime collab & eSign: **Tạm bỏ qua** trong giai đoạn local.
 
 # 16. Roadmap (Sprint)
 

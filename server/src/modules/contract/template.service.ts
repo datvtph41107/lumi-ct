@@ -242,47 +242,6 @@ export class TemplateService {
         return { version_id: (saved as any).id } as any;
     }
 
-    async cloneTemplate(id: string, newName: string, userId: number) {
-        const entity = await this.templateRepository.findOne({ where: { id } });
-        if (!entity) throw new NotFoundException('Template not found');
-        const clone = this.templateRepository.create({
-            name: newName,
-            description: entity.description,
-            contract_type: (entity as any).contract_type,
-            category: entity.category,
-            mode: entity.mode,
-            thumbnail_url: entity.thumbnail_url,
-            sections: entity.sections,
-            fields: entity.fields,
-            editor_structure: entity.editor_structure,
-            editor_content: entity.editor_content,
-            is_active: true,
-            is_public: false,
-            version: '1.0.0',
-            tags: entity.tags,
-            created_by: String(userId),
-            updated_by: String(userId),
-            department_id: (entity as any).department_id ?? null,
-        } as any);
-        const saved = await this.templateRepository.save(clone);
-        // initial version for clone
-        await this.versionRepository.save(
-            this.versionRepository.create({
-                template_id: (saved as any).id,
-                version_number: 1,
-                content_snapshot: {
-                    fields: (saved as any).fields,
-                    sections: (saved as any).sections,
-                    editor_content: (saved as any).editor_content,
-                    editor_structure: (saved as any).editor_structure,
-                },
-                created_by: String(userId),
-                changelog: 'Cloned from template',
-            } as any),
-        );
-        return saved;
-    }
-
     private bumpVersion(current: string): string {
         const parts = String(current || '1.0.0').split('.').map((n) => parseInt(n, 10));
         if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return '1.0.1';
@@ -291,8 +250,11 @@ export class TemplateService {
     }
 
     private sanitizeHtml(html: string): string {
-        // Minimal sanitization: strip <script> and on* attributes
+        // Minimal sanitization: strip <script/iframe/object/embed> and on* attributes
         let out = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+        out = out.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '');
+        out = out.replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '');
+        out = out.replace(/<embed[^>]*>[\s\S]*?<\/embed>/gi, '');
         out = out.replace(/ on[a-z]+\s*=\s*"[^"]*"/gi, '');
         out = out.replace(/ on[a-z]+\s*=\s*'[^']*'/gi, '');
         out = out.replace(/ on[a-z]+\s*=\s*[^\s>]+/gi, '');
