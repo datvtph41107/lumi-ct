@@ -42,6 +42,34 @@ class TemplateService extends BaseService {
     async get<T = unknown>(path: string): Promise<ApiResponse<T>> {
         return super.get<T>(path);
     }
+
+    // new methods
+    async publish(id: string, payload?: { versionId?: string }): Promise<ApiResponse<{ success: boolean }>> {
+        return this.post<{ success: boolean }>(`/contracts/templates/${id}/publish`, payload || {});
+    }
+
+    async preview(
+        id: string,
+        payload: { content?: any; versionId?: string; mockData?: Record<string, any> },
+    ): Promise<ApiResponse<{ html: string }>> {
+        return this.post<{ html: string }>(`/contracts/templates/${id}/preview`, payload);
+    }
+
+    async diff(
+        id: string,
+        versionId: string,
+        targetVersionId: string,
+    ): Promise<ApiResponse<{ changes: any[] }>> {
+        return this.post<{ changes: any[] }>(`/contracts/templates/${id}/versions/${versionId}/diff`, { targetVersionId } as any);
+    }
+
+    async rollback(id: string, versionId: string): Promise<ApiResponse<{ version_id: string }>> {
+        return this.post<{ version_id: string }>(`/contracts/templates/${id}/versions/${versionId}/rollback`, {} as any);
+    }
+
+    async clone(id: string, name: string): Promise<ApiResponse<ContractTemplate>> {
+        return this.post<ContractTemplate>(`/contracts/templates/${id}/clone`, { name } as any);
+    }
 }
 
 export const templateService = new TemplateService();

@@ -16,6 +16,7 @@ import { UserModule } from '@/modules/user/user.module';
 import { ContractsModule } from '@/modules/contract/contract.module';
 import { NotificationModule } from '@/modules/notification/notification.module';
 import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
+import { IamModule } from '@/modules/iam/iam.module';
 
 @Module({
     imports: [
@@ -49,6 +50,7 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
         UserModule,
         ContractsModule,
         NotificationModule,
+        IamModule,
         CronTaskModule,
     ],
 })

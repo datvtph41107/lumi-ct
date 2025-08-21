@@ -292,45 +292,9 @@ export class ContractController {
         CollaboratorRole.VIEWER,
     )
     async getPermissions(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
-        const caps = await this.policy.getCapabilities(id, user);
+        const caps = await this.policy.getCapabilities(id, user as any);
         return { permissions: caps } as any;
     }
 
-    // === Templates (migrated) ===
-    @Get('templates')
-    @Roles(Role.MANAGER)
-    async listTemplates() {
-        return this.templateRepo.find({ where: { is_active: true } as any, order: { created_at: 'DESC' as any } });
-    }
-    @Get('templates/:id')
-    @Roles(Role.MANAGER)
-    async getTemplate(@Param('id') id: string) {
-        return this.templateRepo.findOne({ where: { id } });
-    }
-    @Post('templates')
-    @Roles(Role.MANAGER)
-    async createTemplate(@Body() body: Partial<ContractTemplate>, @CurrentUser() user: HeaderUserPayload) {
-        const ent = this.templateRepo.create({
-            ...body,
-            created_by: String(user.sub),
-            updated_by: String(user.sub),
-        } as any);
-        return this.templateRepo.save(ent);
-    }
-    @Patch('templates/:id')
-    @Roles(Role.MANAGER)
-    async updateTemplate(
-        @Param('id') id: string,
-        @Body() body: Partial<ContractTemplate>,
-        @CurrentUser() user: HeaderUserPayload,
-    ) {
-        await this.templateRepo.update({ id } as any, { ...body, updated_by: String(user.sub) } as any);
-        return this.templateRepo.findOne({ where: { id } });
-    }
-    @Delete('templates/:id')
-    @Roles(Role.MANAGER)
-    async removeTemplate(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
-        await this.templateRepo.update({ id } as any, { is_active: false, updated_by: String(user.sub) } as any);
-        return { ok: true } as any;
-    }
+    // Templates endpoints moved to TemplateController
 }

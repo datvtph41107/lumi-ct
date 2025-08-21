@@ -1,0 +1,218 @@
+---
+title: "CONTRACT_SYSTEM — Hệ thống Quản lý Hợp đồng Nội bộ"
+author: "Project Team"
+output: github_document
+---
+
+# 0. Tóm tắt
+
+- Mục tiêu: Xây dựng hệ sinh thái Template Management + Template-driven Editor (giống TopCV) cho hợp đồng nội bộ (Hành chính/Kế toán), có RBAC/ABAC, audit, preview/print, export chất lượng in, notifications.
+- Trạng thái: Hoàn thiện quản lý Template (tạo → soạn → preview → version → publish → clone), ETag optimistic update, scope phòng ban, IAM can-check API. Đã bổ sung: UI Versions (diff/rollback action) và tăng cường sanitize preview. Cần tiếp tục: builder nâng cao, export queue + S3, sanitize-html chuẩn, IAM check publish chi tiết, rate limit/CSRF, test & observability.
+- Lưu ý: theo yêu cầu local, giai đoạn này **không triển khai** Realtime collab (Yjs) và eSign.
+
+# 1. Mục tiêu & KPI
+
+## 1.1 Mục tiêu
+
+- Thư viện template (create/clone/edit/publish/versions).
+- Editor mạnh (Tiptap) + drag & drop block/layout; Variable/Fields Designer.
+- Preview A4 và export PDF/DOCX chuẩn in (server-side render).
+- Versioning (template & document), audit, RBAC/ABAC theo trạng thái & phòng ban.
+- Kiến trúc scalable, secure, testable, observable.
+
+## 1.2 KPI đề xuất
+
+- Tạo/publish template: < 3 phút / phiên bản.
+- Preview render latency (P95): < 1.5s.
+- Export PDF latency (P95, queued): < 30s.
+- Error rate preview/export: < 1%.
+- Thời gian xử lý diff/rollback: < 2s.
+
+# 2. Tổ chức & Vai trò
+
+- Phòng ban: Hành chính (HC), Kế toán (KT). Mọi resource gắn `department_id`.
+- System Role (hệ thống):
+  - Manager: Toàn quyền trong phòng ban; phê duyệt hợp đồng; xem audit-log phòng ban; thiết lập thông báo; cấp/thu hồi collaborator.
+  - Staff: Làm nhiệm vụ; thao tác theo collaborator được gán; nhận thông báo.
+- Contract Collaborator (mỗi hợp đồng): Owner/Editor/Reviewer/Viewer.
+  - Owner: toàn quyền hợp đồng; thêm/gỡ collaborator; thiết lập nhắc hạn; chuyển owner.
+  - Editor: xem/chỉnh sửa; thiết lập nhắc hạn.
+  - Reviewer: xem + review; không chỉnh sửa.
+  - Viewer: chỉ xem.
+
+> Manager quản trị phạm vi rộng (phòng ban, thông báo chung, audit toàn phòng ban). Staff chỉ thao tác theo collaborator trên hợp đồng cụ thể.
+
+# 3. Kiến trúc tổng quan
+
+```text
+Frontend (React TS + Vite)
+ ├─ Pages: /templates, /templates/:id, /contracts/new
+ ├─ Components: TemplateEditor (Tiptap), TemplateBuilder (drag-drop), FieldsDesigner,
+ │              PlaceholderPanel, ClauseLibrary, VersionTimeline (mở rộng), PreviewPane
+ ├─ State: redux/toolkit (auth/global), zustand (editor UI)
+ ├─ Forms: react-hook-form + zod
+
+Backend (NestJS)
+ ├─ Modules: Auth, IAM, Templates (contract module), TemplateVersions,
+ │           Contracts, Fields, Render, Export, Files, Audit, RBAC, Notification, Cron
+ ├─ DB: MySQL (TypeORM 0.3 – entities không relations; join thủ công)
+ ├─ Cache/Queue: Redis, BullMQ (kế hoạch)
+ ├─ Storage: S3/MinIO (export)
+ ├─ Workers: Puppeteer PDF/DOCX (kế hoạch)
+```
+
+# 4. Domain & Schema (MySQL)
+
+- `contract_templates`: id, name, category, mode, fields(json), sections(json), editor_content(text), tags[], is_public, is_active, version, department_id, created_by, updated_by, timestamps.
+- `contract_template_version`: id, template_id, version_number, content_snapshot(json), placeholders(json), changelog, created_by, created_at.
+- (tham khảo) `contracts`, `collaborators`, `audit_logs`, `user_sessions`, `revoked_tokens`.
+
+Index: `department_id`, `updated_at`, `(entity_type, entity_id, created_at)` cho audit; partition audit theo năm.
+
+# 5. RBAC & ABAC
+
+- Page/module access theo **System Role** (Manager/Staff).
+- Hành động chi tiết trên hợp đồng theo **Collaborator** (Owner/Editor/Reviewer/Viewer).
+- ABAC theo trạng thái hợp đồng (edit khi draft/pending; approve chỉ Manager; export Owner/Editor/Manager).
+- IAM API minh bạch:
+
+```http
+GET /api/iam/can?action=contract.edit&resourceType=contract&resourceId=:id
+=> { allow: boolean, reasons: string[] }
+```
+
+# 6. Workflow hợp đồng
+
+1) CreateContract → chọn mode (Basic | Editor | Upload)
+2) ContractCollection → chọn template/nháp
+3) ContractDraft → soạn thảo (Editor/Basic), quản lý draft
+4) StageMilestones → milestone/task/assign
+5) StageNotifications → cấu hình notification
+6) StagePreview → xem toàn bộ hợp đồng
+7) Export & Print → PDF/DOCX/HTML
+
+> Draft Editor (client): `client/src/page/Contract/ContractDaft.tsx` cần kết nối API drafts, dùng Tiptap như TemplateEditor, autosave debounce, preview.
+
+# 7. Hệ sinh thái Template
+
+## 7.1 Template Library
+- List/search/filter/tags; create/clone; update/delete; publish/unpublish; versions; metadata/thumbnail.
+- Scope phòng ban: Manager xem & thao tác trong `department_id`.
+
+## 7.2 Template Editor
+- Tiptap-based; VariableToken; Clause/Signature blocks (mở rộng); drag & drop; properties panel; autosave debounce; local recovery.
+- PlaceholderPanel: danh sách fields; insert variable `editor.chain().insertVariable(...)`.
+
+## 7.3 Fields Designer
+- Define schema (key, label, type, required, validations) → sinh form khi áp dụng template.
+- Hiện trạng: component cơ bản đã có; cần mở rộng validations/conditional & schema generator (zod).
+
+## 7.4 Versioning
+- Immutable snapshots; list/diff/rollback. Hợp đồng lưu (template_id, template_version) khi tạo.
+
+# 8. Notifications & Reminders
+
+- Rules: contract.created/assigned/deadline/overdue/approved/exported;
+- Channels: in-app/email/webhook; schedule: cron/adhoc; timezone; quiet hours.
+- Hiện trạng: NotificationService có cron cho reminders; cần nâng cấp queue BullMQ + idempotency + preference center.
+
+# 9. Rendering & Export
+
+- Preview server: sanitize HTML (cơ bản), css A4; return `{ html }` để iframe.
+- Export (kế hoạch): tiptap-json + data → HTML → Puppeteer (A4, fonts VN) → S3 → presigned URL (BullMQ queue; retry/idempotency; watermark).
+- DOCX: docxtemplater từ base.docx + variables mapping.
+
+# 10. API (trích yếu Template)
+
+- GET  `/api/contracts/templates?q=&category=&status=&page=&size=`
+- GET  `/api/contracts/templates/:id`
+- POST `/api/contracts/templates`
+- PATCH `/api/contracts/templates/:id`
+- DELETE `/api/contracts/templates/:id`
+- GET  `/api/contracts/templates/:id/versions`
+- POST `/api/contracts/templates/:id/versions` { content, placeholders?, changelog?, draft? }
+- POST `/api/contracts/templates/:id/preview` { content|versionId, mockData? }
+- POST `/api/contracts/templates/:id/publish` { versionId? }
+- POST `/api/contracts/templates/:id/versions/:versionId/diff` { targetVersionId }
+- POST `/api/contracts/templates/:id/versions/:versionId/rollback`
+- POST `/api/contracts/templates/:id/clone` { name }
+- GET  `/api/iam/can?action=...&resourceType=template|contract&resourceId=:id`
+
+# 11. Bảo mật & Concurrency
+
+- Auth: Access JWT (RS256, 15’), Refresh JWT (HS256, 7–30 ngày, cookie), session idle, revoke.
+- CSRF: double-submit cookie (kế hoạch); XSS: sanitize server (khuyến nghị `sanitize-html`/DOMPurify + CSP).
+- Rate limit: preview/export (kế hoạch @nestjs/throttler).
+- ETag optimistic update: `getTemplate` trả `__etag` (sha1(content)), PATCH gửi `__etag` để tránh xung đột.
+
+# 12. Frontend – Snippets
+
+## 12.1 VariableToken (Tiptap)
+
+```ts
+export const VariableToken = Node.create({
+  name: 'variableToken', inline: true, group: 'inline', atom: true,
+  addAttributes() { return { key: {}, label: {}, format: { default: 'text' } }; },
+  parseHTML() { return [{ tag: 'span[data-var]' }]; },
+  renderHTML({ node }) { return ['span', { 'data-var': node.attrs.key, class: 'var-chip' }, node.attrs.label || node.attrs.key]; },
+  addCommands() { return { insertVariable: (key, label) => ({ chain }) =>
+    chain().focus().insertContent({ type: 'variableToken', attrs: { key, label: label || key } }).run() }; }
+});
+```
+
+## 12.2 Drag & Drop handler (dnd-kit)
+
+```tsx
+const onDragEnd = ({ active, over }: DragEndEvent) => {
+  if (!over) return;
+  if (active.data.current?.type === 'field') {
+    insertFieldAtPosition(active.data.current.field, over.data.current?.position);
+  }
+};
+```
+
+# 13. Testing & Observability
+
+- Unit: validateBeforePublish, diff/rollback, IAM can, ETag mismatch.
+- Integration: create/update/version/preview/publish/diff/rollback.
+- E2E (Playwright): tạo → chèn variable → publish → clone → diff → rollback.
+- Observability: winston logs; prom-client metrics (preview_time_ms, publish_count, queue_depth); Sentry errors.
+
+# 14. Build & Run
+
+- Server: `cd server && npm ci && npx @nestjs/cli build` (env: DB_*, ACCESS/REFRESH KEYS, CLIENT_URL, …)
+- Client: `cd client && npm ci && npm run dev`; mở `/templates`.
+
+# 15. Ma trận ĐÃ LÀM / CẦN LÀM
+
+## 15.1 ĐÃ LÀM (theo repo)
+
+- BE: Template CRUD; version create/list/diff/rollback; preview (sanitize cơ bản, đã mở rộng loại bỏ iframe/object/embed); publish (validateBeforePublish); clone; ETag get/update; scope phòng ban; IAM `/iam/can`; collaborator guard (manager bypass theo department ở hợp đồng).
+- FE: TemplateList (styled, clone); TemplateDetail (tabs Editor/Builder/Fields/Preview/Versions/Settings, Preview/Publish, ETag PATCH); TemplateEditor (Tiptap + VariableToken); TemplateBuilder scaffold; FieldsDesigner cơ bản; API client đủ hành động template; **TemplateVersions UI** (hiển thị versions + Diff/Rollback action).
+
+## 15.2 CẦN LÀM (ưu tiên — đã điều chỉnh theo phạm vi local)
+
+- VersionTimeline UI (jsondiffpatch viewer + rollback UX thân thiện) — [chưa làm UI, logic diff/rollback đã có].
+- Builder nâng cao: layout/columns, snap-to-grid, properties panel đầy đủ, ClauseLibrary UI — [chưa làm].
+- FieldsDesigner nâng cao: validations, select options, conditional logic, zod schema generator — [chưa làm].
+- Sanitization & Security: **chuyển sang sanitize-html/DOMPurify server**; CSP; CSRF double-submit; **rate limit preview/export** — [chưa làm, đã tăng cường sanitize cơ bản].
+- Export: BullMQ queue + S3 + presigned URL; watermark/fonts VN; metrics export_time_ms; idempotency — [chưa làm, sẽ stub PDF cho local].
+- Search index: Meilisearch/Elastic (template & clauses) — [chưa làm].
+- Testing & Observability: unit/integration/E2E; dashboards — [chưa hoàn chỉnh].
+- Realtime collab & eSign: **Tạm bỏ qua** trong giai đoạn local.
+
+# 16. Roadmap (Sprint)
+
+- Sprint 1: FieldsDesigner nâng cao; sanitize-html; IAM check publish; rate limit preview.
+- Sprint 2: VersionTimeline + diff viewer; rollback UX; ClauseLibrary.
+- Sprint 3: Export queue (BullMQ) + S3 + watermark; download links; prom metrics.
+- Sprint 4: Builder layout/columns + properties; conditional content/logic; field formatting.
+- Sprint 5: Search index published templates; analytics; admin dashboards.
+- Sprint 6: Realtime collab (Yjs); eSign; hardening/QA/security review.
+
+# 17. Ghi chú triển khai Draft Editor (Contract)
+
+- Vị trí: `client/src/page/Contract/ContractDaft.tsx` (hoặc `components/DaftContract`).
+- Kết nối API drafts trong `server/src/modules/contract/contract.service.ts` (listDrafts/createDraft/updateDraft/deleteDraft/saveStage).
+- Dùng Tiptap như TemplateEditor; autosave debounce; preview HTML an toàn.
+- RBAC/ABAC: CollaboratorGuard + Manager bypass trong department; IAM `/iam/can` để điều khiển UI.

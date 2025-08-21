@@ -16,6 +16,7 @@ export enum ContractMode {
 @Entity('contracts')
 @Index(['status'])
 @Index(['contract_type'])
+@Index(['department_id'])
 export class Contract extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
@@ -70,6 +71,9 @@ export class Contract extends BaseEntity {
 
     @Column({ type: 'char', length: 36, nullable: true })
     current_version_id?: string;
+
+    @Column({ type: 'bigint', nullable: true })
+    department_id?: number;
 
     @Column({ type: 'boolean', default: true })
     auto_save_enabled: boolean;
