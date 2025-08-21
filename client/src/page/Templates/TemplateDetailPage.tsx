@@ -7,6 +7,7 @@ import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
 import styles from './TemplateDetailPage.module.scss';
 import { useCallback, useState as useReactState } from 'react';
 import { FieldsDesigner } from './components/FieldsDesigner';
+import { TemplateVersions } from './components/TemplateVersions';
 
 type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
@@ -158,19 +159,7 @@ const TemplateDetailPage = () => {
                     }}
                 />
             )}
-            {tab === 'versions' && (
-                <div style={{ display: 'grid', gap: 8 }}>
-                    <button
-                        className={styles.tabButton}
-                        onClick={async () => {
-                            const v = await templateService.listVersions(id as string);
-                            alert(JSON.stringify((v.data as any) || v, null, 2));
-                        }}
-                    >
-                        Tải danh sách phiên bản
-                    </button>
-                </div>
-            )}
+            {tab === 'versions' && id && <TemplateVersions id={id} />}
             {tab === 'preview' && (
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
                     <iframe title="preview" style={{ width: '100%', height: 800, border: 0 }} srcDoc={previewHtml} />
