@@ -4,7 +4,6 @@ import { AuthGuardAccess } from '@/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/modules/auth/guards/role.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
 import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
-import { Body, Param, Post } from '@nestjs/common';
 
 @Controller('contracts/templates')
 @UseGuards(AuthGuardAccess, RolesGuard)

@@ -145,7 +145,19 @@ const TemplateDetailPage = () => {
 
             {tab === 'builder' && <TemplateBuilder />}
             {tab === 'fields' && <div>Fields designer (coming soon)</div>}
-            {tab === 'versions' && <div>History & diff (coming soon)</div>}
+            {tab === 'versions' && (
+                <div style={{ display: 'grid', gap: 8 }}>
+                    <button
+                        className={styles.tabButton}
+                        onClick={async () => {
+                            const v = await templateService.listVersions(id as string);
+                            alert(JSON.stringify((v.data as any) || v, null, 2));
+                        }}
+                    >
+                        Tải danh sách phiên bản
+                    </button>
+                </div>
+            )}
             {tab === 'preview' && (
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
                     <iframe title="preview" style={{ width: '100%', height: 800, border: 0 }} srcDoc={previewHtml} />

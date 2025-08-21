@@ -4,6 +4,7 @@ import type { ContractTemplate } from '~/types/contract/contract.types';
 import { routePrivate } from '~/config/routes.config';
 import { useNavigate } from 'react-router-dom';
 import styles from './TemplateListPage.module.scss';
+import { templateService } from '~/services/api/template.service';
 
 const TemplateListPage = () => {
     const navigate = useNavigate();
@@ -93,7 +94,17 @@ const TemplateListPage = () => {
                             <button className={styles.button} onClick={() => navigate(routePrivate.templateDetail(t.id))}>
                                 Mở
                             </button>
-                            <button className={styles.button}>Nhân bản</button>
+                            <button
+                                className={styles.button}
+                                onClick={async () => {
+                                    const name = prompt('Tên template mới');
+                                    if (!name) return;
+                                    const res = await templateService.clone(t.id as any, name);
+                                    navigate(routePrivate.templateDetail((res.data as any).id));
+                                }}
+                            >
+                                Nhân bản
+                            </button>
                             <button className={styles.button}>Xuất</button>
                         </div>
                     </div>
