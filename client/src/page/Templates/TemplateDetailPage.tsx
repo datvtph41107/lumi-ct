@@ -56,7 +56,11 @@ const TemplateDetailPage = () => {
                 setTemplate(res.data as any);
                 navigate(`/templates/${(res.data as any).id}`);
             } else {
-                const res = await templateService.updateTemplate(id as string, { ...(payload || {}) });
+                // optimistic concurrency: include current __etag
+                const res = await templateService.updateTemplate(id as string, {
+                    ...(payload || {}),
+                    __etag: (template as any)?.__etag,
+                } as any);
                 setTemplate((prev) => ({ ...(prev as any), ...(res.data as any) }));
             }
         } finally {

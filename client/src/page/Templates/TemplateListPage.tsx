@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { templateService } from '~/services/api/template.service';
 import type { ContractTemplate } from '~/types/contract/contract.types';
 import { routePrivate } from '~/config/routes.config';
 import { useNavigate } from 'react-router-dom';
