@@ -3,7 +3,7 @@ import { DataSource } from 'typeorm';
 import { Contract } from '@/core/domain/contract/contract.entity';
 import { CollaboratorService } from './collaborator.service';
 import { CollaboratorRole } from '@/core/domain/permission/collaborator-role.enum';
-import { isManager, UserRoleContext } from '@/core/shared/utils/role.utils';
+import { isManager, UserRoleContext } from '@/common/utils/role.utils';
 
 export interface ContractCapabilities {
     is_owner: boolean;
