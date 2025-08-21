@@ -6,8 +6,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Controllers
 import { AuthController } from './auth/auth.controller';
+import { MFAController } from './mfa/mfa.controller';
+
 // Services
 import { TokenService } from './jwt/jwt.service';
+import { MFAService } from './mfa/mfa.service';
 
 // Guards & Validators
 import { AuthGuardAccess } from './guards/jwt-auth.guard';
@@ -45,7 +48,7 @@ import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
             }),
         }),
     ],
-    controllers: [AuthController],
+    controllers: [AuthController, MFAController],
     providers: [
         {
             provide: 'REFRESH_JWT_SERVICE',
@@ -62,11 +65,12 @@ import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
         },
         // Token & Auth core services
         TokenService,
+        MFAService,
         // Strategy & Guards
         JwtStrategy,
         AuthGuardAccess,
         RolesGuard,
     ],
-    exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, RolesGuard],
+    exports: [PassportModule, JwtModule, TokenService, MFAService, AuthGuardAccess, RolesGuard],
 })
 export class AuthModule {}

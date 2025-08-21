@@ -1,0 +1,1238 @@
+# CONTRACT LUMI - TÀI LIỆU KỸ THUẬT CHI TIẾT
+
+## 1. TỔNG QUAN HỆ THỐNG
+
+### 1.1 Kiến trúc tổng thể
+Hệ thống Contract Lumi được xây dựng theo kiến trúc microservices với các thành phần chính:
+
+- **Backend**: NestJS + TypeScript + TypeORM + MySQL
+- **Frontend**: React + TypeScript + Redux + Vite
+- **Database**: MySQL 8.0+
+- **Cache & Queue**: Redis + Bull Queue
+- **Authentication**: JWT + MFA
+- **File Storage**: Local Storage + Cloud Storage (tùy chọn)
+
+### 1.2 Sơ đồ kiến trúc
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React Client  │    │   Admin Panel   │    │   Mobile App    │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │      API Gateway          │
+                    │    (NestJS + Express)     │
+                    └─────────────┬─────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │    Authentication Layer   │
+                    │   (JWT + MFA + Guards)    │
+                    └─────────────┬─────────────┘
+                                 │
+          ┌──────────────────────┼──────────────────────┐
+          │                      │                      │
+┌─────────▼─────────┐  ┌─────────▼─────────┐  ┌─────────▼─────────┐
+│   Contract Module │  │   User Module     │  │  System Module    │
+│   - CRUD          │  │   - Management    │  │   - Monitoring    │
+│   - Templates     │  │   - Roles         │  │   - Config        │
+│   - Collaboration │  │   - Permissions   │  │   - Logs          │
+└─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │      Data Layer           │
+                    │   (TypeORM + MySQL)       │
+                    └─────────────┬─────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │      Queue System         │
+                    │   (Redis + Bull)          │
+                    └─────────────┬─────────────┘
+                                 │
+                    ┌─────────────▼─────────────┐
+                    │      File Storage         │
+                    │   (Local + Cloud)         │
+                    └───────────────────────────┘
+```
+
+## 2. BACKEND ARCHITECTURE
+
+### 2.1 Module Structure
+```
+src/
+├── core/
+│   ├── domain/           # Database entities
+│   ├── shared/           # Shared utilities
+│   ├── config/           # Configuration
+│   └── queue/            # Queue system
+├── modules/
+│   ├── auth/             # Authentication
+│   ├── user/             # User management
+│   ├── contract/         # Contract management
+│   ├── notification/     # Notification system
+│   ├── admin/            # Admin panel
+│   ├── system/           # System management
+│   └── cron-task/        # Scheduled tasks
+├── providers/            # Database providers
+├── common/               # Common utilities
+└── config/               # App configuration
+```
+
+### 2.2 Core Components
+
+#### 2.2.1 Authentication System
+```typescript
+// JWT Authentication with MFA
+@Injectable()
+export class TokenService {
+  async getUserTokens(user: User, context: UserContext, sessionId: string) {
+    const accessToken = await this.generateAccessToken(user, context, sessionId);
+    const refreshToken = await this.generateRefreshToken(user, sessionId);
+    return { accessToken, refreshToken };
+  }
+}
+
+// MFA Implementation
+@Injectable()
+export class MFAService {
+  async setupMFA(user: User): Promise<MFASetupResponse> {
+    const secret = authenticator.generateSecret();
+    const qrCode = authenticator.keyuri(user.email, issuer, secret);
+    const backupCodes = this.generateBackupCodes();
+    return { secret, qrCode, backupCodes };
+  }
+}
+```
+
+#### 2.2.2 Queue System
+```typescript
+// Background Job Processing
+@Injectable()
+export class QueueService {
+  async addEmailJob(data: EmailJobData): Promise<Job<EmailJobData>> {
+    return this.emailQueue.add('send-email', data, {
+      priority: 1,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 }
+    });
+  }
+}
+
+// Email Processor
+@Processor('email')
+export class EmailProcessor {
+  @Process('send-email')
+  async handleSendEmail(job: Job<EmailJobData>) {
+    await this.emailService.sendEmail(job.data);
+  }
+}
+```
+
+#### 2.2.3 Contract Management
+```typescript
+// Contract Service with Full CRUD
+@Injectable()
+export class ContractService {
+  async createContract(data: CreateContractDto, userId: string) {
+    const contract = this.contractRepository.create({
+      ...data,
+      created_by: userId,
+      status: ContractStatus.DRAFT
+    });
+    
+    // Add audit log
+    await this.auditLogService.logAction({
+      userId,
+      action: 'CREATE_CONTRACT',
+      resource: 'contract',
+      resourceId: contract.id
+    });
+    
+    return this.contractRepository.save(contract);
+  }
+}
+```
+
+### 2.3 Security Implementation
+
+#### 2.3.1 Rate Limiting
+```typescript
+// Rate limiting configuration
+export const getSecurityConfig = (configService: ConfigService): SecurityConfig => ({
+  rateLimit: {
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: configService.get<number>('RATE_LIMIT_MAX', 100),
+    message: 'Too many requests from this IP',
+    standardHeaders: true,
+    legacyHeaders: false,
+  }
+});
+```
+
+#### 2.3.2 CORS Configuration
+```typescript
+// CORS setup
+cors: {
+  origin: configService.get<string>('CORS_ORIGIN', 'http://localhost:3000').split(','),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin', 'X-Requested-With', 'Content-Type', 'Accept',
+    'Authorization', 'X-API-Key', 'X-Client-Version'
+  ],
+}
+```
+
+#### 2.3.3 Helmet Security Headers
+```typescript
+// Security headers
+helmet: {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://api.example.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}
+```
+
+## 3. FRONTEND ARCHITECTURE
+
+### 3.1 Project Structure
+```
+src/
+├── components/           # Reusable components
+├── page/                # Page components
+├── layouts/             # Layout components
+├── hooks/               # Custom hooks
+├── services/            # API services
+├── store/               # Redux store
+├── types/               # TypeScript types
+├── utils/               # Utility functions
+├── constants/           # Constants
+├── config/              # Configuration
+└── assets/              # Static assets
+```
+
+### 3.2 State Management
+```typescript
+// Redux Store Configuration
+export const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    contract: contractReducer,
+    user: userReducer,
+    notification: notificationReducer,
+    system: systemReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    }),
+});
+
+// Contract Slice
+const contractSlice = createSlice({
+  name: 'contract',
+  initialState,
+  reducers: {
+    setContracts: (state, action) => {
+      state.contracts = action.payload;
+    },
+    addContract: (state, action) => {
+      state.contracts.push(action.payload);
+    },
+    updateContract: (state, action) => {
+      const index = state.contracts.findIndex(c => c.id === action.payload.id);
+      if (index !== -1) {
+        state.contracts[index] = action.payload;
+      }
+    },
+  },
+});
+```
+
+### 3.3 Rich Text Editor Integration
+```typescript
+// TipTap Editor Configuration
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Image,
+    Link,
+    Table,
+    TableRow,
+    TableHeader,
+    TableCell,
+    TaskList,
+    TaskItem,
+    TextAlign,
+    TextStyle,
+    FontFamily,
+    Highlight,
+    Underline,
+    Color,
+  ],
+  content: initialContent,
+  onUpdate: ({ editor }) => {
+    const html = editor.getHTML();
+    onContentChange(html);
+  },
+});
+```
+
+## 4. DATABASE DESIGN
+
+### 4.1 Entity Relationships
+```sql
+-- Users and Authentication
+users
+├── user_sessions (1:N)
+├── revoked_tokens (1:N)
+└── audit_logs (1:N)
+
+-- Contract Management
+contracts
+├── contract_versions (1:N)
+├── contract_files (1:N)
+├── contract_content (1:1)
+├── contract_milestones (1:N)
+├── contract_tasks (1:N)
+├── contract_reminders (1:N)
+└── collaborators (M:N)
+
+-- Templates
+contract_templates
+├── contract_template_versions (1:N)
+└── contract_template_files (1:N)
+
+-- System Management
+system_configs
+system_logs
+system_metrics
+```
+
+### 4.2 Key Entities
+
+#### 4.2.1 User Entity
+```typescript
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 100, unique: true })
+  username: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  password: string;
+
+  @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+  email: string;
+
+  @Column({ type: 'enum', enum: Role, default: Role.USER })
+  role: Role;
+
+  @Column({ type: 'boolean', default: false })
+  mfa_enabled: boolean;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  mfa_secret: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  backup_codes: string;
+
+  @Column({ type: 'int', default: 0 })
+  login_attempts: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  locked_until: Date;
+}
+```
+
+#### 4.2.2 Contract Entity
+```typescript
+@Entity('contracts')
+export class Contract {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
+  @Column({ type: 'varchar', length: 100, unique: true })
+  contract_code: string;
+
+  @Column({ type: 'enum', enum: ContractStatus, default: ContractStatus.DRAFT })
+  status: ContractStatus;
+
+  @Column({ type: 'enum', enum: ContractType, default: ContractType.CUSTOM })
+  contract_type: ContractType;
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ type: 'json', nullable: true })
+  metadata: any;
+
+  @Column({ type: 'boolean', default: false })
+  is_draft: boolean;
+
+  @Column({ type: 'boolean', default: true })
+  auto_save_enabled: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  signed_at: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  expires_at: Date;
+
+  @Column({ type: 'varchar', length: 100 })
+  created_by: string;
+
+  @Column({ type: 'varchar', length: 100 })
+  updated_by: string;
+}
+```
+
+## 5. API DESIGN
+
+### 5.1 RESTful API Endpoints
+
+#### 5.1.1 Authentication Endpoints
+```
+POST   /api/auth/login              # User login
+POST   /api/auth/logout             # User logout
+POST   /api/auth/refresh-token      # Refresh access token
+POST   /api/auth/mfa/setup          # Setup MFA
+POST   /api/auth/mfa/verify         # Verify MFA token
+POST   /api/auth/mfa/enable         # Enable MFA
+POST   /api/auth/mfa/disable        # Disable MFA
+GET    /api/auth/me                 # Get current user
+```
+
+#### 5.1.2 Contract Endpoints
+```
+GET    /api/contracts               # List contracts
+POST   /api/contracts               # Create contract
+GET    /api/contracts/:id           # Get contract
+PUT    /api/contracts/:id           # Update contract
+DELETE /api/contracts/:id           # Delete contract
+POST   /api/contracts/:id/approve   # Approve contract
+POST   /api/contracts/:id/reject    # Reject contract
+POST   /api/contracts/:id/sign      # Sign contract
+GET    /api/contracts/:id/versions  # Get contract versions
+POST   /api/contracts/:id/versions  # Create new version
+```
+
+#### 5.1.3 Template Endpoints
+```
+GET    /api/templates               # List templates
+POST   /api/templates               # Create template
+GET    /api/templates/:id           # Get template
+PUT    /api/templates/:id           # Update template
+DELETE /api/templates/:id           # Delete template
+POST   /api/templates/:id/versions  # Create template version
+GET    /api/templates/:id/versions  # Get template versions
+```
+
+#### 5.1.4 User Management Endpoints
+```
+GET    /api/users                   # List users
+POST   /api/users                   # Create user
+GET    /api/users/:id               # Get user
+PUT    /api/users/:id               # Update user
+DELETE /api/users/:id               # Delete user
+POST   /api/users/:id/activate      # Activate user
+POST   /api/users/:id/deactivate    # Deactivate user
+POST   /api/users/:id/reset-password # Reset password
+GET    /api/users/:id/activity      # Get user activity
+```
+
+#### 5.1.5 System Management Endpoints
+```
+GET    /api/system/health           # System health check
+GET    /api/system/stats            # System statistics
+GET    /api/system/config           # Get system config
+PUT    /api/system/config/:key      # Update system config
+GET    /api/system/logs             # Get system logs
+POST   /api/system/maintenance      # Perform maintenance
+GET    /api/system/metrics          # Get system metrics
+```
+
+### 5.2 API Response Format
+```typescript
+// Success Response
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "message": "Operation completed successfully",
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+
+// Error Response
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [
+      {
+        "field": "email",
+        "message": "Email is required"
+      }
+    ]
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+
+// Paginated Response
+{
+  "success": true,
+  "data": [
+    // Array of items
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "total_pages": 5
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z"
+}
+```
+
+## 6. SECURITY IMPLEMENTATION
+
+### 6.1 Authentication Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant AuthController
+    participant TokenService
+    participant MFAService
+    participant Database
+
+    Client->>AuthController: POST /auth/login
+    AuthController->>Database: Validate credentials
+    Database-->>AuthController: User data
+    AuthController->>TokenService: Generate tokens
+    TokenService-->>AuthController: Access + Refresh tokens
+    
+    alt MFA Enabled
+        AuthController-->>Client: Require MFA
+        Client->>AuthController: POST /auth/mfa/verify
+        AuthController->>MFAService: Verify MFA token
+        MFAService-->>AuthController: Verification result
+    end
+    
+    AuthController-->>Client: Login success + tokens
+```
+
+### 6.2 Authorization Matrix
+```typescript
+// Role-based permissions
+const PERMISSIONS = {
+  USER: {
+    contracts: ['read', 'create', 'update_own'],
+    templates: ['read'],
+    profile: ['read', 'update_own'],
+  },
+  MANAGER: {
+    contracts: ['read', 'create', 'update', 'approve', 'reject'],
+    templates: ['read', 'create', 'update'],
+    users: ['read', 'create', 'update'],
+    reports: ['read'],
+  },
+  ADMIN: {
+    contracts: ['read', 'create', 'update', 'delete', 'approve', 'reject'],
+    templates: ['read', 'create', 'update', 'delete'],
+    users: ['read', 'create', 'update', 'delete'],
+    system: ['read', 'update'],
+    reports: ['read', 'create'],
+  },
+};
+```
+
+### 6.3 Security Headers
+```typescript
+// Security middleware configuration
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
+```
+
+## 7. PERFORMANCE OPTIMIZATION
+
+### 7.1 Database Optimization
+```sql
+-- Indexes for performance
+CREATE INDEX idx_contracts_status ON contracts(status);
+CREATE INDEX idx_contracts_created_by ON contracts(created_by);
+CREATE INDEX idx_contracts_created_at ON contracts(created_at);
+CREATE INDEX idx_contracts_expires_at ON contracts(expires_at);
+
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
+
+-- Composite indexes
+CREATE INDEX idx_contracts_status_created_by ON contracts(status, created_by);
+CREATE INDEX idx_contracts_status_expires_at ON contracts(status, expires_at);
+```
+
+### 7.2 Caching Strategy
+```typescript
+// Redis caching implementation
+@Injectable()
+export class CacheService {
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+  ) {}
+
+  async get<T>(key: string): Promise<T | null> {
+    const value = await this.redis.get(key);
+    return value ? JSON.parse(value) : null;
+  }
+
+  async set(key: string, value: any, ttl?: number): Promise<void> {
+    const serialized = JSON.stringify(value);
+    if (ttl) {
+      await this.redis.setex(key, ttl, serialized);
+    } else {
+      await this.redis.set(key, serialized);
+    }
+  }
+
+  async invalidate(pattern: string): Promise<void> {
+    const keys = await this.redis.keys(pattern);
+    if (keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+}
+```
+
+### 7.3 Query Optimization
+```typescript
+// Optimized contract queries
+@Injectable()
+export class ContractQueryBuilder {
+  buildListQuery(filters: ContractFilters) {
+    const query = this.contractRepository
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.createdBy', 'creator')
+      .leftJoinAndSelect('c.updatedBy', 'updater')
+      .leftJoinAndSelect('c.collaborators', 'collaborators')
+      .leftJoinAndSelect('collaborators.user', 'collaboratorUser');
+
+    if (filters.status) {
+      query.andWhere('c.status = :status', { status: filters.status });
+    }
+
+    if (filters.search) {
+      query.andWhere(
+        '(LOWER(c.name) LIKE :search OR LOWER(c.contract_code) LIKE :search)',
+        { search: `%${filters.search.toLowerCase()}%` }
+      );
+    }
+
+    if (filters.createdBy) {
+      query.andWhere('c.created_by = :createdBy', { createdBy: filters.createdBy });
+    }
+
+    return query
+      .orderBy('c.updated_at', 'DESC')
+      .skip((filters.page - 1) * filters.limit)
+      .take(filters.limit);
+  }
+}
+```
+
+## 8. MONITORING & LOGGING
+
+### 8.1 Application Logging
+```typescript
+// Winston logger configuration
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'contract-lumi' },
+  transports: [
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' }),
+    new winston.transports.DailyRotateFile({
+      filename: 'logs/application-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '20m',
+      maxFiles: '14d',
+    }),
+  ],
+});
+```
+
+### 8.2 Performance Monitoring
+```typescript
+// System metrics collection
+@Injectable()
+export class MonitoringService {
+  @Cron('*/5 * * * * *') // Every 5 seconds
+  async collectSystemMetrics() {
+    const metrics = {
+      cpu: process.cpuUsage(),
+      memory: process.memoryUsage(),
+      uptime: process.uptime(),
+      timestamp: new Date(),
+    };
+
+    await this.systemService.createSystemMetric({
+      name: 'system_performance',
+      value: metrics.memory.heapUsed / 1024 / 1024, // MB
+      unit: 'MB',
+      tags: { type: 'memory_usage' },
+    });
+  }
+}
+```
+
+### 8.3 Health Checks
+```typescript
+// Health check endpoints
+@Controller('health')
+export class HealthController {
+  @Get()
+  async checkHealth() {
+    const checks = {
+      database: await this.checkDatabase(),
+      redis: await this.checkRedis(),
+      storage: await this.checkStorage(),
+    };
+
+    const isHealthy = Object.values(checks).every(check => check);
+    
+    return {
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      checks,
+      timestamp: new Date(),
+      uptime: process.uptime(),
+    };
+  }
+}
+```
+
+## 9. DEPLOYMENT & CI/CD
+
+### 9.1 Docker Configuration
+```dockerfile
+# Backend Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start:prod"]
+```
+
+```yaml
+# Docker Compose
+version: '3.8'
+services:
+  app:
+    build: ./server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: contract_lumi
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
+```
+
+### 9.2 Environment Configuration
+```bash
+# Production environment variables
+NODE_ENV=production
+PORT=3000
+
+# Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=contract_lumi
+DB_PASS=secure_password
+DB_NAME=contract_lumi
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=redis_password
+REDIS_DB=0
+
+# JWT
+ACCESS_TOKEN_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
+ACCESS_TOKEN_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+
+# Security
+RATE_LIMIT_MAX=100
+CORS_ORIGIN=https://yourdomain.com
+SESSION_SECRET=your_session_secret
+
+# MFA
+MFA_ENABLED=true
+MFA_ISSUER=Contract Management System
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+
+# File Storage
+STORAGE_PATH=/app/uploads
+MAX_FILE_SIZE=10485760
+```
+
+## 10. TESTING STRATEGY
+
+### 10.1 Unit Testing
+```typescript
+// Contract service tests
+describe('ContractService', () => {
+  let service: ContractService;
+  let repository: Repository<Contract>;
+
+  beforeEach(async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        ContractService,
+        {
+          provide: getRepositoryToken(Contract),
+          useClass: Repository,
+        },
+      ],
+    }).compile();
+
+    service = module.get<ContractService>(ContractService);
+    repository = module.get<Repository<Contract>>(getRepositoryToken(Contract));
+  });
+
+  it('should create a contract', async () => {
+    const contractData = {
+      name: 'Test Contract',
+      contract_code: 'TEST-001',
+      contract_type: ContractType.CUSTOM,
+    };
+
+    const result = await service.createContract(contractData, 'user-123');
+    
+    expect(result.name).toBe(contractData.name);
+    expect(result.contract_code).toBe(contractData.contract_code);
+    expect(result.status).toBe(ContractStatus.DRAFT);
+  });
+});
+```
+
+### 10.2 Integration Testing
+```typescript
+// API integration tests
+describe('Contract API', () => {
+  let app: INestApplication;
+  let authToken: string;
+
+  beforeAll(async () => {
+    const moduleFixture = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+
+    // Login and get token
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        username: 'testuser',
+        password: 'password123',
+      });
+
+    authToken = response.body.accessToken;
+  });
+
+  it('should create a contract', async () => {
+    const contractData = {
+      name: 'Integration Test Contract',
+      contract_code: 'INT-001',
+      contract_type: 'custom',
+    };
+
+    const response = await request(app.getHttpServer())
+      .post('/contracts')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(contractData);
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.name).toBe(contractData.name);
+  });
+});
+```
+
+### 10.3 E2E Testing
+```typescript
+// End-to-end tests with Playwright
+import { test, expect } from '@playwright/test';
+
+test('contract creation flow', async ({ page }) => {
+  // Login
+  await page.goto('/login');
+  await page.fill('[data-testid="username"]', 'testuser');
+  await page.fill('[data-testid="password"]', 'password123');
+  await page.click('[data-testid="login-button"]');
+
+  // Navigate to contracts
+  await page.click('[data-testid="contracts-link"]');
+  await page.click('[data-testid="create-contract-button"]');
+
+  // Fill contract form
+  await page.fill('[data-testid="contract-name"]', 'E2E Test Contract');
+  await page.fill('[data-testid="contract-code"]', 'E2E-001');
+  await page.selectOption('[data-testid="contract-type"]', 'custom');
+
+  // Save contract
+  await page.click('[data-testid="save-contract-button"]');
+
+  // Verify contract was created
+  await expect(page.locator('[data-testid="contract-name"]')).toContainText('E2E Test Contract');
+});
+```
+
+## 11. ERROR HANDLING
+
+### 11.1 Global Exception Filter
+```typescript
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    let code = 'INTERNAL_ERROR';
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.message;
+      code = this.getErrorCode(exception);
+    } else if (exception instanceof QueryFailedError) {
+      status = HttpStatus.BAD_REQUEST;
+      message = 'Database operation failed';
+      code = 'DATABASE_ERROR';
+    } else if (exception instanceof ValidationError) {
+      status = HttpStatus.BAD_REQUEST;
+      message = 'Validation failed';
+      code = 'VALIDATION_ERROR';
+    }
+
+    const errorResponse = {
+      success: false,
+      error: {
+        code,
+        message,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      },
+    };
+
+    response.status(status).json(errorResponse);
+  }
+}
+```
+
+### 11.2 Validation Pipes
+```typescript
+// Global validation pipe
+app.useGlobalPipes(
+  new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+    exceptionFactory: (errors: ValidationError[]) => {
+      const messages = errors.map(error => ({
+        field: error.property,
+        message: Object.values(error.constraints)[0],
+      }));
+
+      return new BadRequestException({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Validation failed',
+          details: messages,
+        },
+      });
+    },
+  })
+);
+```
+
+## 12. DOCUMENTATION
+
+### 12.1 API Documentation (Swagger)
+```typescript
+// Swagger configuration
+const config = new DocumentBuilder()
+  .setTitle('Contract Lumi API')
+  .setDescription('Contract Management System API Documentation')
+  .setVersion('1.0')
+  .addBearerAuth()
+  .addTag('auth', 'Authentication endpoints')
+  .addTag('contracts', 'Contract management endpoints')
+  .addTag('users', 'User management endpoints')
+  .addTag('templates', 'Template management endpoints')
+  .addTag('system', 'System management endpoints')
+  .build();
+
+const document = SwaggerModule.createDocument(app, config);
+SwaggerModule.setup('api/docs', app, document);
+```
+
+### 12.2 Code Documentation
+```typescript
+/**
+ * Contract Service
+ * 
+ * Handles all contract-related business logic including:
+ * - Contract CRUD operations
+ * - Contract approval workflow
+ * - Contract versioning
+ * - Contract collaboration
+ * - Contract analytics
+ * 
+ * @example
+ * ```typescript
+ * const contract = await contractService.createContract({
+ *   name: 'Service Agreement',
+ *   contract_code: 'SA-2024-001',
+ *   contract_type: 'service',
+ *   template_id: 'template-123'
+ * }, userId);
+ * ```
+ */
+@Injectable()
+export class ContractService {
+  /**
+   * Creates a new contract
+   * 
+   * @param data - Contract creation data
+   * @param userId - ID of the user creating the contract
+   * @returns Promise<Contract> - Created contract
+   * 
+   * @throws {BadRequestException} When contract data is invalid
+   * @throws {ForbiddenException} When user lacks permission
+   */
+  async createContract(data: CreateContractDto, userId: string): Promise<Contract> {
+    // Implementation
+  }
+}
+```
+
+## 13. MAINTENANCE & SUPPORT
+
+### 13.1 Backup Strategy
+```typescript
+// Automated backup service
+@Injectable()
+export class BackupService {
+  @Cron('0 2 * * *') // Daily at 2 AM
+  async createDailyBackup() {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `backup-${timestamp}.sql`;
+    
+    try {
+      // Database backup
+      await this.createDatabaseBackup(filename);
+      
+      // File backup
+      await this.createFileBackup(timestamp);
+      
+      // Clean old backups (keep 30 days)
+      await this.cleanOldBackups();
+      
+      this.logger.log(`Daily backup completed: ${filename}`);
+    } catch (error) {
+      this.logger.error('Backup failed', error);
+      // Send notification to admin
+      await this.notificationService.sendAdminAlert({
+        type: 'backup_failed',
+        message: 'Daily backup failed',
+        error: error.message,
+      });
+    }
+  }
+}
+```
+
+### 13.2 Monitoring Alerts
+```typescript
+// System monitoring and alerts
+@Injectable()
+export class MonitoringService {
+  @Cron('*/30 * * * * *') // Every 30 seconds
+  async checkSystemHealth() {
+    const health = await this.systemService.getSystemHealth();
+    
+    if (health.status === 'unhealthy') {
+      await this.notificationService.sendAdminAlert({
+        type: 'system_unhealthy',
+        message: 'System is unhealthy',
+        details: health.checks,
+      });
+    }
+    
+    // Check disk space
+    const diskUsage = await this.getDiskUsage();
+    if (diskUsage.usedPercent > 90) {
+      await this.notificationService.sendAdminAlert({
+        type: 'disk_space_low',
+        message: 'Disk space is running low',
+        details: diskUsage,
+      });
+    }
+  }
+}
+```
+
+## 14. FUTURE ENHANCEMENTS
+
+### 14.1 Planned Features
+1. **Real-time Collaboration**
+   - WebSocket integration for live editing
+   - Conflict resolution system
+   - Presence indicators
+
+2. **Advanced Analytics**
+   - Contract performance metrics
+   - User behavior analytics
+   - Predictive insights
+
+3. **Mobile Application**
+   - React Native app
+   - Offline capability
+   - Push notifications
+
+4. **AI Integration**
+   - Contract analysis
+   - Risk assessment
+   - Automated suggestions
+
+5. **Blockchain Integration**
+   - Smart contracts
+   - Digital signatures
+   - Immutable audit trail
+
+### 14.2 Scalability Improvements
+1. **Microservices Architecture**
+   - Service decomposition
+   - API Gateway
+   - Service mesh
+
+2. **Cloud Migration**
+   - AWS/Azure deployment
+   - Auto-scaling
+   - CDN integration
+
+3. **Performance Optimization**
+   - Database sharding
+   - Read replicas
+   - Caching layers
+
+## 15. CONCLUSION
+
+Contract Lumi là một hệ thống quản lý hợp đồng toàn diện với kiến trúc hiện đại, bảo mật cao và khả năng mở rộng tốt. Hệ thống đã được thiết kế để đáp ứng các yêu cầu nghiệp vụ phức tạp trong khi vẫn duy trì tính dễ sử dụng và hiệu suất cao.
+
+### 15.1 Điểm mạnh của hệ thống
+- ✅ Kiến trúc modular và dễ bảo trì
+- ✅ Bảo mật đa lớp với MFA
+- ✅ Hệ thống queue xử lý background jobs
+- ✅ Audit logging toàn diện
+- ✅ API documentation đầy đủ
+- ✅ Testing strategy hoàn chỉnh
+- ✅ Monitoring và alerting
+- ✅ Backup và recovery
+
+### 15.2 Hướng phát triển
+- 🚀 Real-time collaboration
+- 🚀 AI-powered features
+- 🚀 Mobile application
+- 🚀 Blockchain integration
+- 🚀 Cloud-native deployment
+
+Hệ thống đã sẵn sàng cho production deployment và có thể mở rộng để đáp ứng nhu cầu tăng trưởng của doanh nghiệp.

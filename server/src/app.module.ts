@@ -8,6 +8,7 @@ import { join } from 'path';
 // Core modules
 import { HttpLoggerModule } from '@/core/shared/logger/http/http-logger.module';
 import { TypeOrmWinstonLogger } from '@/core/shared/logger/logger.typeorm';
+import { QueueModule } from '@/core/queue/queue.module';
 
 // Feature modules
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -16,6 +17,7 @@ import { UserModule } from '@/modules/user/user.module';
 import { ContractsModule } from '@/modules/contract/contract.module';
 import { NotificationModule } from '@/modules/notification/notification.module';
 import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
+import { SystemModule } from '@/modules/system/system.module';
 
 @Module({
     imports: [
@@ -44,12 +46,14 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
             serveRoot: '/uploads',
         }),
         HttpLoggerModule,
+        QueueModule,
         AuthModule,
         AdminModule,
         UserModule,
         ContractsModule,
         NotificationModule,
         CronTaskModule,
+        SystemModule,
     ],
 })
 export class AppModule {}
