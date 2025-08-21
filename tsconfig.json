@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/authz-core" },
+    { "path": "./packages/session" },
+    { "path": "./packages/authz-express" }
+  ]
+}
+
