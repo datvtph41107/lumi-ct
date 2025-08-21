@@ -56,13 +56,16 @@ export class CollaboratorGuard implements CanActivate {
             CollaboratorRole.VIEWER,
         ];
 
-        // Managers bypass collaborator checks
+        // Managers bypass only for READ methods
+        const method = (request.method || 'GET').toUpperCase();
         if ((user.roles || []).includes(Role.MANAGER)) {
-            return true;
+            if (method === 'GET' || method === 'HEAD') {
+                return true;
+            }
+            // fall-through for non-read methods: require collaborator permissions
         }
 
         // Allow viewing public contracts for read-only methods
-        const method = (request.method || 'GET').toUpperCase();
         if (method === 'GET' || method === 'HEAD') {
             const contract = await this.db.getRepository(Contract).findOne({ where: { id: contractId } });
             if (contract?.is_public) {

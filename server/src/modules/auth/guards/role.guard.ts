@@ -19,7 +19,8 @@ export class RolesGuard implements CanActivate {
         if (!user || !Array.isArray(user.roles)) {
             throw new ForbiddenException('Forbidden');
         }
-        const has = requiredRoles.some((r) => (user.roles as unknown[]).includes(r as unknown));
+        const normalized = (user.roles as unknown[]).map((r) => String(r).toUpperCase());
+        const has = requiredRoles.some((r) => normalized.includes(String(r).toUpperCase()));
         if (!has) throw new ForbiddenException('Insufficient role');
         return true;
     }
