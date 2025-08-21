@@ -5,6 +5,7 @@ import type { ContractTemplate } from '~/types/contract/contract.types';
 import TemplateEditor from '~/page/Templates/components/TemplateEditor';
 import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
 import styles from './TemplateDetailPage.module.scss';
+import { useCallback, useState as useReactState } from 'react';
 
 type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
@@ -73,6 +74,21 @@ const TemplateDetailPage = () => {
         debouncedSave({ content: html } as any);
     };
 
+    const [previewHtml, setPreviewHtml] = useReactState<string>('');
+    const handlePreview = useCallback(async () => {
+        const res = await templateService.preview(id || 'new', {
+            content: { editor_content: (template as any)?.editorContent || (template as any)?.content },
+        } as any);
+        setPreviewHtml((res.data as any)?.html || (res as any)?.html || '');
+        setTab('preview');
+    }, [id, template]);
+
+    const handlePublish = useCallback(async () => {
+        await templateService.publish(id as string, {});
+        await load();
+        alert('Đã publish template');
+    }, [id]);
+
     return (
         <div className={styles.container}>
             {loading && <div>Đang tải...</div>}
@@ -119,6 +135,10 @@ const TemplateDetailPage = () => {
                         {k}
                     </button>
                 ))}
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                    <button className={styles.tabButton} onClick={handlePreview}>Preview</button>
+                    {!isNew && <button className={styles.tabButton} onClick={handlePublish}>Publish</button>}
+                </div>
             </div>
 
             {tab === 'editor' && <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />}
@@ -126,7 +146,11 @@ const TemplateDetailPage = () => {
             {tab === 'builder' && <TemplateBuilder />}
             {tab === 'fields' && <div>Fields designer (coming soon)</div>}
             {tab === 'versions' && <div>History & diff (coming soon)</div>}
-            {tab === 'preview' && <div>Preview panel (coming soon)</div>}
+            {tab === 'preview' && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
+                    <iframe title="preview" style={{ width: '100%', height: 800, border: 0 }} srcDoc={previewHtml} />
+                </div>
+            )}
         </div>
     );
 };
