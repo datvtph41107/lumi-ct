@@ -3,6 +3,7 @@ import { templateService } from '~/services/api/template.service';
 import type { ContractTemplate } from '~/types/contract/contract.types';
 import { routePrivate } from '~/config/routes.config';
 import { useNavigate } from 'react-router-dom';
+import styles from './TemplateListPage.module.scss';
 
 const TemplateListPage = () => {
     const navigate = useNavigate();
@@ -39,33 +40,67 @@ const TemplateListPage = () => {
     }, []);
 
     return (
-        <div style={{ padding: 24 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                <input placeholder="Tìm kiếm" value={search} onChange={(e) => setSearch(e.target.value)} />
-                <select value={type} onChange={(e) => setType(e.target.value as any)}>
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <div className={styles.title}>Quản lý Template</div>
+                <div className={styles.actions}>
+                    <button className={`${styles.button} ${styles.buttonPrimary}`} onClick={() => navigate(routePrivate.templateDetail('new'))}>
+                        + Tạo Template
+                    </button>
+                </div>
+            </div>
+
+            <div className={styles.filters}>
+                <input
+                    className={styles.input}
+                    placeholder="Tìm kiếm"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                <select className={styles.select} value={type} onChange={(e) => setType(e.target.value as any)}>
                     <option value="">Tất cả loại</option>
                     <option value="basic">Form</option>
                     <option value="editor">Editor</option>
                 </select>
-                <input placeholder="Danh mục" value={category} onChange={(e) => setCategory(e.target.value)} />
-                <button onClick={load}>Lọc</button>
-                <button onClick={() => navigate(routePrivate.templateDetail('new'))}>Tạo Template</button>
+                <input
+                    className={styles.input}
+                    placeholder="Danh mục"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                />
+                <button className={styles.button} onClick={load}>
+                    Lọc
+                </button>
             </div>
 
             {loading && <div>Đang tải...</div>}
             {error && <div style={{ color: 'red' }}>{error}</div>}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className={styles.grid}>
                 {filtered.map((t) => (
-                    <div key={t.id} style={{ border: '1px solid #eee', borderRadius: 8, padding: 12 }}>
-                        <div style={{ fontWeight: 600 }}>{t.name}</div>
-                        <div style={{ color: '#666', fontSize: 13 }}>{t.description}</div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button onClick={() => navigate(routePrivate.templateDetail(t.id))}>Mở</button>
+                    <div key={t.id} className={styles.card}>
+                        <div className={styles.cardTitle}>{t.name}</div>
+                        <div className={styles.cardDesc}>{t.description}</div>
+                        <div className={styles.meta}>
+                            <span className={`${styles.tag} ${styles.tagBlue}`}>{(t as any).mode || 'editor'}</span>
+                            {Array.isArray((t as any).tags) && (t as any).tags?.slice(0, 3).map((tag: string) => (
+                                <span key={tag} className={styles.tag}>
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                        <div className={styles.cardActions}>
+                            <button className={styles.button} onClick={() => navigate(routePrivate.templateDetail(t.id))}>
+                                Mở
+                            </button>
+                            <button className={styles.button}>Nhân bản</button>
+                            <button className={styles.button}>Xuất</button>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {!loading && filtered.length === 0 && <div className={styles.empty}>Chưa có template nào.</div>}
         </div>
     );
 };

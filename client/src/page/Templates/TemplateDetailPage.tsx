@@ -4,6 +4,7 @@ import { templateService } from '~/services/api/template.service';
 import type { ContractTemplate } from '~/types/contract/contract.types';
 import TemplateEditor from '~/page/Templates/components/TemplateEditor';
 import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
+import styles from './TemplateDetailPage.module.scss';
 
 type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
@@ -73,26 +74,28 @@ const TemplateDetailPage = () => {
     };
 
     return (
-        <div style={{ padding: 24 }}>
+        <div className={styles.container}>
             {loading && <div>Đang tải...</div>}
             {error && <div style={{ color: 'red' }}>{error}</div>}
 
             {/* Meta */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+            <div className={styles.toolbar}>
                 <input
+                    className={styles.input}
                     placeholder="Tên template"
-                    style={{ minWidth: 280 }}
                     value={template.name || ''}
                     onChange={(e) => handleMetaChange({ name: e.target.value })}
                     onBlur={() => save()}
                 />
                 <input
+                    className={styles.input}
                     placeholder="Mô tả"
                     value={template.description || ''}
                     onChange={(e) => handleMetaChange({ description: e.target.value })}
                     onBlur={() => save()}
                 />
                 <select
+                    className={styles.select}
                     value={(template as any).mode || 'editor'}
                     onChange={(e) => {
                         handleMetaChange({ mode: e.target.value as any });
@@ -106,9 +109,13 @@ const TemplateDetailPage = () => {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div className={styles.tabs}>
                 {(['overview', 'editor', 'builder', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map((k) => (
-                    <button key={k} onClick={() => setTab(k)} style={{ fontWeight: tab === k ? 700 : 400 }}>
+                    <button
+                        key={k}
+                        onClick={() => setTab(k)}
+                        className={`${styles.tabButton} ${tab === k ? styles.tabActive : ''}`}
+                    >
                         {k}
                     </button>
                 ))}
