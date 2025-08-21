@@ -15,6 +15,8 @@ import { LegalDepartmentPolicy } from '@/core/department/policy/policies/legal.p
 import { DefaultContractWorkflow } from '@/core/workflow/definitions/default.contract.workflow';
 import type { DepartmentPolicyRegistry } from '@/core/department/policy/department-policy.registry';
 import type { WorkflowRegistry } from '@/core/workflow/workflow.registry';
+import { EventBusModule } from '@/core/event/event-bus.module';
+import { QueueModule } from '@/core/queue/queue.module';
 
 // Feature modules
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -60,6 +62,8 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
         ContractsModule,
         NotificationModule,
         CronTaskModule,
+        EventBusModule,
+        QueueModule,
     ],
 })
 export class AppModule {

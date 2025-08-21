@@ -20,6 +20,10 @@ import { Contract } from '@/core/domain/contract/contract.entity';
 import { ContractStatus } from '@/core/shared/enums/base.enums';
 import { InjectRepository } from '@nestjs/typeorm';
 import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
+import { EVENT_BUS } from '@/core/event/event-bus.module';
+import type { EventBus } from '@/core/event/event-bus.types';
+import { JOB_QUEUE } from '@/core/queue/queue.module';
+import type { Queue } from '@/core/queue/queue.types';
 
 export interface CreateNotificationDto {
     contract_id: string;
@@ -64,6 +68,8 @@ export class NotificationService {
         @Inject('DATA_SOURCE') private readonly db: DataSource,
         @Inject('LOGGER') private readonly logger: LoggerTypes,
         @InjectRepository(SystemNotificationSettings) private readonly sysRepo: Repository<SystemNotificationSettings>,
+        @Inject(EVENT_BUS) private readonly eventBus: EventBus,
+        @Inject(JOB_QUEUE) private readonly queue: Queue,
     ) {
         this.notificationRepo = this.db.getRepository(ContractNotification);
         this.reminderRepo = this.db.getRepository(ContractReminder);
@@ -134,6 +140,9 @@ export class NotificationService {
                 contract_id: dto.contract_id,
                 user_id: dto.user_id,
             });
+
+            this.eventBus.publish({ name: 'notification.created', payload: saved, timestamp: new Date() });
+            this.queue.enqueue({ name: 'deliver.notification', payload: saved, priority: 'normal' });
 
             return saved;
         } catch (err) {
