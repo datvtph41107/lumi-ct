@@ -18,6 +18,9 @@ import { RolesGuard } from './guards/role.guard';
 
 // Strategy
 import { JwtStrategy } from './jwt/jwt.strategy';
+// AuthZ Core
+import { PermissionService } from '@/core/shared/authz/permission.service';
+import { PermissionsGuard } from '@/core/shared/authz/permissions.guard';
 
 // External Modules
 import { LoggerModule } from '@/core/shared/logger/logger.module';
@@ -70,7 +73,19 @@ import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
         JwtStrategy,
         AuthGuardAccess,
         RolesGuard,
+        // Authorization core
+        PermissionService,
+        PermissionsGuard,
     ],
-    exports: [PassportModule, JwtModule, TokenService, MFAService, AuthGuardAccess, RolesGuard],
+    exports: [
+        PassportModule,
+        JwtModule,
+        TokenService,
+        MFAService,
+        AuthGuardAccess,
+        RolesGuard,
+        PermissionService,
+        PermissionsGuard,
+    ],
 })
 export class AuthModule {}
