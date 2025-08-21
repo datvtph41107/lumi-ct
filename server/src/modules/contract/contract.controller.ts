@@ -187,10 +187,24 @@ export class ContractController {
 
     // ===== VERSIONS =====
     @Get(':id/versions')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async listVersions(@Param('id') id: string) {
         return this.contractService.listVersions(id);
     }
     @Get(':id/versions/:versionId')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
     async getVersion(@Param('id') id: string, @Param('versionId') versionId: string) {
         return this.contractService.getVersion(id, versionId);
     }
