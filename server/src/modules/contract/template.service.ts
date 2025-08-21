@@ -299,4 +299,24 @@ export class TemplateService {
     private computeEtag(content: string): string {
         return crypto.createHash('sha1').update(String(content || '')).digest('hex');
     }
+
+    private validateBeforePublish(entity: ContractTemplate): void {
+        const contentHtml = (entity as any).editor_content || '';
+        if (!contentHtml || String(contentHtml).trim().length < 10) {
+            throw new BadRequestException('Template content is empty');
+        }
+        const fields = (entity as any).fields || [];
+        // Basic placeholder check: ensure no orphan "{{" without closing
+        if (String(contentHtml).includes('{{') && !String(contentHtml).includes('}}')) {
+            throw new BadRequestException('Detected malformed variable token');
+        }
+        // Example required field validation
+        const requiredFields = Array.isArray(fields) ? fields.filter((f: any) => f?.required) : [];
+        for (const rf of requiredFields) {
+            const key = rf?.key;
+            if (key && !String(contentHtml).includes(key)) {
+                throw new BadRequestException(`Required field missing in content: ${key}`);
+            }
+        }
+    }
 }
