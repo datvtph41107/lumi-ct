@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { templateService } from '~/services/api/template.service';
 import type { ContractTemplate } from '~/types/contract/contract.types';
 import TemplateEditor from '~/page/Templates/components/TemplateEditor';
+import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
 
-type TabKey = 'overview' | 'editor' | 'fields' | 'preview' | 'versions' | 'settings';
+type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
 const TemplateDetailPage = () => {
     const { id } = useParams();
@@ -106,7 +107,7 @@ const TemplateDetailPage = () => {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                {(['overview', 'editor', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map((k) => (
+                {(['overview', 'editor', 'builder', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map((k) => (
                     <button key={k} onClick={() => setTab(k)} style={{ fontWeight: tab === k ? 700 : 400 }}>
                         {k}
                     </button>
@@ -115,6 +116,7 @@ const TemplateDetailPage = () => {
 
             {tab === 'editor' && <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />}
 
+            {tab === 'builder' && <TemplateBuilder />}
             {tab === 'fields' && <div>Fields designer (coming soon)</div>}
             {tab === 'versions' && <div>History & diff (coming soon)</div>}
             {tab === 'preview' && <div>Preview panel (coming soon)</div>}

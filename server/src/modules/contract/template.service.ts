@@ -19,7 +19,7 @@ export class TemplateService {
         page?: number;
         size?: number;
         is_active?: boolean;
-    }) {
+    }, userDepartmentId?: number | null) {
         const page = Number(query.page || 1);
         const size = Math.min(Number(query.size || 20), 100);
 
@@ -32,6 +32,15 @@ export class TemplateService {
         if (query.type) qb.andWhere('t.mode = :mode', { mode: query.type });
         if (query.category) qb.andWhere('t.category = :category', { category: query.category });
         if (typeof query.is_active === 'boolean') qb.andWhere('t.is_active = :ia', { ia: query.is_active });
+
+        // Scope by department: shared (NULL) or same department or public
+        if (typeof userDepartmentId === 'number') {
+            qb.andWhere('(t.is_public = true OR t.department_id IS NULL OR t.department_id = :deptId)', {
+                deptId: userDepartmentId,
+            });
+        } else {
+            qb.andWhere('(t.is_public = true OR t.department_id IS NULL)');
+        }
 
         const [rows, total] = await qb
             .skip((page - 1) * size)
@@ -48,6 +57,8 @@ export class TemplateService {
     }
 
     async createTemplate(payload: Partial<ContractTemplate>, userId: number) {
+        // determine creator's department for scoping
+        // Note: We avoid injecting UserRepository to keep module boundaries; rely on caller to pass department if needed
         const entity = this.templateRepository.create({
             name: payload.name || 'Untitled Template',
             description: payload.description,
@@ -63,6 +74,7 @@ export class TemplateService {
             is_public: typeof (payload as any).is_public === 'boolean' ? (payload as any).is_public : false,
             version: payload.version || '1.0.0',
             tags: payload.tags || null,
+            department_id: (payload as any).department_id ?? null,
             created_by: String(userId),
             updated_by: String(userId),
         } as any);

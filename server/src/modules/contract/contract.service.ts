@@ -85,6 +85,8 @@ export class ContractService {
         },
         userId: number,
     ) {
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const departmentId = (user as any)?.department_id || null;
         const contract = this.contractRepository.create({
             name: payload.name || 'Untitled Contract',
             contract_code: payload.contract_code,
@@ -96,6 +98,7 @@ export class ContractService {
             status: ContractStatus.DRAFT as any,
             is_draft: true,
             auto_save_enabled: true,
+            department_id: departmentId,
             created_by: String(userId),
             updated_by: String(userId),
         });
@@ -192,7 +195,7 @@ export class ContractService {
 
         if (isManager) {
             const [data, total] = await this.contractRepository.findAndCount({
-                where: { deleted_at: null as any },
+                where: { deleted_at: null as any, department_id: (user as any)?.department_id } as any,
                 take: limit,
                 skip: (page - 1) * limit,
                 order: { id: 'DESC' as any },
@@ -260,6 +263,8 @@ export class ContractService {
     async createContract(createDto: CreateContractDto, userId: number): Promise<Contract> {
         // Any authenticated user (manager or staff) can create contract; approval is manager-only later
         const now = new Date();
+        const user = await this.userRepository.findOne({ where: { id: userId } as any });
+        const departmentId = (user as any)?.department_id || null;
         const contract = this.contractRepository.create({
             name: createDto.name || 'Untitled',
             contract_type: createDto.contract_type || 'custom',
@@ -267,6 +272,7 @@ export class ContractService {
             priority: (createDto as any).priority || 'medium',
             mode: (createDto as any).mode || 'basic',
             created_by: String(userId),
+            department_id: departmentId,
             status: 'draft' as any,
             current_stage: 'draft',
             start_date: createDto.start_date,

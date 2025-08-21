@@ -11,8 +11,9 @@ export class TemplateController {
     constructor(private readonly templateService: TemplateService) {}
 
     @Get()
-    async list(@Query() query: any) {
-        return this.templateService.listTemplates(query || {});
+    async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
+        const deptId = (user as any)?.department?.id ?? null;
+        return this.templateService.listTemplates(query || {}, deptId);
     }
 
     @Get(':id')
@@ -22,7 +23,8 @@ export class TemplateController {
 
     @Post()
     async create(@Body() body: any, @CurrentUser() user: HeaderUserPayload) {
-        return this.templateService.createTemplate(body, Number(user.sub));
+        const payload = { ...body, department_id: (user as any)?.department?.id ?? null };
+        return this.templateService.createTemplate(payload, Number(user.sub));
     }
 
     @Patch(':id')

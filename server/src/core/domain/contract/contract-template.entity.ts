@@ -20,6 +20,9 @@ export class ContractTemplate extends BaseEntity {
     @Column({ type: 'varchar', length: 20 })
     mode: string; // basic | editor | upload
 
+    @Column({ type: 'bigint', nullable: true })
+    department_id?: number;
+
     @Column({ type: 'varchar', length: 255, nullable: true })
     thumbnail_url?: string;
 
