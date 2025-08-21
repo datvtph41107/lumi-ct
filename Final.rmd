@@ -1,0 +1,194 @@
+---
+title: "Final Summary — Internal Contract Management System"
+author: "Project Team"
+output: github_document
+---
+
+# 0. Executive Summary
+
+- Purpose: Deliver a TopCV-like Template Ecosystem for internal contract management (HR/Accounting), with robust RBAC/ABAC, versioning, audit, preview/export, notifications, and secure foundations.
+- Status (local scope): Template lifecycle implemented end-to-end (create → edit → preview → version → publish → clone); department scoping; IAM can-check; optimistic concurrency (ETag); Versions UI (Diff/Rollback); preview sanitization strengthened. Next: advanced Builder/FieldsDesigner, export queue (stub/local), formal sanitization (sanitize-html), rate limit/CSRF, testing & observability.
+- Out-of-scope (local phase): Realtime collaboration (Yjs) and eSign.
+
+# 1. Goals & Success Criteria
+
+- Goals:
+  - Template Library and Editor comparable to TopCV (drag-drop, variables, fields, versioning, publish).
+  - Immutable versioning, audit trail, secure access via RBAC/ABAC.
+  - Accurate A4 preview, reliable export (PDF/DOCX) with future queue/storage.
+  - Scalable modular architecture, maintainable code, observable system, and strong testability.
+- KPIs:
+  - Template publish cycle < 3 minutes.
+  - Preview P95 < 1.5s; export P95 < 30s (queued).
+  - Error rate < 1% for preview/export.
+  - Rollback/diff < 2s.
+
+# 2. Feature Scope
+
+- Template Management: list/search/filter; create/clone; edit; versions (snapshot/diff/rollback); publish; archive; tags.
+- Editor Ecosystem: Tiptap + VariableToken; Builder drag-drop (scaffold now, advanced next); FieldsDesigner (basic now, validations next); autosave + local recovery.
+- Preview & Export: server preview sanitized HTML; export pipeline planned (Puppeteer, DOCX via docxtemplater).
+- RBAC & ABAC: system roles (Manager/Staff), department scoping, collaborator roles (Owner/Editor/Reviewer/Viewer), status-aware permissions.
+- Notifications & Reminders: cron-based reminders exist; rule-based engine and queue planned.
+- Audit: full history for templates/contracts; department and entity indexing.
+
+# 3. Architecture Overview
+
+```text
+Frontend (React TS + Vite)
+ ├─ Pages: /templates, /templates/:id, /contracts/new
+ ├─ Components: TemplateEditor (Tiptap), TemplateBuilder (drag-drop scaffold),
+ │              FieldsDesigner, TemplateVersions (UI), PreviewPane
+ ├─ State: redux/toolkit (auth/global), zustand (editor UI)
+ ├─ Forms: react-hook-form + zod (expansion planned)
+
+Backend (NestJS 11 + TypeORM 0.3; MySQL)
+ ├─ Modules: Auth, IAM, Contract (Template, Version, Collaborator, Policy),
+ │           Notification, Cron, User, Admin
+ ├─ Patterns: Entities w/o relations; service-driven joins; department scoping
+ ├─ Infra (planned): Redis, BullMQ (export/notifications), S3/MinIO (export files)
+```
+
+# 4. Frontend Details
+
+## 4.1 Pages
+- TemplateListPage: styled grid, filters, create, clone, open detail.
+- TemplateDetailPage: tabs — Editor, Builder, Fields, Preview, Versions, Settings; Preview/Publish actions; ETag-aware updates; Versions UI (Diff/Rollback).
+
+## 4.2 Components
+- TemplateEditor: Tiptap with VariableToken, standard extensions; debounce autosave.
+- TemplateBuilder: Toolbox → Canvas (drag-drop scaffold). Roadmap: layout/columns, snap-to-grid, ClauseLibrary, Properties panel.
+- FieldsDesigner: CRUD basic fields (key/label/type/required); roadmap: validations, select options, conditional; zod schema generator.
+- TemplateVersions: lists versions with Diff/Rollback actions.
+
+## 4.3 Snippets
+- VariableToken (insert `{{...}}`):
+```ts
+export const VariableToken = Node.create({
+  name: 'variableToken', inline: true, group: 'inline', atom: true,
+  addAttributes() { return { key: {}, label: {}, format: { default: 'text' } }; },
+  parseHTML() { return [{ tag: 'span[data-var]' }]; },
+  renderHTML({ node }) { return ['span', { 'data-var': node.attrs.key, class: 'var-chip' }, node.attrs.label || node.attrs.key]; },
+  addCommands() { return { insertVariable: (key, label) => ({ chain }) =>
+    chain().focus().insertContent({ type: 'variableToken', attrs: { key, label: label || key } }).run() }; }
+});
+```
+- Drag & Drop handler:
+```tsx
+const onDragEnd = ({ active, over }: DragEndEvent) => {
+  if (!over) return;
+  if (active.data.current?.type === 'field') {
+    insertFieldAtPosition(active.data.current.field, over.data.current?.position);
+  }
+};
+```
+
+# 5. Backend Details
+
+## 5.1 Entities (no relations)
+- contract_templates: id, name, category, mode, fields(json), sections(json), editor_content, tags, is_public, is_active, version(semver), department_id, created_by, updated_by, timestamps.
+- contract_template_version: id, template_id, version_number, content_snapshot(json), placeholders, changelog, created_by, created_at.
+- contracts, collaborators, audit_logs, user_sessions, revoked_tokens (available as context; not modified in this phase).
+
+## 5.2 Services & Controllers
+- TemplateService/Controller:
+  - CRUD, list-scoped, get (with `__etag`), update (ETag check), delete (soft-active false).
+  - Versions: create, list, diff, rollback.
+  - Publish: validateBeforePublish (content presence, variable tokens well-formed, required fields present), bump version.
+  - Preview: sanitize HTML (now strips script/iframe/object/embed & on* attributes), return html.
+  - Clone: duplicate template and seed version 1.
+- IAM Module: `/api/iam/can` permission checks (role/scope/collab-aware) for UI gating.
+- Guards: AuthGuardAccess; CollaboratorGuard (Manager bypass only within department for contracts).
+
+## 5.3 Endpoints (Template)
+- GET  `/api/contracts/templates?q=&category=&status=&page=&size=`
+- GET  `/api/contracts/templates/:id`
+- POST `/api/contracts/templates`
+- PATCH `/api/contracts/templates/:id` (accepts `__etag`)
+- DELETE `/api/contracts/templates/:id`
+- GET  `/api/contracts/templates/:id/versions`
+- POST `/api/contracts/templates/:id/versions` { content, placeholders?, changelog?, draft? }
+- POST `/api/contracts/templates/:id/preview` { content|versionId, mockData? }
+- POST `/api/contracts/templates/:id/publish` { versionId? }
+- POST `/api/contracts/templates/:id/versions/:versionId/diff` { targetVersionId }
+- POST `/api/contracts/templates/:id/versions/:versionId/rollback`
+- POST `/api/contracts/templates/:id/clone` { name }
+
+# 6. Rendering & Export
+
+- Preview: server-side sanitize + return HTML; FE embeds in sandboxed iframe (A4 CSS recommended).
+- Export (roadmap):
+  - tiptap-json + data → HTML → Puppeteer (A4, VN fonts) → S3 → presigned URL.
+  - Queue (BullMQ) for resilience; idempotency; retry; watermark.
+  - DOCX via docxtemplater from base .docx templates.
+
+# 7. Concurrency & Versioning
+
+- Optimistic concurrency: `getTemplate` returns `__etag` (sha1 content); `PATCH` must provide current `__etag`.
+- Versioning: immutable `contract_template_version` snapshots; diff/rollback provided by service.
+
+# 8. Security & Validation
+
+- Auth: Access JWT (RS256, 15m), Refresh JWT (HS256, 7–30d, HttpOnly), session idle, revoke.
+- Input/Output: server sanitization for preview HTML (enhanced);
+- Next: adopt `sanitize-html`/DOMPurify server, CSP headers.
+- CSRF: double-submit cookie (planned); Rate limit preview/export via `@nestjs/throttler` (planned).
+- RBAC/ABAC: Guards + IAM endpoint; department scoping enforced in queries/guards.
+
+# 9. Testing & Observability
+
+- Unit (next): validateBeforePublish, diff/rollback, IAM can, ETag mismatch.
+- Integration (next): template lifecycle (create/update/version/preview/publish/diff/rollback) + department scope.
+- E2E (next): create → insert variable → publish → clone → diff → rollback (Playwright).
+- Observability (next): winston logs, prom-client metrics (preview_time_ms, publish_count, queue_depth), Sentry errors, dashboards.
+
+# 10. Done vs Todo
+
+## Done
+- Template CRUD.
+- Versions create/list/diff/rollback.
+- Preview (sanitization strengthened).
+- Publish validations.
+- Clone template.
+- ETag get/update.
+- Department scope filters.
+- IAM `/iam/can`; CollaboratorGuard for contracts.
+- FE: List/Detail UI; Editor (Tiptap + VariableToken); Builder scaffold; FieldsDesigner basic; Versions UI; Preview/Publish actions; API client coverage.
+
+## Todo (local priorities)
+- VersionTimeline UI: jsondiffpatch viewer + rollback UX.
+- Builder advanced: layout/columns; snap-to-grid; properties panel; ClauseLibrary UI.
+- FieldsDesigner advanced: validations/select/conditional; zod schema generator.
+- Security: move to sanitize-html/DOMPurify; add CSP; CSRF double-submit; throttling preview/export.
+- Export pipeline: BullMQ + S3 + presigned; watermark; metrics; idempotency. (Short-term: stub/export to disk.)
+- Search index (Meilisearch/Elastic) for templates/clauses.
+- Testing & Observability suite.
+
+# 11. Practical Roadmap (Sprints)
+
+- Sprint A: FieldsDesigner validations + zod; sanitize-html integration; throttling preview; IAM publish checks.
+- Sprint B: VersionTimeline UI (jsondiffpatch); rollback UX; ClauseLibrary UI.
+- Sprint C: Export queue (BullMQ) + local storage/S3; presigned URLs; watermark; metrics.
+- Sprint D: Builder advanced (layout/columns, properties, snap-to-grid); conditional content/logic.
+- Sprint E: Search index (Meilisearch/Elastic); analytics & admin dashboards.
+- Sprint F: Testing & Observability completion (unit/integration/E2E; dashboards; Sentry).
+
+# 12. Appendix — Example Snippets
+
+- Debounced autosave (React):
+```ts
+const saveDraft = useCallback(debounce(async (content) => {
+  await templateService.createVersion(id, { content, draft: true });
+}, 1200), [id]);
+```
+- Puppeteer (server):
+```ts
+await page.setContent(html, { waitUntil: 'networkidle0' });
+await page.addStyleTag({ content: '@page{size:A4;margin:20mm} *{font-family:Times New Roman, Arial, sans-serif}' });
+const pdf = await page.pdf({ format: 'A4', printBackground: true });
+```
+
+# 13. Notes on Contract Draft Stage (Next)
+
+- `client/src/page/Contract/ContractDaft.tsx` renders StageDraft with Editor/Basic/Upload modes; connect autosave and draft lifecycle with `contractDraftService` (list/create/update/delete), mirroring template autosave patterns.
+- Ensure collaborator/role checks and department scope in draft APIs; unify editor UX between Template and Draft flows.
