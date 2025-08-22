@@ -18,7 +18,7 @@ import ContractDetail from '~/page/Contract/ContractDetail';
 import CreateContract from '~/page/Contract/CreateContract';
 import ContractPage from '~/page/Contract/ContractPage';
 import CreateContractLayout from '~/layouts/CreateContractLayout';
-import ContractDaft from '~/page/Contract/ContractDaft';
+
 import ContractCollection from '~/page/Contract/ContractCollection';
 import StageMilestones from '~/page/Contract/Stages/StageMilestones';
 import StageNotifications from '~/page/Contract/Stages/StageNotifications';
@@ -155,8 +155,11 @@ export const privateRoutes: PrivateRoute[] = [
 
     {
         path: config.routePrivate.contract,
-        component: ContractDaft,
+        component: ContractCreationFlow,
         layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
     },
 
     {
@@ -206,14 +209,7 @@ export const privateRoutes: PrivateRoute[] = [
             permissions: [PERMISSION.CONTRACTS_CREATE],
         },
     },
-    {
-        path: '/contract/creation-flow',
-        component: ContractCreationFlow,
-        layout: CreateContractLayout,
-        access: {
-            permissions: [PERMISSION.CONTRACTS_CREATE],
-        },
-    },
+
 
     // Templates
     {
