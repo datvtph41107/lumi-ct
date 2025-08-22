@@ -1,13 +1,20 @@
 import { Global, Module } from '@nestjs/common';
-import { InMemoryQueue } from './queue.memory';
+import { BullModule } from '@nestjs/bull';
 
 export const JOB_QUEUE = 'JOB_QUEUE';
 
 @Global()
 @Module({
-	providers: [
-		{ provide: JOB_QUEUE, useClass: InMemoryQueue },
+	imports: [
+		BullModule.forRoot({
+			redis: {
+				host: process.env.REDIS_HOST || 'localhost',
+				port: Number(process.env.REDIS_PORT || 6379),
+				password: process.env.REDIS_PASSWORD || undefined,
+			},
+		}),
+		BullModule.registerQueue({ name: 'default' }),
 	],
-	exports: [JOB_QUEUE],
+	exports: [BullModule],
 })
 export class QueueModule {}
