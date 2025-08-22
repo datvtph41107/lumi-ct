@@ -14,15 +14,23 @@ import { DatabaseModule } from '@/providers/database';
 // Entities
 import { Notification } from '@/core/domain/notification/notification.entity';
 import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
+import { Contract } from '@/core/domain/contract/contract.entity';
+import { ContractReminder } from '@/core/domain/contract/contract-reminder.entity';
+import { Notification as ContractNotification } from '@/core/domain/notification/notification.entity';
 
 @Module({
     imports: [
         LoggerModule,
         DatabaseModule,
-        TypeOrmModule.forFeature([Notification, SystemNotificationSettings]),
+        TypeOrmModule.forFeature([
+            Notification,
+            SystemNotificationSettings,
+            ContractReminder,
+            ContractNotification,
+            Contract,
+        ]),
         // External module dependencies - use forwardRef to avoid circular dependency
         forwardRef(() => import('@/modules/contract/contract.module').then((m) => m.ContractsModule)),
-        forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
     ],
     controllers: [NotificationController],
     providers: [

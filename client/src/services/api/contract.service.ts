@@ -330,6 +330,19 @@ class ContractService extends BaseService {
     async transitionStage(contractId: string, from: string, to: string): Promise<{ data: any }> {
         return this.post<any>(`/${contractId}/transition`, { from, to });
     }
+
+    // ==================== DEPARTMENT BLOCKS ====================
+    async getDepartmentBlocks(contractId: string): Promise<{ data: { blocks: any[] } }> {
+        return this.get<{ blocks: any[] }>(`/${contractId}/departments/blocks`);
+    }
+
+    async getDepartmentCatalog(
+        contractId: string,
+        department?: string,
+    ): Promise<{ data: { departments: string[]; items: any[] } }> {
+        const qs = department ? `?department=${encodeURIComponent(department)}` : '';
+        return this.get<{ departments: string[]; items: any[] }>(`/${contractId}/departments/catalog${qs}`);
+    }
 }
 
 export const contractService = new ContractService();
