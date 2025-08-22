@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import styles from './StageMilestones.module.scss';
 import Form from '~/components/Form';
@@ -29,6 +29,7 @@ import { useContractForm } from '~/hooks/useContractForm';
 import Badge from '~/components/Badge';
 import { convertDateRange, convertTimeRange, formatDateForDisplay, validateDateRange } from '~/utils/contract.utils';
 import { useContractStore } from '~/store/contract-store';
+import { contractService } from '~/services/api/contract.service';
 
 const cx = classNames.bind(styles);
 
@@ -38,9 +39,53 @@ const StageMilestones: React.FC = () => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+    const [catalog, setCatalog] = useState<{ departments: string[]; items: any[] }>({ departments: [], items: [] });
+    const [selectedDepartment, setSelectedDepartment] = useState<string>('HC');
+    const [selectedItemCodes, setSelectedItemCodes] = useState<string[]>([]);
 
     const { currentStep, goToStep } = useContractStore();
     const { setMilestones, validateCurrentStep } = useContractForm();
+    const currentDraftId = useContractStore.getState().currentDraft?.id as string | undefined;
+
+    useEffect(() => {
+        (async () => {
+            try {
+                if (!currentDraftId) return;
+                const res = await contractService.getDepartmentCatalog(currentDraftId, selectedDepartment);
+                setCatalog(res.data);
+            } catch (e) {
+                // noop
+            }
+        })();
+    }, [currentDraftId, selectedDepartment]);
+
+    const generateFromSelection = () => {
+        if (!catalog.items?.length || selectedItemCodes.length === 0) return;
+        const selectedItems = catalog.items.filter((i: any) => selectedItemCodes.includes(i.code));
+        const newMilestones: Milestone[] = selectedItems.map((i: any) => {
+            return {
+                id: `${i.code}-${Date.now()}`,
+                name: i.title,
+                description: i.description,
+                dateRange: { startDate: null, endDate: null },
+                priority: 'medium',
+                assignee: '',
+                tasks: (i.defaultTasks || []).map((t: any, idx: number) => ({
+                    id: `${i.code}-task-${idx}-${Date.now()}`,
+                    name: t.name,
+                    description: t.description,
+                    assignee: '',
+                    timeRange: { startDate: null, endDate: null, estimatedHours: 0 },
+                })),
+                departmentCode: i.department,
+                blockCode: i.code,
+                meta: { fields: i.fields || [] },
+            };
+        });
+        const updated = [...milestones, ...newMilestones];
+        setMilestonesState(updated);
+        setMilestones(updated);
+    };
 
     const employees = [
         { value: 'nguyen-van-a', label: 'Nguyễn Văn A' },
@@ -169,6 +214,53 @@ const StageMilestones: React.FC = () => {
     return (
         <div className={cx('container')}>
             <div className={cx('wrapper')}>
+                <div className={cx('card')}>
+                    <div className={cx('cardHeader')}>
+                        <h2>Thiết lập phòng ban và mục xử lý</h2>
+                    </div>
+                    <div className={cx('cardContent')}>
+                        <div className={cx('gridCols2')}>
+                            <div>
+                                <label className={cx('label')}>Phòng ban</label>
+                                <select
+                                    className={cx('select')}
+                                    value={selectedDepartment}
+                                    onChange={(e) => {
+                                        setSelectedDepartment(e.target.value);
+                                        setSelectedItemCodes([]);
+                                    }}
+                                >
+                                    <option value="HC">Hành chính</option>
+                                    <option value="KT">Kế toán</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className={cx('label')}>Mục xử lý ({selectedDepartment})</label>
+                                <select
+                                    multiple
+                                    className={cx('select')}
+                                    value={selectedItemCodes}
+                                    onChange={(e) => {
+                                        const opts = Array.from(e.target.selectedOptions).map((o) => o.value);
+                                        setSelectedItemCodes(opts);
+                                    }}
+                                >
+                                    {(catalog.items || []).map((i: any) => (
+                                        <option key={i.code} value={i.code}>
+                                            {i.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <div className={cx('form-actions')}>
+                            <Button primary small onClick={generateFromSelection}>
+                                Thêm mốc theo lựa chọn
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
                 <div className={cx('form-header')}>
                     <h2>
                         <FontAwesomeIcon icon={faFileContract} /> Tạo hợp đồng mới - Giai đoạn 2

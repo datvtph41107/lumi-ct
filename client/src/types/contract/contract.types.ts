@@ -209,6 +209,9 @@ export interface Milestone {
     priority: Priority;
     assignee: string;
     tasks: Task[];
+    departmentCode?: string;
+    blockCode?: string;
+    meta?: Record<string, unknown>;
 }
 
 export interface MilestoneFormData {
@@ -218,6 +221,9 @@ export interface MilestoneFormData {
     priority: Priority;
     assignee: string;
     tasks: Task[];
+    departmentCode?: string;
+    blockCode?: string;
+    meta?: Record<string, unknown>;
 }
 
 // Stage validation/flow

@@ -121,6 +121,23 @@ export class ContractController {
         return { blocks: listDepartmentBlocks(['HC', 'KT']) } as any;
     }
 
+    @Get(':id/departments/catalog')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
+    async getDepartmentCatalog(@Param('id') id: string, @Query('department') dept?: string) {
+        const departments = (dept ? [dept] : ['HC', 'KT']).map((d) => d.toUpperCase());
+        const items = departments.flatMap((d) => (listDepartmentBlocks([d]) || []));
+        return {
+            departments,
+            items,
+        } as any;
+    }
+
     // === Draft routes (migrated) ===
     @Get('drafts')
     async listDrafts(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {

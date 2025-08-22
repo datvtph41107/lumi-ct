@@ -335,6 +335,11 @@ class ContractService extends BaseService {
     async getDepartmentBlocks(contractId: string): Promise<{ data: { blocks: any[] } }> {
         return this.get<{ blocks: any[] }>(`/${contractId}/departments/blocks`);
     }
+
+    async getDepartmentCatalog(contractId: string, department?: string): Promise<{ data: { departments: string[]; items: any[] } }> {
+        const qs = department ? `?department=${encodeURIComponent(department)}` : '';
+        return this.get<{ departments: string[]; items: any[] }>(`/${contractId}/departments/catalog${qs}`);
+    }
 }
 
 export const contractService = new ContractService();
