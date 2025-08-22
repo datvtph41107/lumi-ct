@@ -1,0 +1,519 @@
+.stage-notifications {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+
+    .header {
+        margin-bottom: 2rem;
+        text-align: center;
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+    }
+
+    .content {
+        .section {
+            margin-bottom: 3rem;
+
+            .section-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 1.5rem;
+                padding-bottom: 1rem;
+                border-bottom: 1px solid var(--border-color);
+
+                h3 {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+
+                    svg {
+                        font-size: 1rem;
+                        color: var(--primary-color);
+                    }
+                }
+            }
+
+            .settings-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 1rem;
+
+                .setting-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1.25rem;
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-color);
+                    border-radius: 12px;
+                    transition: all 0.3s ease;
+
+                    &:hover {
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .setting-info {
+                        flex: 1;
+
+                        h4 {
+                            font-size: 1rem;
+                            font-weight: 600;
+                            color: var(--text-primary);
+                            margin-bottom: 0.25rem;
+                        }
+
+                        p {
+                            font-size: 0.875rem;
+                            color: var(--text-secondary);
+                            margin: 0;
+                        }
+                    }
+
+                    .toggle-btn {
+                        width: 48px;
+                        height: 24px;
+                        border: none;
+                        border-radius: 12px;
+                        background: var(--bg-secondary);
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+
+                        &.active {
+                            background: var(--primary-color);
+                            color: white;
+                        }
+
+                        svg {
+                            font-size: 0.875rem;
+                        }
+                    }
+                }
+            }
+
+            .recipients-section {
+                .add-recipient {
+                    margin-bottom: 1.5rem;
+
+                    select {
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+                        background: var(--bg-primary);
+                        color: var(--text-primary);
+                        font-size: 0.875rem;
+
+                        &:focus {
+                            outline: none;
+                            border-color: var(--primary-color);
+                        }
+                    }
+                }
+
+                .recipients-list {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 1rem;
+
+                    .recipient-item {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 1rem;
+                        background: var(--bg-card);
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+
+                        .recipient-info {
+                            flex: 1;
+
+                            h4 {
+                                font-size: 0.875rem;
+                                font-weight: 600;
+                                color: var(--text-primary);
+                                margin-bottom: 0.25rem;
+                            }
+
+                            p {
+                                font-size: 0.75rem;
+                                color: var(--text-secondary);
+                                margin-bottom: 0.25rem;
+                            }
+
+                            .recipient-role {
+                                font-size: 0.75rem;
+                                color: var(--text-tertiary);
+                            }
+                        }
+
+                        .remove-btn {
+                            width: 28px;
+                            height: 28px;
+                            border: none;
+                            border-radius: 6px;
+                            background: var(--danger-color);
+                            color: white;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                            font-size: 0.75rem;
+
+                            &:hover {
+                                background: var(--danger-dark);
+                            }
+                        }
+                    }
+                }
+            }
+
+            .reminders-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+                gap: 1.5rem;
+
+                .reminder-card {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-color);
+                    border-radius: 12px;
+                    padding: 1.5rem;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s ease;
+
+                    &:hover {
+                        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+                        transform: translateY(-2px);
+                    }
+
+                    .reminder-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        margin-bottom: 1rem;
+
+                        .reminder-info {
+                            flex: 1;
+
+                            h4 {
+                                font-size: 1rem;
+                                font-weight: 600;
+                                color: var(--text-primary);
+                                margin-bottom: 0.5rem;
+                            }
+
+                            .reminder-meta {
+                                display: flex;
+                                gap: 1rem;
+                                align-items: center;
+
+                                .type,
+                                .trigger {
+                                    font-size: 0.75rem;
+                                    padding: 0.25rem 0.5rem;
+                                    border-radius: 4px;
+                                    background: var(--bg-secondary);
+                                    color: var(--text-secondary);
+                                }
+                            }
+                        }
+
+                        .reminder-actions {
+                            display: flex;
+                            gap: 0.5rem;
+
+                            .action-btn {
+                                width: 28px;
+                                height: 28px;
+                                border: none;
+                                border-radius: 6px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                cursor: pointer;
+                                transition: all 0.2s ease;
+                                font-size: 0.75rem;
+
+                                &.edit {
+                                    background: var(--primary-color);
+                                    color: white;
+
+                                    &:hover {
+                                        background: var(--primary-dark);
+                                    }
+                                }
+
+                                &.delete {
+                                    background: var(--danger-color);
+                                    color: white;
+
+                                    &:hover {
+                                        background: var(--danger-dark);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    .reminder-channels {
+                        display: flex;
+                        gap: 0.5rem;
+                        margin-bottom: 1rem;
+                        flex-wrap: wrap;
+
+                        .channel-badge {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.25rem;
+                            padding: 0.25rem 0.5rem;
+                            background: var(--bg-secondary);
+                            border-radius: 4px;
+                            font-size: 0.75rem;
+                            color: var(--text-secondary);
+
+                            svg {
+                                font-size: 0.625rem;
+                            }
+                        }
+                    }
+
+                    .reminder-message {
+                        font-size: 0.875rem;
+                        color: var(--text-secondary);
+                        margin-bottom: 1rem;
+                        line-height: 1.4;
+                    }
+
+                    .reminder-status {
+                        .status {
+                            font-size: 0.75rem;
+                            padding: 0.25rem 0.5rem;
+                            border-radius: 4px;
+                            background: var(--bg-secondary);
+                            color: var(--text-secondary);
+
+                            &.active {
+                                background: var(--success-color);
+                                color: white;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal styles
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+
+        .modal {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1.5rem 1.5rem 1rem;
+                border-bottom: 1px solid var(--border-color);
+
+                h3 {
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                }
+
+                .close-btn {
+                    width: 32px;
+                    height: 32px;
+                    border: none;
+                    background: transparent;
+                    color: var(--text-secondary);
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                    }
+                }
+            }
+
+            .modal-content {
+                padding: 1.5rem;
+
+                .form-group {
+                    margin-bottom: 1.5rem;
+
+                    label {
+                        display: block;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        color: var(--text-primary);
+                        margin-bottom: 0.5rem;
+                    }
+
+                    input,
+                    textarea,
+                    select {
+                        width: 100%;
+                        padding: 0.75rem;
+                        border: 1px solid var(--border-color);
+                        border-radius: 8px;
+                        background: var(--bg-primary);
+                        color: var(--text-primary);
+                        font-size: 0.875rem;
+                        transition: all 0.2s ease;
+
+                        &:focus {
+                            outline: none;
+                            border-color: var(--primary-color);
+                            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+                        }
+
+                        &::placeholder {
+                            color: var(--text-tertiary);
+                        }
+                    }
+
+                    textarea {
+                        min-height: 80px;
+                        resize: vertical;
+                    }
+
+                    .channels-checkboxes {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.75rem;
+
+                        .checkbox-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            cursor: pointer;
+                            padding: 0.5rem;
+                            border-radius: 6px;
+                            transition: all 0.2s ease;
+
+                            &:hover {
+                                background: var(--bg-secondary);
+                            }
+
+                            input[type="checkbox"] {
+                                width: auto;
+                                margin: 0;
+                            }
+
+                            svg {
+                                font-size: 0.875rem;
+                                color: var(--text-secondary);
+                            }
+                        }
+                    }
+                }
+
+                .form-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1rem;
+                }
+            }
+
+            .modal-actions {
+                display: flex;
+                gap: 1rem;
+                justify-content: flex-end;
+                padding: 1rem 1.5rem 1.5rem;
+                border-top: 1px solid var(--border-color);
+            }
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .stage-notifications {
+        padding: 1rem;
+
+        .content {
+            .section {
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .recipients-section {
+                    .recipients-list {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                .reminders-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
+
+        .modal-overlay {
+            .modal {
+                .modal-content {
+                    .form-row {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .stage-notifications {
+        .content {
+            .section {
+                .section-header {
+                    flex-direction: column;
+                    gap: 1rem;
+                    align-items: stretch;
+                }
+            }
+        }
+    }
+}

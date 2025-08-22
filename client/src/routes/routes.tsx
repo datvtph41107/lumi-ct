@@ -18,8 +18,13 @@ import ContractDetail from '~/page/Contract/ContractDetail';
 import CreateContract from '~/page/Contract/CreateContract';
 import ContractPage from '~/page/Contract/ContractPage';
 import CreateContractLayout from '~/layouts/CreateContractLayout';
-import ContractDaft from '~/page/Contract/ContractDaft';
+
 import ContractCollection from '~/page/Contract/ContractCollection';
+import StageMilestones from '~/page/Contract/Stages/StageMilestones';
+import StageNotifications from '~/page/Contract/Stages/StageNotifications';
+import StagePreview from '~/page/Contract/Stages/StagePreview';
+import AuditLog from '~/page/admin/AuditLog/AuditLog';
+import ContractCreationFlow from '~/page/Contract/ContractCreationFlow';
 
 // New admin pages (placeholders)
 import SystemNotifications from '~/page/admin/SystemNotifications';
@@ -150,8 +155,11 @@ export const privateRoutes: PrivateRoute[] = [
 
     {
         path: config.routePrivate.contract,
-        component: ContractDaft,
+        component: ContractCreationFlow,
         layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
     },
 
     {
@@ -202,6 +210,7 @@ export const privateRoutes: PrivateRoute[] = [
         },
     },
 
+
     // Templates
     {
         path: routePrivate.templates,
@@ -235,6 +244,44 @@ export const privateRoutes: PrivateRoute[] = [
         layout: DefaultLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_MANAGE],
+        },
+    },
+
+    // Contract Creation Stages
+    {
+        path: '/contract/milestones',
+        component: StageMilestones,
+        layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
+    },
+    {
+        path: '/contract/notifications',
+        component: StageNotifications,
+        layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
+    },
+    {
+        path: '/contract/preview',
+        component: StagePreview,
+        layout: CreateContractLayout,
+        access: {
+            permissions: [PERMISSION.CONTRACTS_CREATE],
+        },
+    },
+
+    // Admin Audit Log
+    {
+        path: '/admin/audit-log',
+        component: AuditLog,
+        layout: DefaultLayout,
+        access: {
+            roles: [ROLE.ADMIN, ROLE.MANAGER],
+            permissions: [PERMISSION.SYSTEM_SETTINGS],
+            requireAll: false,
         },
     },
 
