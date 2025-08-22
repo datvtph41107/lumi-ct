@@ -44,10 +44,6 @@ import { AuditLog } from '@/core/domain/permission/audit-log.entity';
             AuditLog,
             ContractTemplateVersion,
         ]),
-        // External module dependencies
-        forwardRef(() => import('@/modules/auth/auth.module').then((m) => m.AuthModule)),
-        forwardRef(() => import('@/modules/notification/notification.module').then((m) => m.NotificationModule)),
-        forwardRef(() => import('@/modules/user/user.module').then((m) => m.UserModule)),
     ],
     controllers: [ContractController, TemplateController],
     providers: [

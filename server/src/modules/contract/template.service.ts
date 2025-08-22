@@ -179,7 +179,7 @@ export class TemplateService {
             if (!exists) throw new BadRequestException('Version does not exist');
         }
         entity.is_active = true;
-        entity.status = undefined as any; // status field may not exist on this entity; keeping for compatibility
+        // no-op: ensure minimal fields are set; status removed
         entity.updated_by = String(userId);
         entity.version = this.bumpVersion(entity.version || '1.0.0');
         await this.templateRepository.save(entity);

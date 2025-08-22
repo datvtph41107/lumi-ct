@@ -30,6 +30,8 @@ import { RolesGuard } from '@/modules/auth/guards/role.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ContractTemplate } from '@/core/domain/contract/contract-template.entity';
+import { StageSaveDto } from '@/core/dto/contract/stage-save.dto';
+import { listDepartmentBlocks } from '@/core/lib/department/blocks/department-blocks.registry';
 
 @Controller('contracts')
 @UseGuards(AuthGuardAccess, RolesGuard)
@@ -67,6 +69,56 @@ export class ContractController {
             asc,
             departmentId,
         );
+    }
+
+    // === Stage save & transition (for Draft flow) ===
+    @Patch(':id/stage/:stage/save')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
+    @HttpCode(HttpStatus.OK)
+    async saveStage(
+        @Param('id') id: string,
+        @Param('stage') stage: string,
+        @Body() payload: StageSaveDto,
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.saveStage(id, stage, { data: payload.data }, Number(user.sub));
+    }
+
+    @Post(':id/transition')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
+    @HttpCode(HttpStatus.OK)
+    async transition(
+        @Param('id') id: string,
+        @Body() body: { from: string; to: string },
+        @CurrentUser() user: HeaderUserPayload,
+    ) {
+        return this.contractService.transitionStage(id, body.from, body.to, Number(user.sub));
+    }
+
+    // === Department blocks (for Stage Milestones UI)
+    @Get(':id/departments/blocks')
+    @UseGuards(CollaboratorGuard)
+    @CollaboratorRoles(
+        CollaboratorRole.OWNER,
+        CollaboratorRole.EDITOR,
+        CollaboratorRole.REVIEWER,
+        CollaboratorRole.VIEWER,
+    )
+    async getDepartmentBlocks(@Param('id') id: string) {
+        // For now return static HC & KT blocks; later tailor by contract type/status
+        return { blocks: listDepartmentBlocks(['HC', 'KT']) } as any;
     }
 
     // === Draft routes (migrated) ===
@@ -279,7 +331,7 @@ export class ContractController {
 
     @Get(':id/reminders')
     async listReminders(@Param('id') id: string) {
-        return this.contractService.listReminders(id);
+        return this.contractService.getRemindersByContract(id);
     }
 
     // Unified capabilities for UI

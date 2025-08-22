@@ -380,6 +380,27 @@ export class ContractService {
         return this.notificationService.getRemindersByContract(id);
     }
 
+    async getRemindersByContract(id: string) {
+        return this.notificationService.getRemindersByContract(id);
+    }
+
+    async transitionStage(contractId: string, from: string, to: string, userId: number) {
+        const contract = await this.contractRepository.findOne({ where: { id: contractId } });
+        if (!contract) throw new NotFoundException('Hợp đồng không tồn tại');
+        await this.contractRepository.update(
+            { id: contractId } as any,
+            { current_stage: to, updated_by: String(userId), last_auto_save: new Date() } as any,
+        );
+        await this.auditLogService.create({
+            contract_id: contractId,
+            user_id: userId,
+            action: 'TRANSITION_STAGE',
+            description: `Transition stage from ${from} to ${to}`,
+            meta: { from, to },
+        });
+        return { ok: true } as any;
+    }
+
     // ====== Support methods for cron/notifications ======
     async findUpcomingContracts(daysBefore: number): Promise<Contract[]> {
         const start = dayjs().add(daysBefore, 'day').startOf('day').toDate();
