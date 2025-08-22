@@ -1,5 +1,8 @@
 // Core contract creation modes and stages
 export type ContractCreationMode = 'basic' | 'editor' | 'upload';
+
+// Import notification types
+import type { NotificationSettings } from '../notifications.types';
 export type ContractCreationStage =
     | 'template_selection'
     | 'basic_info'
@@ -144,6 +147,7 @@ export interface BaseContractData {
     version?: VersionMetadata;
     currentStage?: ContractCreationStage;
     isDraft?: boolean;
+    notificationSettings?: NotificationSettings;
 }
 export interface BasicFormContractData extends BaseContractData {
     mode: 'basic';
