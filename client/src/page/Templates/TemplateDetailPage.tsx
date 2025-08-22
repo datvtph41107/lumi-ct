@@ -3,8 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { templateService } from '~/services/api/template.service';
 import type { ContractTemplate } from '~/types/contract/contract.types';
 import TemplateEditor from '~/page/Templates/components/TemplateEditor';
+import TemplateBuilder from '~/page/Templates/components/TemplateBuilder';
+import styles from './TemplateDetailPage.module.scss';
+import { useCallback, useState as useReactState } from 'react';
+import { FieldsDesigner } from './components/FieldsDesigner';
+import { TemplateVersions } from './components/TemplateVersions';
 
-type TabKey = 'overview' | 'editor' | 'fields' | 'preview' | 'versions' | 'settings';
+type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
 const TemplateDetailPage = () => {
     const { id } = useParams();
@@ -52,7 +57,14 @@ const TemplateDetailPage = () => {
                 setTemplate(res.data as any);
                 navigate(`/templates/${(res.data as any).id}`);
             } else {
-                const res = await templateService.updateTemplate(id as string, { ...(payload || {}) });
+                // optimistic concurrency: include current __etag
+                const res = await templateService.updateTemplate(
+                    id as string,
+                    {
+                        ...(payload || {}),
+                        __etag: (template as any)?.__etag,
+                    } as any,
+                );
                 setTemplate((prev) => ({ ...(prev as any), ...(res.data as any) }));
             }
         } finally {
@@ -71,27 +83,44 @@ const TemplateDetailPage = () => {
         debouncedSave({ content: html } as any);
     };
 
+    const [previewHtml, setPreviewHtml] = useReactState<string>('');
+    const handlePreview = useCallback(async () => {
+        const res = await templateService.preview(id || 'new', {
+            content: { editor_content: (template as any)?.editorContent || (template as any)?.content },
+        } as any);
+        setPreviewHtml((res.data as any)?.html || (res as any)?.html || '');
+        setTab('preview');
+    }, [id, template]);
+
+    const handlePublish = useCallback(async () => {
+        await templateService.publish(id as string, {});
+        await load();
+        alert('Đã publish template');
+    }, [id]);
+
     return (
-        <div style={{ padding: 24 }}>
+        <div className={styles.container}>
             {loading && <div>Đang tải...</div>}
             {error && <div style={{ color: 'red' }}>{error}</div>}
 
             {/* Meta */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center' }}>
+            <div className={styles.toolbar}>
                 <input
+                    className={styles.input}
                     placeholder="Tên template"
-                    style={{ minWidth: 280 }}
                     value={template.name || ''}
                     onChange={(e) => handleMetaChange({ name: e.target.value })}
                     onBlur={() => save()}
                 />
                 <input
+                    className={styles.input}
                     placeholder="Mô tả"
                     value={template.description || ''}
                     onChange={(e) => handleMetaChange({ description: e.target.value })}
                     onBlur={() => save()}
                 />
                 <select
+                    className={styles.select}
                     value={(template as any).mode || 'editor'}
                     onChange={(e) => {
                         handleMetaChange({ mode: e.target.value as any });
@@ -105,19 +134,48 @@ const TemplateDetailPage = () => {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                {(['overview', 'editor', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map((k) => (
-                    <button key={k} onClick={() => setTab(k)} style={{ fontWeight: tab === k ? 700 : 400 }}>
-                        {k}
+            <div className={styles.tabs}>
+                {(['overview', 'editor', 'builder', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map(
+                    (k) => (
+                        <button
+                            key={k}
+                            onClick={() => setTab(k)}
+                            className={`${styles.tabButton} ${tab === k ? styles.tabActive : ''}`}
+                        >
+                            {k}
+                        </button>
+                    ),
+                )}
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                    <button className={styles.tabButton} onClick={handlePreview}>
+                        Preview
                     </button>
-                ))}
+                    {!isNew && (
+                        <button className={styles.tabButton} onClick={handlePublish}>
+                            Publish
+                        </button>
+                    )}
+                </div>
             </div>
 
             {tab === 'editor' && <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />}
 
-            {tab === 'fields' && <div>Fields designer (coming soon)</div>}
-            {tab === 'versions' && <div>History & diff (coming soon)</div>}
-            {tab === 'preview' && <div>Preview panel (coming soon)</div>}
+            {tab === 'builder' && <TemplateBuilder />}
+            {tab === 'fields' && (
+                <FieldsDesigner
+                    value={((template as any)?.fields as any[]) || []}
+                    onChange={async (fields) => {
+                        setTemplate((prev: any) => ({ ...prev, fields }));
+                        await templateService.updateTemplate(id as string, { fields } as any);
+                    }}
+                />
+            )}
+            {tab === 'versions' && id && <TemplateVersions id={id} />}
+            {tab === 'preview' && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
+                    <iframe title="preview" style={{ width: '100%', height: 800, border: 0 }} srcDoc={previewHtml} />
+                </div>
+            )}
         </div>
     );
 };

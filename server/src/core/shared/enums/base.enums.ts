@@ -6,6 +6,7 @@ export enum AdminRole {
 export enum Role {
     MANAGER = 'MANAGER',
     STAFF = 'STAFF',
+    ADMIN = 'ADMIN',
 }
 
 export enum Permission {

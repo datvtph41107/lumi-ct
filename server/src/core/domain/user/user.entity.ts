@@ -8,11 +8,11 @@ import { BaseEntity } from '../base.entity';
 @Index(['role'])
 @Index(['status'])
 export class User extends BaseEntity {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
-    @Column()
-    name: string;
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    full_name: string;
 
     @Column()
     username: string;
@@ -35,6 +35,6 @@ export class User extends BaseEntity {
     @Column({ type: 'enum', enum: UserRoleEnum, default: UserRoleEnum.STAFF })
     role: UserRoleEnum;
 
-    @Column({ type: 'bigint', nullable: true })
-    department_id?: number;
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    department_id: string;
 }
