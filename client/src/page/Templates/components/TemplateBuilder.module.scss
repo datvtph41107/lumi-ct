@@ -1,0 +1,626 @@
+.templateBuilder {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+// Top Toolbar
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.toolbarLeft {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbarButton {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  &.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+  }
+}
+
+.saveButton {
+  padding: 8px 20px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #059669;
+  }
+}
+
+// Main Content Area
+.mainContent {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+// Left Sidebar - Field Library
+.sidebar {
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
+}
+
+.sidebarHeader {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+  }
+}
+
+.fieldLibrary {
+  padding: 16px;
+}
+
+.fieldItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+  }
+}
+
+.fieldIcon {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.fieldInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fieldType {
+  font-size: 12px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// Center Canvas
+.canvas {
+  background: #f8fafc;
+  overflow-y: auto;
+  position: relative;
+}
+
+.previewMode {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.exportButton {
+  padding: 6px 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: #2563eb;
+  }
+}
+
+.previewContent {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+
+  .contract-template {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'Times New Roman', serif;
+    line-height: 1.6;
+
+    .contract-header {
+      text-align: center;
+      margin-bottom: 30px;
+
+      h1 {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      h2 {
+        font-size: 16px;
+        margin-bottom: 20px;
+      }
+
+      h3 {
+        font-size: 20px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+    }
+
+    .contract-body {
+      .field {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        label {
+          font-weight: 600;
+          min-width: 120px;
+        }
+
+        .placeholder {
+          color: #3b82f6;
+          font-style: italic;
+          border-bottom: 1px dashed #3b82f6;
+          padding: 2px 4px;
+        }
+      }
+
+      .clause-block {
+        margin-bottom: 20px;
+        padding: 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+
+        h4 {
+          margin: 0 0 12px 0;
+          font-size: 16px;
+          font-weight: 600;
+        }
+
+        .clause-content {
+          color: #3b82f6;
+          font-style: italic;
+          border-bottom: 1px dashed #3b82f6;
+          padding: 2px 4px;
+        }
+      }
+
+      .signature-block {
+        margin-top: 40px;
+        text-align: center;
+
+        .signature-line {
+          width: 200px;
+          height: 1px;
+          background: #000;
+          margin: 0 auto 8px;
+        }
+
+        span {
+          font-size: 14px;
+          color: #6b7280;
+        }
+      }
+    }
+  }
+}
+
+.canvasArea {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvasHeader {
+  padding: 20px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+  }
+}
+
+.canvasDropZone {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  transition: background 0.2s ease;
+
+  &.dragOver {
+    background: #eff6ff;
+    border: 2px dashed #3b82f6;
+  }
+}
+
+.emptyCanvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #9ca3af;
+  text-align: center;
+
+  .emptyIcon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  h4 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    max-width: 300px;
+  }
+}
+
+.canvasField {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  }
+
+  &.selected {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+  }
+}
+
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+  border-radius: 8px 8px 0 0;
+}
+
+.fieldActions {
+  margin-left: auto;
+}
+
+.fieldAction {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #fee2e2;
+  }
+}
+
+.fieldPreview {
+  padding: 16px;
+}
+
+.fieldInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.fieldTextarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.signaturePreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  background: #f9fafb;
+
+  .signatureLine {
+    width: 150px;
+    height: 1px;
+    background: #9ca3af;
+  }
+
+  span {
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+// Right Sidebar - Properties Panel
+.propertiesPanel {
+  background: white;
+  border-left: 1px solid #e2e8f0;
+  overflow-y: auto;
+}
+
+.propertiesHeader {
+  padding: 20px;
+  border-bottom: 1px solid #e2e8f0;
+
+  h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+  }
+}
+
+.selectedFieldName {
+  font-size: 13px;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.propertiesContent {
+  padding: 20px;
+}
+
+.propertyGroup {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+}
+
+.propertyInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.propertySelect {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.checkboxLabel {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px !important;
+  margin-bottom: 0 !important;
+
+  input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+  }
+}
+
+.noSelection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #9ca3af;
+  text-align: center;
+
+  .noSelectionIcon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// Responsive Design
+@media (max-width: 1200px) {
+  .mainContent {
+    grid-template-columns: 240px 1fr 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .mainContent {
+    grid-template-columns: 220px 1fr 260px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .sidebar,
+  .propertiesPanel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+
+    &.open {
+      transform: translateX(0);
+    }
+  }
+
+  .sidebar {
+    left: 0;
+    width: 280px;
+  }
+
+  .propertiesPanel {
+    right: 0;
+    width: 280px;
+    transform: translateX(100%);
+  }
+}
