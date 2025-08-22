@@ -24,6 +24,7 @@ import { DatabaseModule } from '@/providers/database';
 import { User } from '@/core/domain/user/user.entity';
 import { UserSession } from '@/core/domain/user/user-session.entity';
 import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
+import { PermissionService } from '@/core/permission/permission-matrix';
 
 @Module({
     imports: [
@@ -66,6 +67,7 @@ import { RevokedToken } from '@/core/domain/token/revoke-token.entity';
         JwtStrategy,
         AuthGuardAccess,
         RolesGuard,
+        PermissionService,
     ],
     exports: [PassportModule, JwtModule, TokenService, AuthGuardAccess, RolesGuard],
 })

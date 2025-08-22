@@ -14,6 +14,7 @@ import { DatabaseModule } from '@/providers/database';
 // Entities
 import { Notification } from '@/core/domain/notification/notification.entity';
 import { SystemNotificationSettings } from '@/core/domain/notification/system-notification-settings.entity';
+import { NotificationProcessor } from '@/core/queue/processors/notification.processor';
 
 @Module({
     imports: [
@@ -28,6 +29,7 @@ import { SystemNotificationSettings } from '@/core/domain/notification/system-no
     providers: [
         NotificationService,
         // TODO: Add SocketService for real-time notifications
+        NotificationProcessor,
     ],
     exports: [NotificationService],
 })
