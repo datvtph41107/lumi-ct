@@ -32,8 +32,8 @@ export class AuthService extends BaseService {
         return this.request.private.post<void>('auth/update-activity');
     }
 
-    async getUserPermissions(): Promise<ApiResponse<any>> {
-        return this.request.private.get<any>('auth/permissions');
+    async getUserPermissions(): Promise<ApiResponse<{ capabilities: { grants: string[] } }>> {
+        return this.request.private.get<{ capabilities: { grants: string[] } }>('auth/permissions');
     }
 }
 
