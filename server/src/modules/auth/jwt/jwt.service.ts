@@ -43,7 +43,7 @@ export class TokenService {
 
         const refreshTokenPayload = { sub: user.id, jti, iat: now, sessionId } as any;
 
-        await this.createUserSession(user.id, sessionId, jti);
+        await this.createUserSession(parseInt(String(user.id), 10), sessionId, jti);
 
         return {
             accessToken: this.signToken(accessTokenPayload, this.accessTokenExpireSeconds),

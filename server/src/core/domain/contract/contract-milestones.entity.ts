@@ -23,6 +23,15 @@ export class Milestone extends BaseEntity {
     @Column({ type: 'char', length: 36 })
     contract_id: string;
 
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    department_code?: string; // e.g., 'HC', 'KT'
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    block_code?: string; // e.g., 'KT.ACCEPTANCE'
+
+    @Column({ type: 'int', nullable: true })
+    department_manager_id?: number;
+
     @Column({ type: 'varchar', length: 255 })
     name: string;
 

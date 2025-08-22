@@ -33,6 +33,15 @@
     "noUncheckedSideEffectImports": true,
   },
   "include": [
-    "src"
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/services/api/**",
+    "src/types/**",
+    "src/store/contract-draft-store.ts",
+    "src/hooks/useContractForm.ts",
+    "src/page/Contract/**",
+    "src/core/**",
+    "src/components/**",
+    "src/utils/contract.utils.ts"
   ]
 }

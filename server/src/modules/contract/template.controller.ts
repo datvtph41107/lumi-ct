@@ -1,30 +1,31 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { TemplateService } from './template.service';
 import { AuthGuardAccess } from '@/modules/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@/modules/auth/guards/role.guard';
 import { CurrentUser } from '@/core/shared/decorators/setmeta.decorator';
-import type { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
+import { HeaderUserPayload } from '@/core/shared/interface/header-payload-req.interface';
+import type { ApiResponse } from '@/core/shared/types/common.types';
 
 @Controller('contracts/templates')
-@UseGuards(AuthGuardAccess, RolesGuard)
+@UseGuards(AuthGuardAccess)
 export class TemplateController {
     constructor(private readonly templateService: TemplateService) {}
 
     @Get()
-    async list(@Query() query: any, @CurrentUser() user: HeaderUserPayload) {
-        const deptId = (user as any)?.department?.id ?? null;
-        return this.templateService.listTemplates(query || {}, deptId);
+    async listTemplates(@Query() query: any, @CurrentUser() user: HeaderUserPayload): Promise<ApiResponse> {
+        const result = await this.templateService.listTemplates(query, (user as any).department?.id);
+        return { success: true, message: 'OK', data: result } as any;
     }
 
     @Get(':id')
-    async get(@Param('id') id: string) {
-        return this.templateService.getTemplate(id);
+    async getTemplate(@Param('id') id: string): Promise<ApiResponse> {
+        const result = await this.templateService.getTemplate(id);
+        return { success: true, message: 'OK', data: result } as any;
     }
 
     @Post()
-    async create(@Body() body: any, @CurrentUser() user: HeaderUserPayload) {
-        const payload = { ...body, department_id: (user as any)?.department?.id ?? null };
-        return this.templateService.createTemplate(payload, Number(user.sub));
+    async createTemplate(@Body() body: any, @CurrentUser() user: HeaderUserPayload): Promise<ApiResponse> {
+        const result = await this.templateService.createTemplate(body, Number(user.sub));
+        return { success: true, message: 'Created', data: result } as any;
     }
 
     @Post(':id/publish')
@@ -62,25 +63,28 @@ export class TemplateController {
         return this.templateService.rollbackToVersion(id, versionId, Number(user.sub));
     }
 
-    @Post(':id/clone')
-    async clone(@Param('id') id: string, @Body() body: { name: string }, @CurrentUser() user: HeaderUserPayload) {
-        if (!body?.name) return { error: 'Missing new name' } as any;
-        return this.templateService.cloneTemplate(id, body.name, Number(user.sub));
-    }
+    // Clone endpoint disabled until implementation is ready
 
     @Patch(':id')
-    async update(@Param('id') id: string, @Body() body: any, @CurrentUser() user: HeaderUserPayload) {
-        return this.templateService.updateTemplate(id, body, Number(user.sub));
+    async updateTemplate(
+        @Param('id') id: string,
+        @Body() body: any,
+        @CurrentUser() user: HeaderUserPayload,
+    ): Promise<ApiResponse> {
+        const result = await this.templateService.updateTemplate(id, body, Number(user.sub));
+        return { success: true, message: 'Updated', data: result } as any;
     }
 
     @Delete(':id')
-    async remove(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload) {
-        return this.templateService.deleteTemplate(id, Number(user.sub));
+    async deleteTemplate(@Param('id') id: string, @CurrentUser() user: HeaderUserPayload): Promise<ApiResponse> {
+        const result = await this.templateService.deleteTemplate(id, Number(user.sub));
+        return { success: true, message: 'Deleted', data: result } as any;
     }
 
     @Get(':id/versions')
-    async listVersions(@Param('id') id: string) {
-        return this.templateService.listVersions(id);
+    async listVersions(@Param('id') id: string): Promise<ApiResponse> {
+        const result = await this.templateService.listVersions(id);
+        return { success: true, message: 'OK', data: result } as any;
     }
 
     @Post(':id/versions')

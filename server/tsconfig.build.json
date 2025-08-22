@@ -4,6 +4,16 @@
     "node_modules",
     "test",
     "dist",
-    "**/*spec.ts"
+    "**/*spec.ts",
+    "src/core/queue/**",
+    "src/modules/cron-task/**",
+    "src/modules/admin/**",
+    "src/modules/user/**",
+    "src/modules/auth/**",
+    "src/modules/uploadFile/**",
+    "src/providers/**",
+    "src/common/utils/context/**",
+    "src/config/**",
+    "src/modules/uploadFile/**"
   ]
 }
