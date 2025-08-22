@@ -17,6 +17,7 @@ import type { DepartmentPolicyRegistry } from '@/core/department/policy/departme
 import type { WorkflowRegistry } from '@/core/workflow/workflow.registry';
 import { EventBusModule } from '@/core/event/event-bus.module';
 import { QueueModule } from '@/core/queue/queue.module';
+import { ESignModule } from '@/core/esign/esign.module';
 
 // Feature modules
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -64,6 +65,7 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
         CronTaskModule,
         EventBusModule,
         QueueModule,
+        ESignModule,
     ],
 })
 export class AppModule {
