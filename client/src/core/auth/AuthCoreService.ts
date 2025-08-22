@@ -8,6 +8,7 @@ import {
     clearPermissionCache as clearPermissionCacheAction,
     getUserPermissions,
 } from '~/redux/slices/auth.slice';
+import { createAcl } from '~/utils/acl';
 
 export interface PermissionCheck {
     resource: string;
@@ -17,6 +18,7 @@ export interface PermissionCheck {
 
 class AuthCoreService {
     private static instance: AuthCoreService;
+    private acl = createAcl({ grants: [] });
 
     private constructor() {}
 
@@ -41,15 +43,17 @@ class AuthCoreService {
         const cacheKey = `${user.id}:${resource}:${action}:${JSON.stringify(conditions || {})}`;
         if (permissionCache.has(cacheKey)) return permissionCache.get(cacheKey)!;
 
-        let allowed = true;
-
-        // Manager-only patterns (example): approving contracts
-        if (resource === 'contract' && (action === 'approve' || action === 'reject')) {
-            const isManager = user.role?.toUpperCase() === 'MANAGER' || !!userPerms?.capabilities?.is_manager;
-            allowed = isManager;
+        // Prefer ACL grants if available
+        if ((userPerms as any)?.capabilities?.grants) {
+            this.acl.setGrants(((userPerms as any).capabilities.grants as string[]) || []);
+            const allowed = this.acl.can(resource, action);
+            store.dispatch(setPermissionCache({ key: cacheKey, value: allowed }));
+            return allowed;
         }
 
-        // Cache & return
+        // Fallback legacy behavior if grants not provided
+        const isManager = user.role?.toUpperCase() === 'MANAGER' || !!(userPerms as any)?.capabilities?.is_manager;
+        const allowed = resource === 'contract' && (action === 'approve' || action === 'reject') ? isManager : true;
         store.dispatch(setPermissionCache({ key: cacheKey, value: allowed }));
         return allowed;
     }

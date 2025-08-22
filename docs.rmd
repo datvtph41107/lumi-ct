@@ -1,0 +1,78 @@
+# Hệ thống Core Base: Quy tắc (Rules) · Quyền (ACL) · Phòng ban · Hợp đồng · Notifications · Queue · Event · E‑Sign · Workflow
+
+## 1) Mục tiêu
+- Giữ bản chất (essence) rõ ràng cho từng domain (role/permission, department, contract, collaborator, audit, notification, cron, event, queue, template, draft, stage, milestone/task).
+- Mở rộng bằng config/registry/adapter (plug-in) không phá core.
+- Đồng nhất FE/BE qua ACL grants (resource.action | '*').
+
+## 2) Kiến trúc & Core Base
+- Rules (alias Policy):
+  - ResourceRule + Registry. Ví dụ: `ContractResourcePolicy` map vai trò hệ thống + Collaborator.
+  - Department Rules: mỗi phòng ban có rules riêng đăng ký vào registry, không đổi entity.
+- Workflow Engine:
+  - Định nghĩa 1 workflow gốc; dùng Augmentor để chèn step theo phòng ban.
+- Event & Queue:
+  - EventBus in-memory; Queue in-memory. Có thể thay Kafka/Bull bằng DI.
+- E‑Sign:
+  - `ESignRegistry` + `ESignAdapter` cho tương lai ký điện tử.
+- Notification & Cron:
+  - Notification publish event + enqueue job; Cron gọi service xử lý pending.
+
+## 3) Quyền: RBAC + ACL Grants
+- Server: `PermissionService` + `BASE_MATRIX` trả grants:
+  - STAFF: một số quyền cơ bản; MANAGER: '*'.
+- API: GET `/auth/permissions` → `{ capabilities: { grants: string[] } }`.
+- Client: `utils/acl.ts` → `createAcl({ grants }).can(resource, action)`.
+
+## 4) Kết nối End‑to‑End
+- BE
+  - `AuthController.getPermissions` dùng `PermissionService.getGlobalGrants` trả grants.
+  - `ContractService` hook Department Rules + Workflow khi tạo.
+  - `NotificationService` publish `notification.created` và enqueue `deliver.notification`.
+  - `NotificationProcessor` process job và publish `notification.delivered`.
+- FE
+  - `AuthCoreService` nạp grants (thunk getUserPermissions) → set vào ACL → `hasPermission/can`.
+  - `PermissionGuard`/hooks dùng `authCoreService.hasPermission`.
+
+## 5) E‑Sign mở rộng
+- Khi cần: đăng ký adapter vào `ESignRegistry`; Service gọi adapter mà không đổi CRUD core.
+
+## 6) Security Config
+- `src/config/security.config.ts` cung cấp `getSecurityConfig(configService)` gồm cors, rateLimit, helmet CSP, session cookie, mfa, password, account.
+
+## 7) Mở rộng không phá core
+- Thêm Role/Permission: cập nhật `BASE_MATRIX` hoặc tính động theo DB; FE nhận grants không đổi code.
+- Thêm phòng ban đặc thù: implement DepartmentPolicy mới và register.
+- Thêm bước workflow: viết Augmentor và đăng ký.
+- Thêm provider ký điện tử: đăng ký `ESignAdapter`.
+
+## 8) Loại bỏ trùng lặp
+- FE không còn dựa `is_manager` khi đã có ACL grants.
+- Gom quyền về một nơi (ACL). Server cưỡng chế tại rules/guards.
+
+## 9) Quy trình sử dụng
+1) Đăng nhập → client gọi `/auth/permissions` → `acl.setGrants(grants)`.
+2) UI dùng `acl.can('contract','approve')` để hiển thị/phản hồi.
+3) Action server vẫn kiểm tra bằng Collaborator/Rules.
+
+## 10) Nâng cấp tương lai
+- Thay Event/Queue bằng Kafka/Bull/Redis (chỉ đổi provider).
+- Đẩy real‑time qua WebSocket khi event publish (subscribe và emit socket).
+
+## 11) Danh sách file chính (trích)
+- Server
+  - Rules: `src/core/policy/*` (ContractResourcePolicy), alias Rules: `src/core/rules/*`.
+  - Department Rules: `src/core/department/policy/*` (+ example Legal).
+  - Workflow: `src/core/workflow/*` (+ default workflow + augmentor legal).
+  - Event/Queue: `src/core/event/*`, `src/core/queue/*`, processors: `.../processors/notification.processor.ts`.
+  - Permission Matrix: `src/core/permission/*`.
+  - Security Config: `src/config/security.config.ts`.
+  - Wiring: `src/app.module.ts`, `src/modules/contract/contract.module.ts`, `src/modules/auth/*`, `src/modules/notification/*`.
+- Client
+  - ACL helper: `src/utils/acl.ts`.
+  - Auth core: `src/core/auth/AuthCoreService.ts` (ưu tiên ACL grants).
+  - Hook: `src/hooks/usePermission.ts`, Guard: `src/core/auth/PermissionGuard.tsx`.
+
+## 12) Ghi chú build hiện tại
+- Backend: ok.
+- Frontend: còn lỗi type tồn tại trước khi tích hợp ACL (Auth.ts, ContractCoreService.ts, milestone/template types…). Cần dọn từng nhóm file để build xanh.

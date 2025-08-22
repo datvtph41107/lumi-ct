@@ -8,6 +8,16 @@ import { join } from 'path';
 // Core modules
 import { HttpLoggerModule } from '@/core/shared/logger/http/http-logger.module';
 import { TypeOrmWinstonLogger } from '@/core/shared/logger/logger.typeorm';
+import { PolicyModule } from '@/core/policy/policy.module';
+import { DepartmentPolicyModule, DEPARTMENT_POLICY_REGISTRY } from '@/core/department/policy/department-policy.module';
+import { WorkflowModule, WORKFLOW_REGISTRY } from '@/core/workflow/workflow.module';
+import { LegalDepartmentPolicy } from '@/core/department/policy/policies/legal.policy';
+import { DefaultContractWorkflow } from '@/core/workflow/definitions/default.contract.workflow';
+import type { DepartmentPolicyRegistry } from '@/core/department/policy/department-policy.registry';
+import type { WorkflowRegistry } from '@/core/workflow/workflow.registry';
+import { EventBusModule } from '@/core/event/event-bus.module';
+import { QueueModule } from '@/core/queue/queue.module';
+import { ESignModule } from '@/core/esign/esign.module';
 
 // Feature modules
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -44,12 +54,30 @@ import { CronTaskModule } from '@/modules/cron-task/cron-task.module';
             serveRoot: '/uploads',
         }),
         HttpLoggerModule,
+        PolicyModule,
+        DepartmentPolicyModule,
+        WorkflowModule,
         AuthModule,
         AdminModule,
         UserModule,
         ContractsModule,
         NotificationModule,
         CronTaskModule,
+        EventBusModule,
+        QueueModule,
+        ESignModule,
     ],
 })
-export class AppModule {}
+export class AppModule {
+	constructor(
+		@((Reflect as any).metadata && (Reflect as any).metadata('design:paramtypes') ? (DEPARTMENT_POLICY_REGISTRY as any) : DEPARTMENT_POLICY_REGISTRY) private readonly deptRegistry: DepartmentPolicyRegistry,
+		@((Reflect as any).metadata && (Reflect as any).metadata('design:paramtypes') ? (WORKFLOW_REGISTRY as any) : WORKFLOW_REGISTRY) private readonly workflowRegistry: WorkflowRegistry,
+	) {}
+
+	onModuleInit() {
+		// Seed initial department policies
+		this.deptRegistry.register(new LegalDepartmentPolicy());
+		// Seed default workflow
+		this.workflowRegistry.register(DefaultContractWorkflow);
+	}
+}

@@ -19,12 +19,15 @@ import {
 } from '@/core/shared/types/api-response.types';
 import { UserContext } from '@/core/shared/types/auth.types';
 import { isManager } from '@/common/utils/role.utils';
+import { PermissionService } from '@/core/permission/permission-matrix';
+import { Permission } from '@/core/permission/permissions';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly tokenService: TokenService,
         @Inject('DATA_SOURCE') private readonly db: DataSource,
+        private readonly permissionService: PermissionService,
     ) {}
 
     @Post('login')
@@ -128,8 +131,9 @@ export class AuthController {
 
     @Get('permissions')
     @UseGuards(AuthGuardAccess)
-    async getPermissions(@CurrentUser() user: HeaderUserPayload): Promise<UserCapabilitiesResponse> {
-        const userIsManager = isManager({ roles: user.roles });
-        return { capabilities: { is_manager: userIsManager } };
+    async getPermissions(@CurrentUser() user: HeaderUserPayload): Promise<{ capabilities: { grants: Permission[] } }> {
+        const roles = (user.roles || []) as string[];
+        const grants = this.permissionService.getGlobalGrants(roles);
+        return { capabilities: { grants } };
     }
 }

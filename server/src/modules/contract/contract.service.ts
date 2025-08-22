@@ -1,5 +1,5 @@
 // src/modules/contracts/contracts.service.ts
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Contract } from '@/core/domain/contract/contract.entity';
@@ -23,6 +23,10 @@ import { Role as SystemRole, ContractStatus } from '@/core/shared/enums/base.enu
 import { ContractQueryBuilder } from '@/core/query/contract.query';
 import { FilterQuery, paginate } from '@/common/utils/filter-query.utils';
 import { PaginatedResult } from '@/core/shared/interface/paginate.interface';
+import { DEPARTMENT_POLICY_REGISTRY } from '@/core/department/policy/department-policy.module';
+import { DepartmentPolicyRegistry } from '@/core/department/policy/department-policy.registry';
+import { WORKFLOW_REGISTRY } from '@/core/workflow/workflow.module';
+import { WorkflowRegistry } from '@/core/workflow/workflow.registry';
 
 type CreateContractDto = Partial<Contract> & { template_id?: string };
 
@@ -43,6 +47,8 @@ export class ContractService {
         private readonly notificationService: NotificationService,
         private readonly auditLogService: AuditLogService,
         private readonly collaboratorService: CollaboratorService,
+        @Inject(DEPARTMENT_POLICY_REGISTRY) private readonly deptPolicies: DepartmentPolicyRegistry,
+        @Inject(WORKFLOW_REGISTRY) private readonly workflowRegistry: WorkflowRegistry,
     ) {}
 
     // ===== Drafts (merged) =====
@@ -258,6 +264,21 @@ export class ContractService {
     }
 
     async createContract(createDto: CreateContractDto, userId: number): Promise<Contract> {
+        // Hook: department policy pre-create
+        try {
+            const user = await this.userRepository.findOne({ where: { id: userId } as any });
+            const dept = user?.department_id as any;
+            const policy = this.deptPolicies.get(dept ? String(dept) : undefined as any);
+            if (policy?.beforeContractCreate) {
+                await policy.beforeContractCreate(createDto, {
+                    userId,
+                    roles: user ? [user.role as any] : [],
+                    departmentId: user?.department_id as any,
+                    capabilities: {},
+                });
+            }
+        } catch (_e) {}
+
         // Any authenticated user (manager or staff) can create contract; approval is manager-only later
         const now = new Date();
         const contract = this.contractRepository.create({
@@ -297,6 +318,21 @@ export class ContractService {
             user_id: userId,
             action: 'CREATE_CONTRACT',
         });
+
+        // After create: create initial workflow instance data if needed (no persistence change)
+        try {
+            const departmentCode = (await this.dataSource
+                .createQueryBuilder()
+                .select('d.code', 'code')
+                .from('departments', 'd')
+                .where('d.id = :id', { id: (await this.userRepository.findOne({ where: { id: userId } as any }))?.department_id })
+                .getRawOne())?.code as string | undefined;
+            const def = this.workflowRegistry.get('default_contract', departmentCode);
+            if (def) {
+                // no-op: demonstrate registry fetch; a future feature can persist instance
+            }
+        } catch (_e) {}
+
         return savedContract;
     }
 

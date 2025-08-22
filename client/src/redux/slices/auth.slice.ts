@@ -3,7 +3,7 @@ import { AuthManager } from '~/core/http/settings/AuthManager';
 import { SessionManager } from '~/core/http/settings/SessionManager';
 import { authService } from '~/services/api/auth.service';
 import type { User, LoginRequest } from '~/types/auth/auth.types';
-import type { UserPermissions } from '~/types/auth/permission.types';
+type UserPermissions = { capabilities: { grants: string[] } };
 import type { LoginResponse, RefreshTokenResponse, SessionData } from '~/core/types/api.types';
 
 // ===== Thunks (standard RTK) =====
@@ -386,7 +386,7 @@ export const selectIsRefreshing = (state: { auth: AuthState }) => state.auth.isT
 export const selectUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectRedirectPath = (state: { auth: AuthState }) => state.auth.redirectPath;
 export const selectIsPermissionsLoaded = (state: { auth: AuthState }) => state.auth.isPermissionsLoaded;
-export const selectUserRoles = (state: { auth: AuthState }) => state.auth.userPermissions?.roles || [];
+export const selectUserRoles = (state: { auth: AuthState }) => state.auth.userPermissions?.capabilities.grants || [];
 export const selectUserPermissions = (state: { auth: AuthState }) => state.auth.userPermissions;
 export const selectPermissionCache = (state: { auth: AuthState }) => {
     return new Map<string, boolean>(Object.entries(state.auth.permissionCache || {}));
