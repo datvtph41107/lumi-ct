@@ -8,6 +8,23 @@ import styles from './TemplateDetailPage.module.scss';
 import { useCallback, useState as useReactState } from 'react';
 import { FieldsDesigner } from './components/FieldsDesigner';
 import { TemplateVersions } from './components/TemplateVersions';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+    faSave, 
+    faEye, 
+    faUpload, 
+    faDownload, 
+    faUndo, 
+    faRedo,
+    faCog,
+    faHistory,
+    faFileAlt,
+    faPuzzlePiece,
+    faCogs,
+    faEyeSlash,
+    faCheckCircle,
+    faTimes
+} from '@fortawesome/free-solid-svg-icons';
 
 type TabKey = 'overview' | 'editor' | 'builder' | 'fields' | 'preview' | 'versions' | 'settings';
 
@@ -21,8 +38,10 @@ const TemplateDetailPage = () => {
     const [template, setTemplate] = useState<Partial<ContractTemplate>>({
         mode: 'editor',
         category: 'employment',
+        status: 'draft'
     } as any);
     const [saving, setSaving] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
     const queuedSave = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const load = async () => {
@@ -89,93 +108,289 @@ const TemplateDetailPage = () => {
             content: { editor_content: (template as any)?.editorContent || (template as any)?.content },
         } as any);
         setPreviewHtml((res.data as any)?.html || (res as any)?.html || '');
-        setTab('preview');
+        setShowPreview(true);
     }, [id, template]);
 
     const handlePublish = useCallback(async () => {
-        await templateService.publish(id as string, {});
-        await load();
-        alert('Đã publish template');
+        try {
+            await templateService.publish(id as string, {});
+            await load();
+            alert('Đã publish template thành công!');
+        } catch (error) {
+            alert('Không thể publish template');
+        }
     }, [id]);
+
+    const getTabIcon = (tabKey: TabKey) => {
+        switch (tabKey) {
+            case 'overview':
+                return faFileAlt;
+            case 'editor':
+                return faFileAlt;
+            case 'builder':
+                return faPuzzlePiece;
+            case 'fields':
+                return faCogs;
+            case 'preview':
+                return faEye;
+            case 'versions':
+                return faHistory;
+            case 'settings':
+                return faCog;
+            default:
+                return faFileAlt;
+        }
+    };
+
+    const getTabLabel = (tabKey: TabKey) => {
+        switch (tabKey) {
+            case 'overview':
+                return 'Tổng quan';
+            case 'editor':
+                return 'Soạn thảo';
+            case 'builder':
+                return 'Builder';
+            case 'fields':
+                return 'Trường dữ liệu';
+            case 'preview':
+                return 'Xem trước';
+            case 'versions':
+                return 'Phiên bản';
+            case 'settings':
+                return 'Cài đặt';
+            default:
+                return tabKey;
+        }
+    };
 
     return (
         <div className={styles.container}>
-            {loading && <div>Đang tải...</div>}
-            {error && <div style={{ color: 'red' }}>{error}</div>}
+            {loading && (
+                <div className={styles.loading}>
+                    <div className={styles.spinner}></div>
+                    <span>Đang tải template...</span>
+                </div>
+            )}
+            
+            {error && (
+                <div className={styles.error}>
+                    <span>{error}</span>
+                    <button onClick={load} className={styles.retryButton}>Thử lại</button>
+                </div>
+            )}
 
-            {/* Meta */}
-            <div className={styles.toolbar}>
-                <input
-                    className={styles.input}
-                    placeholder="Tên template"
-                    value={template.name || ''}
-                    onChange={(e) => handleMetaChange({ name: e.target.value })}
-                    onBlur={() => save()}
-                />
-                <input
-                    className={styles.input}
-                    placeholder="Mô tả"
-                    value={template.description || ''}
-                    onChange={(e) => handleMetaChange({ description: e.target.value })}
-                    onBlur={() => save()}
-                />
-                <select
-                    className={styles.select}
-                    value={(template as any).mode || 'editor'}
-                    onChange={(e) => {
-                        handleMetaChange({ mode: e.target.value as any });
-                        void save({ mode: e.target.value as any });
-                    }}
-                >
-                    <option value="basic">Form</option>
-                    <option value="editor">Editor</option>
-                </select>
-                {saving && <span>Đang lưu...</span>}
+            {/* Header */}
+            <div className={styles.header}>
+                <div className={styles.headerLeft}>
+                    <button 
+                        className={styles.backButton}
+                        onClick={() => navigate('/templates')}
+                    >
+                        ← Quay lại
+                    </button>
+                    <div className={styles.titleSection}>
+                        <input
+                            className={styles.titleInput}
+                            placeholder="Tên template"
+                            value={template.name || ''}
+                            onChange={(e) => handleMetaChange({ name: e.target.value })}
+                            onBlur={() => save()}
+                        />
+                        <div className={styles.metaInfo}>
+                            <span className={styles.status}>
+                                <FontAwesomeIcon 
+                                    icon={(template as any).status === 'published' ? faCheckCircle : faEyeSlash} 
+                                    className={styles.statusIcon}
+                                />
+                                {(template as any).status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+                            </span>
+                            {saving && <span className={styles.saving}>Đang lưu...</span>}
+                        </div>
+                    </div>
+                </div>
+                
+                <div className={styles.headerActions}>
+                    <button className={styles.actionButton} onClick={handlePreview}>
+                        <FontAwesomeIcon icon={faEye} />
+                        Xem trước
+                    </button>
+                    {!isNew && (
+                        <button 
+                            className={`${styles.actionButton} ${styles.publishButton}`}
+                            onClick={handlePublish}
+                            disabled={(template as any).status === 'published'}
+                        >
+                            <FontAwesomeIcon icon={faUpload} />
+                            Publish
+                        </button>
+                    )}
+                    <button className={styles.actionButton}>
+                        <FontAwesomeIcon icon={faDownload} />
+                        Xuất
+                    </button>
+                </div>
+            </div>
+
+            {/* Meta Info */}
+            <div className={styles.metaBar}>
+                <div className={styles.metaGroup}>
+                    <input
+                        className={styles.metaInput}
+                        placeholder="Mô tả template"
+                        value={template.description || ''}
+                        onChange={(e) => handleMetaChange({ description: e.target.value })}
+                        onBlur={() => save()}
+                    />
+                </div>
+                
+                <div className={styles.metaGroup}>
+                    <select
+                        className={styles.metaSelect}
+                        value={(template as any).mode || 'editor'}
+                        onChange={(e) => {
+                            handleMetaChange({ mode: e.target.value as any });
+                            void save({ mode: e.target.value as any });
+                        }}
+                    >
+                        <option value="basic">Form</option>
+                        <option value="editor">Editor</option>
+                    </select>
+                    
+                    <select
+                        className={styles.metaSelect}
+                        value={template.category || ''}
+                        onChange={(e) => {
+                            handleMetaChange({ category: e.target.value });
+                            void save({ category: e.target.value });
+                        }}
+                    >
+                        <option value="">Chọn danh mục</option>
+                        <option value="employment">Lao động</option>
+                        <option value="service">Dịch vụ</option>
+                        <option value="nda">NDA</option>
+                        <option value="partnership">Hợp tác</option>
+                    </select>
+                </div>
             </div>
 
             {/* Tabs */}
             <div className={styles.tabs}>
                 {(['overview', 'editor', 'builder', 'fields', 'preview', 'versions', 'settings'] as TabKey[]).map(
-                    (k) => (
+                    (tabKey) => (
                         <button
-                            key={k}
-                            onClick={() => setTab(k)}
-                            className={`${styles.tabButton} ${tab === k ? styles.tabActive : ''}`}
+                            key={tabKey}
+                            onClick={() => setTab(tabKey)}
+                            className={`${styles.tabButton} ${tab === tabKey ? styles.tabActive : ''}`}
                         >
-                            {k}
+                            <FontAwesomeIcon icon={getTabIcon(tabKey)} />
+                            {getTabLabel(tabKey)}
                         </button>
                     ),
                 )}
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                    <button className={styles.tabButton} onClick={handlePreview}>
-                        Preview
-                    </button>
-                    {!isNew && (
-                        <button className={styles.tabButton} onClick={handlePublish}>
-                            Publish
-                        </button>
-                    )}
-                </div>
             </div>
 
-            {tab === 'editor' && <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />}
+            {/* Content */}
+            <div className={styles.content}>
+                {tab === 'overview' && (
+                    <div className={styles.overview}>
+                        <div className={styles.overviewCard}>
+                            <h3>Thông tin template</h3>
+                            <div className={styles.overviewInfo}>
+                                <div className={styles.infoRow}>
+                                    <span className={styles.infoLabel}>Tên:</span>
+                                    <span className={styles.infoValue}>{template.name || 'Chưa đặt tên'}</span>
+                                </div>
+                                <div className={styles.infoRow}>
+                                    <span className={styles.infoLabel}>Loại:</span>
+                                    <span className={styles.infoValue}>{(template as any).mode || 'editor'}</span>
+                                </div>
+                                <div className={styles.infoRow}>
+                                    <span className={styles.infoLabel}>Danh mục:</span>
+                                    <span className={styles.infoValue}>{template.category || 'Chưa phân loại'}</span>
+                                </div>
+                                <div className={styles.infoRow}>
+                                    <span className={styles.infoLabel}>Trạng thái:</span>
+                                    <span className={styles.infoValue}>
+                                        {(template as any).status === 'published' ? 'Đã xuất bản' : 'Bản nháp'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-            {tab === 'builder' && <TemplateBuilder />}
-            {tab === 'fields' && (
-                <FieldsDesigner
-                    value={((template as any)?.fields as any[]) || []}
-                    onChange={async (fields) => {
-                        setTemplate((prev: any) => ({ ...prev, fields }));
-                        await templateService.updateTemplate(id as string, { fields } as any);
-                    }}
-                />
-            )}
-            {tab === 'versions' && id && <TemplateVersions id={id} />}
-            {tab === 'preview' && (
-                <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>
-                    <iframe title="preview" style={{ width: '100%', height: 800, border: 0 }} srcDoc={previewHtml} />
-                </div>
-            )}
+                {tab === 'editor' && (
+                    <div className={styles.editorContainer}>
+                        <TemplateEditor value={String(editorValue || '')} onChange={onEditorChange} />
+                    </div>
+                )}
+
+                {tab === 'builder' && (
+                    <div className={styles.builderContainer}>
+                        <TemplateBuilder />
+                    </div>
+                )}
+                
+                {tab === 'fields' && (
+                    <div className={styles.fieldsContainer}>
+                        <FieldsDesigner
+                            value={((template as any)?.fields as any[]) || []}
+                            onChange={async (fields) => {
+                                setTemplate((prev: any) => ({ ...prev, fields }));
+                                await templateService.updateTemplate(id as string, { fields } as any);
+                            }}
+                        />
+                    </div>
+                )}
+                
+                {tab === 'versions' && id && (
+                    <div className={styles.versionsContainer}>
+                        <TemplateVersions id={id} />
+                    </div>
+                )}
+                
+                {tab === 'preview' && (
+                    <div className={styles.previewContainer}>
+                        {showPreview ? (
+                            <div className={styles.previewFrame}>
+                                <div className={styles.previewHeader}>
+                                    <h3>Xem trước template</h3>
+                                    <button 
+                                        className={styles.closeButton}
+                                        onClick={() => setShowPreview(false)}
+                                    >
+                                        <FontAwesomeIcon icon={faTimes} />
+                                    </button>
+                                </div>
+                                <iframe 
+                                    title="preview" 
+                                    className={styles.previewIframe}
+                                    srcDoc={previewHtml} 
+                                />
+                            </div>
+                        ) : (
+                            <div className={styles.previewPlaceholder}>
+                                <FontAwesomeIcon icon={faEye} className={styles.previewIcon} />
+                                <h3>Xem trước template</h3>
+                                <p>Nhấn "Xem trước" để hiển thị template</p>
+                                <button className={styles.previewButton} onClick={handlePreview}>
+                                    <FontAwesomeIcon icon={faEye} />
+                                    Xem trước
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+                
+                {tab === 'settings' && (
+                    <div className={styles.settingsContainer}>
+                        <div className={styles.settingsCard}>
+                            <h3>Cài đặt template</h3>
+                            <p>Các tùy chọn cài đặt sẽ được thêm vào đây...</p>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

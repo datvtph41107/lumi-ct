@@ -1,0 +1,604 @@
+.container {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 0;
+    height: 100%;
+    background: #f8fafc;
+}
+
+// Toolbox
+.toolbox {
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.toolboxHeader {
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+
+    h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    p {
+        font-size: 12px;
+        color: #64748b;
+        margin: 0;
+    }
+}
+
+.toolboxContent {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.category {
+    margin-bottom: 24px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.categoryTitle {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.categoryFields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toolboxField {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: grab;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    &.dragging {
+        opacity: 0.5;
+        transform: rotate(5deg);
+    }
+
+    svg {
+        font-size: 14px;
+        color: #64748b;
+    }
+}
+
+// Canvas
+.canvas {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.canvasHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+
+    h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+}
+
+.canvasActions {
+    display: flex;
+    gap: 8px;
+}
+
+.actionButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+}
+
+.canvasContent {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f8fafc;
+    min-height: 400px;
+    border: 2px dashed transparent;
+    transition: all 0.2s ease;
+
+    &.dragOver {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+}
+
+.emptyCanvas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: #94a3b8;
+
+    .emptyIcon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    h4 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #64748b;
+        margin: 0 0 8px 0;
+    }
+
+    p {
+        font-size: 14px;
+        margin: 0;
+        max-width: 300px;
+        line-height: 1.5;
+    }
+}
+
+.canvasField {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &.selected {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    &.dragging {
+        opacity: 0.5;
+        transform: rotate(2deg);
+    }
+}
+
+.dragHandle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    color: #94a3b8;
+    cursor: grab;
+    flex-shrink: 0;
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.fieldContent {
+    flex: 1;
+    min-width: 0;
+}
+
+.fieldActions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.fieldAction {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #475569;
+    }
+}
+
+// Field Previews
+.fieldPreview {
+    label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #1e293b;
+        margin-bottom: 6px;
+    }
+
+    .required {
+        color: #dc2626;
+        margin-left: 2px;
+    }
+}
+
+.previewInput, .previewTextarea, .previewSelect {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 13px;
+
+    &:disabled {
+        cursor: not-allowed;
+    }
+}
+
+.previewTextarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.signatureBox, .imageBox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 13px;
+    min-height: 60px;
+
+    svg {
+        font-size: 16px;
+    }
+}
+
+.tableBox {
+    overflow-x: auto;
+}
+
+.previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+
+    th, td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 8px;
+        text-align: left;
+    }
+
+    th {
+        background: #f8fafc;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    td {
+        background: white;
+        color: #64748b;
+    }
+}
+
+.sectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.sectionContent {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+// Properties Panel
+.properties {
+    background: white;
+    border-left: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.propertiesHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+
+    h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+}
+
+.selectedFieldName {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.propertiesContent {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.fieldProperties {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.propertyGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+    }
+}
+
+.propertyInput, .propertyTextarea {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    font-size: 13px;
+    color: #1e293b;
+
+    &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    &::placeholder {
+        color: #94a3b8;
+    }
+}
+
+.propertyTextarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #475569;
+    cursor: pointer;
+
+    input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.propertyActions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.propertyButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+
+    &:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+    }
+
+    &.danger:hover {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #dc2626;
+    }
+}
+
+.noSelection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: #94a3b8;
+
+    .noSelectionIcon {
+        font-size: 32px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+    }
+
+    p {
+        font-size: 14px;
+        margin: 0;
+    }
+}
+
+// Responsive
+@media (max-width: 1200px) {
+    .container {
+        grid-template-columns: 240px 1fr 280px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+    }
+
+    .toolbox {
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+        max-height: 200px;
+    }
+
+    .toolboxContent {
+        padding: 12px;
+    }
+
+    .categoryFields {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+    }
+
+    .properties {
+        border-left: none;
+        border-top: 1px solid #e2e8f0;
+        max-height: 200px;
+    }
+
+    .propertiesContent {
+        padding: 12px;
+    }
+
+    .fieldProperties {
+        gap: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .canvasHeader {
+        padding: 16px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .canvasActions {
+        justify-content: center;
+    }
+
+    .canvasContent {
+        padding: 16px;
+    }
+
+    .canvasField {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .fieldActions {
+        align-self: flex-end;
+    }
+
+    .categoryFields {
+        grid-template-columns: 1fr;
+    }
+}
