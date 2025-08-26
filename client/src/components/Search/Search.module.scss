@@ -1,0 +1,33 @@
+.searchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--gray-2);
+    border-radius: 6px;
+    padding: 6px 10px;
+    background-color: #fff;
+    transition: all 0.2s ease;
+
+    &:focus-within {
+        border-color: var(--text-active);
+        box-shadow: 0 0 0 2px rgba(230, 66, 40, 0.2); // highlight theo màu active
+    }
+}
+
+.icon {
+    color: var(--text-blur);
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.searchInput {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 1.4rem;
+    color: var(--text-black);
+
+    &::placeholder {
+        color: var(--text-blur);
+    }
+}

@@ -1,0 +1,108 @@
+.sb-ct-gr {
+    padding: 16px;
+}
+
+.sb-ct-label {
+    color: oklch(21% 0.034 264.665);
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.sb-ct-label-sm {
+    color: oklch(55.1% 0.027 264.364);
+    margin-bottom: 16px;
+    font-size: 12px;
+}
+
+.sb-card-used {
+    border: 1px solid oklch(92.8% 0.006 264.531);
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+}
+.sb-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    .sb-card-sc {
+        flex: 1;
+        margin-right: 12px;
+    }
+    .sb-card-sc-des-ic {
+        color: oklch(70.7% 0.022 261.325);
+        width: 16px;
+        height: 16px;
+    }
+}
+.sb-card-gr {
+    .sb-card-contain {
+        border: 1px solid oklch(92.8% 0.006 264.531);
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 12px;
+        margin-bottom: 8px;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: var(--text-active);
+            background-color: var(--bg-hover);
+            transition: transform 0.5s ease-in-out;
+
+            .sb-card-sc-title,
+            .sb-card-sc-des-ic,
+            .sb-card-ic {
+                color: var(--text-active);
+            }
+        }
+    }
+}
+
+.sb-card-sc-title {
+    color: oklch(21% 0.034 264.665);
+    font-size: 14px;
+}
+.sb-card-sc-des {
+    color: oklch(55.1% 0.027 264.364);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.sb-card-sc-des-vt {
+    color: oklch(55.1% 0.027 264.364);
+    font-size: 12px;
+}
+
+.sb-card-ic {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: oklch(44.6% 0.03 256.802);
+    margin: 2px 12px 0 0;
+}
+.sb-card-fs {
+    display: flex;
+    align-items: center;
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    .btn-ac {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 6px;
+
+        &:hover {
+            background-color: var(--text-active);
+            color: white;
+            border-radius: 8px;
+        }
+    }
+}

@@ -1,7 +1,7 @@
-import classNames from "classnames/bind";
-import styles from "./Button.module.scss";
-import { Link } from "react-router-dom";
-import type { MouseEventHandler, ReactNode } from "react";
+import classNames from 'classnames/bind';
+import styles from './Button.module.scss';
+import { Link } from 'react-router-dom';
+import type { MouseEventHandler, ReactNode } from 'react';
 
 const cx = classNames.bind(styles);
 
@@ -20,19 +20,21 @@ interface ButtonProps {
     text?: boolean;
     bolder?: boolean;
     disabled?: boolean;
+    transparent?: boolean;
     leftIcon?: ReactNode;
     rightIcon?: ReactNode;
     leftIconStyles?: string;
     className?: string;
     children: ReactNode;
     onClick?: MouseEventHandler<HTMLElement>;
-    type?: "button" | "submit" | "reset";
+    type?: 'button' | 'submit' | 'reset';
 }
 
 function Button({
     to,
     href,
     primary,
+    transparent,
     gray,
     outline,
     rounded,
@@ -50,10 +52,10 @@ function Button({
     leftIconStyles,
     className,
     fullWidth,
-    type = "button",
+    type = 'button',
     ...rest
 }: ButtonProps) {
-    let Comp: React.ElementType = "button";
+    let Comp: React.ElementType = 'button';
     const props: Record<string, unknown> = {
         ...rest,
     };
@@ -62,7 +64,7 @@ function Button({
         Comp = Link;
         props.to = to;
     } else if (href) {
-        Comp = "a";
+        Comp = 'a';
         props.href = href;
     } else {
         props.type = type;
@@ -75,13 +77,13 @@ function Button({
     if (disabled) {
         // Remove all event handlers starting with "on"
         Object.keys(props).forEach((key) => {
-            if (key.startsWith("on") && typeof props[key] === "function") {
+            if (key.startsWith('on') && typeof props[key] === 'function') {
                 delete props[key];
             }
         });
     }
 
-    const classes = cx("wrapper", className, {
+    const classes = cx('wrapper', className, {
         primary,
         fullWidth,
         semiLarge,
@@ -92,15 +94,16 @@ function Button({
         medium,
         large,
         disabled,
+        transparent,
         bolder,
         rounded,
     });
 
     return (
         <Comp className={classes} {...props}>
-            {leftIcon && <span className={cx("icon", "left", leftIconStyles)}>{leftIcon}</span>}
-            <span className={cx("content")}>{children}</span>
-            {rightIcon && <span className={cx("icon", "right")}>{rightIcon}</span>}
+            {leftIcon && <span className={cx('icon', 'left', leftIconStyles)}>{leftIcon}</span>}
+            <span className={cx('content')}>{children}</span>
+            {rightIcon && <span className={cx('icon', 'right')}>{rightIcon}</span>}
         </Comp>
     );
 }

@@ -26,10 +26,11 @@ import SystemNotifications from '~/page/admin/SystemNotifications';
 import SystemNotificationsQueue from '~/page/admin/SystemNotifications';
 import UserManagement from '~/page/admin/UserManagement';
 import { routePrivate } from '~/config/routes.config';
-import TemplateListPage from '~/page/Templates/TemplateListPage';
-import TemplateDetailPage from '~/page/Templates/TemplateDetailPage';
 import UserLogDetail from '~/page/admin/UserManagement/UserLogDetail';
 import ContractManagement from '~/page/admin/ContractManagement/ContractManagement';
+import TemplateManager from '~/page/admin/Template/TemplateManager';
+import TemplateBuilder from '~/page/admin/Template/TemplateBuilder';
+import AdminTemplateBuilder from '~/layouts/AdminTemplateBuilder/AdminTemplateBuilder';
 
 // Route interfaces
 interface BaseRoute {
@@ -89,7 +90,21 @@ export const privateRoutes: PrivateRoute[] = [
     },
 
     // Admin Panel - Chỉ dành cho Admin hoặc có quyền admin access
-    // {
+    {
+        path: routePrivate.templates,
+        component: TemplateManager,
+        layout: DefaultLayout,
+    },
+    {
+        path: routePrivate.templateBuilder,
+        component: TemplateBuilder,
+        layout: AdminTemplateBuilder,
+    },
+    {
+        path: routePrivate.templateBuilderDetail.path,
+        component: TemplateBuilder,
+        layout: AdminTemplateBuilder,
+    },
 
     // System Notifications Settings - Admin only
     {
@@ -159,18 +174,6 @@ export const privateRoutes: PrivateRoute[] = [
         component: ContractCollection,
         layout: CreateContractLayout,
     },
-    // Admin User Management - Chỉ Admin
-    {
-        path: '/admin/users',
-        component: UserManagement, // Replace with actual UserManagement component
-        layout: AdminLayout,
-        access: {
-            roles: [ROLE.ADMIN],
-            permissions: [PERMISSION.USER_MANAGEMENT],
-            requireAll: false, // Chỉ cần 1 trong 2
-        },
-    },
-
     // Admin System Settings - Chỉ Admin
     // {
     //     path: '/admin/settings',
@@ -199,24 +202,6 @@ export const privateRoutes: PrivateRoute[] = [
         layout: CreateContractLayout,
         access: {
             permissions: [PERMISSION.CONTRACTS_CREATE],
-        },
-    },
-
-    // Templates
-    {
-        path: routePrivate.templates,
-        component: TemplateListPage,
-        layout: DefaultLayout,
-        access: {
-            permissions: [PERMISSION.CONTRACTS_MANAGE],
-        },
-    },
-    {
-        path: routePrivate.templateDetail.path,
-        component: TemplateDetailPage,
-        layout: DefaultLayout,
-        access: {
-            permissions: [PERMISSION.CONTRACTS_MANAGE],
         },
     },
 
