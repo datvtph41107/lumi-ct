@@ -1,2 +1,6 @@
 .wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: oklch(1 0 0);
 }
