@@ -1,0 +1,60 @@
+.draggable-block-item {
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    cursor: grabbing;
+    transform: translateY(0);
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+  }
+}
+
+// Block library specific styles
+.block-library {
+  .draggable-block-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background-color: white;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #007bff;
+      box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      cursor: grabbing;
+      transform: translateY(0);
+    }
+
+    &.dragging {
+      opacity: 0.5;
+      transform: rotate(5deg);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    &--field {
+      background-color: #f8f9fa;
+      border-color: #dee2e6;
+
+      &:hover {
+        border-color: #007bff;
+        background-color: #e7f3ff;
+      }
+    }
+  }
+}

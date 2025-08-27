@@ -1,0 +1,94 @@
+.sortable-block-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #e1e5e9;
+  border-radius: 4px;
+  background-color: white;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+  }
+
+  &.dragging {
+    opacity: 0.5;
+    transform: rotate(2deg);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  &__drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    color: #666;
+    cursor: grab;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #e9ecef;
+      color: #333;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// Drop zone indicators
+.drop-zone {
+  position: relative;
+  min-height: 20px;
+  transition: all 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+  }
+
+  &.drop-active::before {
+    background-color: #007bff;
+  }
+
+  &.drop-over::before {
+    background-color: #28a745;
+    height: 4px;
+  }
+}
+
+// Sortable context styles
+.sortable-context {
+  min-height: 100px;
+  padding: 8px;
+  border: 2px dashed transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+
+  &.drop-active {
+    border-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+
+  &.drop-over {
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.05);
+  }
+}

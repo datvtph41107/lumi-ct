@@ -1,0 +1,363 @@
+.table-block {
+  margin: 16px 0;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  background-color: white;
+  overflow: hidden;
+
+  &-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+  }
+
+  &-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  &-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: #666;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #e9ecef;
+      color: #333;
+    }
+  }
+
+  &-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+    gap: 16px;
+
+    &__left,
+    &__center,
+    &__right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    &__btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid #e1e5e9;
+      background-color: white;
+      color: #666;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        border-color: #007bff;
+        color: #007bff;
+        background-color: #f8f9fa;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      &.active {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+      }
+    }
+  }
+
+  &-settings {
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+
+    &__section {
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    &__label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    &__input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+      }
+    }
+
+    &__headers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+
+    &__header-input {
+      padding: 6px 8px;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+      font-size: 13px;
+      transition: border-color 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+      }
+    }
+
+    &__size {
+      display: flex;
+      gap: 16px;
+    }
+
+    &__size-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      span {
+        font-size: 14px;
+        color: #666;
+        min-width: 40px;
+      }
+    }
+
+    &__number-input {
+      width: 60px;
+      padding: 6px 8px;
+      border: 1px solid #e1e5e9;
+      border-radius: 4px;
+      font-size: 14px;
+      text-align: center;
+      transition: border-color 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #007bff;
+      }
+    }
+  }
+
+  &-content {
+    padding: 16px;
+    overflow-x: auto;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #e1e5e9;
+
+      th, td {
+        border: 1px solid #e1e5e9;
+        padding: 8px 12px;
+        text-align: left;
+        vertical-align: top;
+        min-width: 100px;
+      }
+
+      th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #333;
+      }
+
+      td {
+        background-color: white;
+        color: #333;
+      }
+
+      // Auto-numbering column
+      td:first-child {
+        text-align: center;
+        font-weight: 500;
+        background-color: #f8f9fa;
+        min-width: 60px;
+      }
+
+      // Total row
+      tr:last-child {
+        background-color: #f8f9fa;
+        font-weight: 600;
+
+        td {
+          background-color: #f8f9fa;
+        }
+      }
+    }
+  }
+
+  // Mode-specific styles
+  &-edit {
+    .table-block-content {
+      table {
+        th, td {
+          position: relative;
+
+          &:hover {
+            background-color: #e7f3ff;
+          }
+        }
+
+        // Cell selection
+        th.selected, td.selected {
+          background-color: #007bff !important;
+          color: white;
+        }
+
+        // Merge cell indicator
+        td[colspan]:not([colspan="1"]), 
+        td[rowspan]:not([rowspan="1"]) {
+          background-color: #fff3cd;
+          border: 2px solid #ffc107;
+        }
+      }
+    }
+  }
+
+  &-fill {
+    .table-block-content {
+      table {
+        td {
+          padding: 4px 8px;
+
+          input {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #e1e5e9;
+            border-radius: 3px;
+            font-size: 13px;
+            background-color: white;
+
+            &:focus {
+              outline: none;
+              border-color: #007bff;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  &-preview {
+    .table-block-content {
+      table {
+        th, td {
+          padding: 6px 10px;
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .table-block {
+    margin: 12px 0;
+
+    &-toolbar {
+      flex-direction: column;
+      gap: 8px;
+
+      &__left,
+      &__center,
+      &__right {
+        justify-content: center;
+      }
+    }
+
+    &-settings {
+      padding: 12px;
+
+      &__headers {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 6px;
+      }
+
+      &__size {
+        flex-direction: column;
+        gap: 8px;
+      }
+    }
+
+    &-content {
+      padding: 12px;
+
+      table {
+        th, td {
+          padding: 6px 8px;
+          font-size: 12px;
+          min-width: 80px;
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .table-block {
+    border: none;
+    margin: 8px 0;
+
+    &-header,
+    &-toolbar,
+    &-settings {
+      display: none;
+    }
+
+    &-content {
+      padding: 0;
+
+      table {
+        th, td {
+          border: 1px solid #000;
+          padding: 4px 6px;
+          font-size: 11px;
+        }
+
+        th {
+          background-color: #f0f0f0 !important;
+        }
+      }
+    }
+  }
+}

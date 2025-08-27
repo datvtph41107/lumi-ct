@@ -1,0 +1,203 @@
+.drop-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1000;
+  background-color: white;
+  border: 2px solid #007bff;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  max-width: 250px;
+  transform-origin: center;
+
+  &--dragging {
+    animation: dropPreviewPulse 1s ease-in-out infinite;
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 2px;
+  }
+
+  &__description {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.3;
+  }
+
+  &__indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: #007bff;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__arrow {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+  }
+}
+
+@keyframes dropPreviewPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+// Drop zone indicators
+.drop-zone-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  pointer-events: none;
+  z-index: 5;
+
+  &--active {
+    border-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+
+  &--over {
+    border-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.05);
+    border-style: solid;
+  }
+}
+
+// Insertion line indicator
+.insertion-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #007bff;
+  border-radius: 1px;
+  z-index: 10;
+  pointer-events: none;
+  animation: insertionLinePulse 1s ease-in-out infinite;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    background-color: #007bff;
+    border-radius: 50%;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    background-color: #007bff;
+    border-radius: 50%;
+  }
+}
+
+@keyframes insertionLinePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scaleY(1.5);
+  }
+}
+
+// Block reorder indicators
+.block-reorder-indicator {
+  position: relative;
+  transition: all 0.2s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: transparent;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+  }
+
+  &--drop-active::before {
+    background-color: #007bff;
+  }
+
+  &--drop-over::before {
+    background-color: #28a745;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .drop-preview {
+    max-width: 200px;
+    padding: 8px;
+
+    &__content {
+      gap: 8px;
+    }
+
+    &__icon {
+      font-size: 16px;
+    }
+
+    &__label {
+      font-size: 13px;
+    }
+
+    &__description {
+      font-size: 11px;
+    }
+
+    &__indicator {
+      width: 20px;
+      height: 20px;
+    }
+
+    &__arrow {
+      font-size: 10px;
+    }
+  }
+}
