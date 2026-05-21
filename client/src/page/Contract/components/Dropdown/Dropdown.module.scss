@@ -18,7 +18,8 @@
     background: white;
     cursor: pointer;
     transition: all 0.2s ease;
-    min-height: 40px;
+    min-height: 36px;
+    height: 100%;
 
     &.error {
         border-color: #ff4742;

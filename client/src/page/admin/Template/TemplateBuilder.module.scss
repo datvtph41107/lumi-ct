@@ -78,6 +78,7 @@
 
         .tb-bt-upload {
             font-size: 14px;
+            background-color: var(--text-active);
             &:hover {
                 background-color: var(--text-active);
             }
@@ -87,4 +88,10 @@
 
 .container {
     flex: 1;
+}
+
+.container-group {
+    display: flex;
+    height: 100vh;
+    background-color: oklch(98.5% 0.002 247.839);
 }

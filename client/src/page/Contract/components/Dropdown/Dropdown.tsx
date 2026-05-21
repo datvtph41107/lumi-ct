@@ -10,7 +10,7 @@ const cx = classNames.bind(styles);
 interface Option {
     value: string;
     label: string;
-    icon?: string;
+    icon?: string | React.ReactNode;
 }
 
 interface DropdownProps {

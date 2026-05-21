@@ -60,8 +60,10 @@ function TemplateBuilder() {
                 </div>
             </div>
             <div className={cx('container')}>
-                <Sidebar />
-                <EditorBuilder />
+                <div className={cx('container-group')}>
+                    <Sidebar />
+                    <EditorBuilder />
+                </div>
             </div>
         </div>
     );

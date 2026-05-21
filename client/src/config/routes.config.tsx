@@ -39,4 +39,6 @@ export const routePrivate = {
     templateDetail: dynamicRoute('/admin/templates/:id', (id) => `/admin/templates/${id}`),
     templateBuilder: '/admin/templates/builder',
     templateBuilderDetail: dynamicRoute('/admin/templates/builder/:id', (id) => `/admin/templates/builder/${id}`),
+    templateEditor: '/templates/editor',
+    templateEditorDetail: dynamicRoute('/templates/editor/:id', (id) => `/templates/edito/${id}`),
 };

@@ -222,7 +222,6 @@ export const privateRoutes: PrivateRoute[] = [
             permissions: [PERMISSION.CONTRACTS_MANAGE],
         },
     },
-
     // Manager Routes - Dành cho Manager và Admin
     {
         path: '/manager/reports',
